@@ -1,0 +1,191 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Send, X, Sparkles, CalendarPlus, ListPlus, Check } from 'lucide-react';
+import EddyMascot from './EddyMascot';
+import type { ParsedMessageIntent } from '@/lib/gemini';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'eddy';
+  text: string;
+  draft?: ParsedMessageIntent;
+  added?: boolean; // สำหรับ draft ที่เป็น task และเพิ่มไปแล้ว
+}
+
+const initialMessages: ChatMessage[] = [
+  {
+    id: 'welcome',
+    role: 'eddy',
+    text: 'สวัสดี! ผมเอ็ดดี้ ผู้ช่วยของคุณ ลองพิมพ์ "นัดหมอฟันพุธหน้าบ่ายสาม" หรือ "อ่านหนังสือสอบ" ดูได้เลย ผมจะช่วยแปลงให้!',
+  },
+];
+
+export default function ChatWidget() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages, open]);
+
+  async function sendMessage() {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', text };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: 'eddy',
+          text: data.reply ?? 'ขออภัย ผมยังตอบไม่ได้ตอนนี้',
+          draft: data.draft ?? undefined,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'eddy', text: 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้งนะ' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function addDraftToCalendar(draft: ParsedMessageIntent) {
+    const payload = encodeURIComponent(JSON.stringify(draft));
+    router.push(`/calendar?quickAdd=${payload}`);
+    setOpen(false);
+  }
+
+  async function addDraftToTodo(messageId: string, draft: ParsedMessageIntent) {
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: draft.title }),
+    });
+    if (!res.ok) return;
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, added: true } : m)));
+  }
+
+  return (
+    <>
+      {/* Floating action button */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="fixed bottom-24 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-eddy-500 shadow-clay-pop transition-transform hover:scale-105 md:bottom-8 md:right-8"
+        aria-label="เปิดแชทกับ Eddy"
+      >
+        {open ? <X color="white" size={26} /> : <EddyMascot size={48} float={false} />}
+      </button>
+
+      {/* Chat panel */}
+      {open && (
+        <div className="fixed bottom-40 right-4 z-40 flex h-[480px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-clay bg-white shadow-clay-pop md:bottom-28 md:right-8">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-eddy-500 to-eddy-400 px-5 py-4 text-white">
+            <EddyMascot size={36} float={false} />
+            <div>
+              <p className="font-display text-sm font-bold">คุยกับเอ็ดดี้</p>
+              <p className="flex items-center gap-1 text-[11px] text-eddy-50/90">
+                <Sparkles size={12} /> ขับเคลื่อนด้วย Gemini AI
+              </p>
+            </div>
+          </div>
+
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-eddy-50 px-4 py-4">
+            {messages.map((m) => (
+              <div key={m.id} className="flex flex-col gap-2">
+                <div
+                  className={`max-w-[80%] rounded-clay-sm px-4 py-2.5 font-body text-sm ${
+                    m.role === 'eddy' ? 'bg-white text-ink shadow-clay-sm' : 'ml-auto bg-eddy-500 text-white'
+                  }`}
+                >
+                  {m.text}
+                </div>
+
+                {/* การ์ดเสนอเพิ่มกิจกรรม/สิ่งที่ต้องทำ จากข้อความที่ Gemini แปลงได้ */}
+                {m.draft && (
+                  <div className="max-w-[85%] rounded-clay-sm bg-pastel-mint/60 p-3">
+                    <p className="font-body text-xs font-semibold text-ink">เอ็ดดี้อ่านได้ว่า:</p>
+                    <p className="mt-1 font-body text-sm text-ink">{m.draft.title}</p>
+                    {m.draft.intent === 'event' && (
+                      <p className="font-body text-xs text-ink-muted">
+                        {m.draft.date}
+                        {m.draft.startTime ? ` • ${m.draft.startTime} น.` : ''}
+                      </p>
+                    )}
+                    {m.added ? (
+                      <p className="mt-2 flex items-center gap-1 font-display text-xs font-semibold text-eddy-700">
+                        <Check size={14} /> เพิ่มแล้ว
+                      </p>
+                    ) : m.draft.intent === 'event' ? (
+                      <button
+                        onClick={() => addDraftToCalendar(m.draft!)}
+                        className="mt-2 flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-1.5 font-display text-xs font-semibold text-white"
+                      >
+                        <CalendarPlus size={14} /> เพิ่มลงปฏิทิน
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => addDraftToTodo(m.id, m.draft!)}
+                        className="mt-2 flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-1.5 font-display text-xs font-semibold text-white"
+                      >
+                        <ListPlus size={14} /> เพิ่มในสิ่งที่ต้องทำ
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {loading && (
+              <div className="max-w-[60%] rounded-clay-sm bg-white px-4 py-2.5 font-body text-sm text-ink-muted shadow-clay-sm">
+                เอ็ดดี้กำลังพิมพ์...
+              </div>
+            )}
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendMessage();
+            }}
+            className="flex items-center gap-2 border-t border-eddy-100 bg-white p-3"
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="พิมพ์ข้อความถึงเอ็ดดี้..."
+              className="flex-1 rounded-clay-sm bg-eddy-50 px-4 py-2.5 font-body text-sm text-ink placeholder:text-ink-muted focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-eddy-500 text-white disabled:opacity-50"
+              disabled={loading}
+              aria-label="ส่งข้อความ"
+            >
+              <Send size={18} />
+            </button>
+          </form>
+        </div>
+      )}
+    </>
+  );
+}

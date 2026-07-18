@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background-color: #f3f7fc;
+  color: #14202e;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Reusable elevated card surface - the core building block of the elegant navy/blue look */
+.clay-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 18px 40px -16px rgba(13, 28, 51, 0.18),
+    0 2px 8px rgba(13, 28, 51, 0.06);
+}
+
+/* Soft-lift button - subtle elevation instead of a bouncy 3D press */
+.clay-button {
+  border-radius: 12px;
+  box-shadow: 0 8px 20px -10px rgba(13, 28, 51, 0.16);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.clay-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -16px rgba(13, 28, 51, 0.22);
+}
+.clay-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px -6px rgba(13, 28, 51, 0.16);
+}
+
+/* Scrollbar styling so it matches the navy/blue theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c6d9ef;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
