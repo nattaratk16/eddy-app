@@ -29,11 +29,13 @@ export async function POST(req: NextRequest) {
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
   const todayStart = new Date(`${todayISO}T00:00:00+07:00`);
 
-  const [tasks, events, categoriesRaw] = await Promise.all([
+  const [tasks, events, categoriesRaw, user] = await Promise.all([
     prisma.task.findMany({ where: { userId, done: false }, orderBy: { createdAt: 'desc' }, take: 5 }),
     // เทียบกับต้นวันนี้ (เที่ยงคืน) ไม่ใช่เวลาปัจจุบันเป๊ะๆ ไม่งั้นกิจกรรมที่เหลือของวันนี้จะถูกกรองออกไปหลังเที่ยงคืนผ่านมาแล้ว
     prisma.event.findMany({ where: { userId, date: { gte: todayStart } }, orderBy: { date: 'asc' }, take: 5 }),
     prisma.category.findMany({ where: { userId } }),
+    // โปรไฟล์ผู้ใช้ - เอานิสัย/ตัวตน + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),
   ]);
   const categories: CalendarCategory[] = categoriesRaw.map((c) => ({
     id: c.id,
@@ -41,9 +43,20 @@ export async function POST(req: NextRequest) {
     color: c.color as CalendarCategory['color'],
   }));
 
-  const context =
-    `งานที่ยังไม่เสร็จ: ${tasks.map((t) => t.title).join(', ') || 'ไม่มี'}\n` +
-    `กิจกรรมที่จะถึง: ${events.map((e) => `${e.title} (${e.date.toISOString().slice(0, 10)})`).join(', ') || 'ไม่มี'}`;
+  // บริบทเกี่ยวกับตัวผู้ใช้ (ถ้ากรอกไว้) เพื่อให้ AI วิเคราะห์/แนะนำได้เข้ากับนิสัยและเวลาของแต่ละคน
+  const profileLines = [
+    user?.name ? `ชื่อผู้ใช้: ${user.name}` : '',
+    user?.bio ? `นิสัย/ตัวตนของผู้ใช้: ${user.bio}` : '',
+    user?.dayStart || user?.dayEnd
+      ? `ช่วงเวลาที่ผู้ใช้สะดวกทำงาน: ${user?.dayStart || '—'}-${user?.dayEnd || '—'} น. (${user?.timezone || 'Asia/Bangkok'})`
+      : '',
+  ].filter(Boolean);
+
+  const context = [
+    ...profileLines,
+    `งานที่ยังไม่เสร็จ: ${tasks.map((t) => t.title).join(', ') || 'ไม่มี'}`,
+    `กิจกรรมที่จะถึง: ${events.map((e) => `${e.title} (${e.date.toISOString().slice(0, 10)})`).join(', ') || 'ไม่มี'}`,
+  ].join('\n');
 
   const [replyResult, draftResult] = await Promise.allSettled([
     askEddy({ message, context }),
