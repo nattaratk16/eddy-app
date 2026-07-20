@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
+import { serializeGroup } from '@/lib/groups';
+
+// GET /api/groups - กลุ่มที่ฉันเป็นสมาชิก (รับคำเชิญแล้ว)
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = session.user.id;
+
+  const memberships = await prisma.groupMember.findMany({
+    where: { userId, status: 'accepted' },
+    include: {
+      group: { include: { members: { where: { status: 'accepted' }, select: { id: true } } } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const groups = memberships.map((m) =>
+    serializeGroup(m.group, userId, { memberCount: m.group.members.length }),
+  );
+  return NextResponse.json({ groups });
+}
+
+// POST /api/groups - สร้างกลุ่มใหม่ (ผู้สร้างเป็นเจ้าของ + สมาชิกอัตโนมัติ)
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = session.user.id;
+
+  const body = await req.json().catch(() => null);
+  const name = typeof body?.name === 'string' ? body.name.trim() : '';
+  if (!name) return NextResponse.json({ error: 'กรุณาตั้งชื่อกลุ่ม' }, { status: 400 });
+  if (name.length > 60) return NextResponse.json({ error: 'ชื่อกลุ่มยาวเกินไป' }, { status: 400 });
+
+  const group = await prisma.group.create({
+    data: {
+      name,
+      description: typeof body?.description === 'string' ? body.description.trim() || null : null,
+      color: typeof body?.color === 'string' ? body.color : 'blue',
+      ownerId: userId,
+      members: { create: { userId, role: 'owner', status: 'accepted', showEventTitles: true } },
+    },
+  });
+
+  return NextResponse.json({ group: serializeGroup(group, userId, { memberCount: 1 }) }, { status: 201 });
+}

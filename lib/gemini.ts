@@ -275,3 +275,59 @@ export async function breakdownTask({ title, description }: BreakdownTaskParams)
   const cleaned = result.subtasks.map((s) => s.trim()).filter(Boolean);
   return cleaned.length > 0 ? cleaned : null;
 }
+
+// ---------- 5) กระจายงานกลุ่มให้สมาชิก (เฟส 3c) ----------
+// AI ตัดสินแค่ "ใครควรทำงานไหน" (จากเวลาว่าง + นิสัย) ส่วนการวางเวลาจริงคำนวณ local เพื่อการันตีว่าไม่ชน
+const DISTRIBUTE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    assignments: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          taskId: { type: 'STRING' },
+          userId: { type: 'STRING' },
+        },
+        required: ['taskId', 'userId'],
+      },
+    },
+  },
+  required: ['assignments'],
+};
+
+interface DistributeInput {
+  tasks: { id: string; title: string; durationMin: number; dueDate?: string | null }[];
+  members: { id: string; name: string; freeMinutes: number; bio?: string | null }[];
+}
+
+export async function distributeGroupTasks(
+  input: DistributeInput,
+): Promise<{ taskId: string; userId: string }[] | null> {
+  const taskList = input.tasks
+    .map((t) => `- id=${t.id} | "${t.title}" | ใช้เวลา ~${t.durationMin} นาที${t.dueDate ? ` | ต้องเสร็จก่อน ${t.dueDate}` : ''}`)
+    .join('\n');
+  const memberList = input.members
+    .map((m) => `- id=${m.id} | ${m.name} | เวลาว่างรวม ~${m.freeMinutes} นาที${m.bio ? ` | นิสัย: ${m.bio}` : ''}`)
+    .join('\n');
+
+  const prompt = `
+คุณคือผู้ช่วยจัดสรรงานให้ทีม ช่วยมอบหมายงานกลุ่มต่อไปนี้ให้สมาชิกแต่ละคน "อย่างเป็นธรรม"
+
+งานที่ต้องกระจาย:
+${taskList}
+
+สมาชิกในกลุ่ม:
+${memberList}
+
+กติกา:
+- มอบหมายให้ครบทุกงาน งานละ 1 คน
+- กระจายให้สมดุล ไม่ให้ใครหนักเกินไป โดยดูจากเวลาว่างรวม (คนว่างมากรับได้มากกว่า)
+- ถ้านิสัยของใครเข้ากับงานไหนเป็นพิเศษ ให้พิจารณาจับคู่ให้เหมาะ
+- ตอบเป็น assignments โดยใช้ id ที่ให้มาเท่านั้น (taskId ต้องมาจากรายการงาน, userId ต้องมาจากรายชื่อสมาชิก)
+`.trim();
+
+  const result = await callGeminiJSON<{ assignments: { taskId: string; userId: string }[] }>(prompt, DISTRIBUTE_SCHEMA);
+  if (!result || !Array.isArray(result.assignments)) return null;
+  return result.assignments.filter((a) => a?.taskId && a?.userId);
+}

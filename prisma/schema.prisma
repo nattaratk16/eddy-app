@@ -22,8 +22,18 @@ model User {
   emailVerified DateTime? // ใช้โดย NextAuth adapter (OAuth provider ยืนยันอีเมลให้อัตโนมัติ)
   name          String?
   image         String?
-  bio           String? // เกี่ยวกับฉัน - แสดงในหน้าโปรไฟล์ (เผื่อใช้ตอนทำระบบเพื่อน/แชร์ในอนาคต)
+  bio           String? // เกี่ยวกับฉัน - แสดงในหน้าโปรไฟล์
   password      String? // เก็บแบบ hashed (bcrypt) เท่านั้น - เป็น null ได้ถ้าสมัครผ่าน Google (ไม่มีรหัสผ่าน)
+  // ข้อมูลโปรไฟล์เพิ่มเติม (ทุกช่องไม่บังคับ - ออกแบบให้เป็นกลาง ใช้ได้ทั้งคนเรียนและคนทำงาน)
+  username     String? @unique // ชื่อผู้ใช้ (handle) - ไม่ซ้ำกัน
+  title        String? // บทบาท/ตำแหน่ง เช่น "นักศึกษาวิศวกรรม", "นักการตลาด", "ครู"
+  organization String? // สถานศึกษา/ที่ทำงาน
+  status       String? // "student" | "working" | "other"
+  avatarColor  String? // สีพื้นอวาตาร์ (คีย์จากพาเลตพาสเทล)
+  avatarEmoji  String? // อีโมจิใช้เป็นอวาตาร์ (ถ้าไม่ได้ใส่รูป)
+  timezone     String? // โซนเวลา IANA เช่น "Asia/Bangkok"
+  dayStart     String? // ช่วงเวลาที่สะดวกเริ่ม "HH:mm" - ป้อนให้ AI หาเวลาว่าง
+  dayEnd       String? // ช่วงเวลาที่สะดวกจบ "HH:mm"
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   tasks         Task[]
@@ -32,6 +42,9 @@ model User {
   messages      ChatMessage[]
   accounts      Account[]
   sessions      Session[]
+  // เฟส 3: ระบบกลุ่ม
+  ownedGroups      Group[]       @relation("GroupOwner")
+  groupMemberships GroupMember[] @relation("GroupMemberships")
 }
 
 // ---------- ตารางมาตรฐานของ NextAuth adapter (สำหรับ Google OAuth) ----------
@@ -127,6 +140,75 @@ model Event {
   categoryId  String
 
   @@index([userId, date])
+}
+
+// ---------- เฟส 3: ระบบกลุ่ม (แชร์ตาราง + AI หาเวลาว่าง + กระจายงาน) ----------
+
+// กลุ่มสำหรับทำงาน/นัดหมายร่วมกัน
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  color       String        @default("blue") // ใช้พาเลตพาสเทลเดียวกับ category เป็นสีประจำกลุ่ม
+  ownerId     String
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  members     GroupMember[]
+  tasks       GroupTask[]
+}
+
+// สมาชิกในกลุ่ม (รวมเจ้าของด้วย) + สถานะคำเชิญ + การตั้งค่าความเป็นส่วนตัว
+model GroupMember {
+  id              String   @id @default(cuid())
+  groupId         String
+  group           Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  role            String   @default("member") // "owner" | "member"
+  status          String   @default("pending") // "pending" | "accepted" | "declined"
+  // ความเป็นส่วนตัว: true = โชว์ชื่อ event ให้เพื่อนในกลุ่มเห็น, false = โชว์แค่ช่วง "ไม่ว่าง"
+  showEventTitles Boolean  @default(false)
+  invitedById     String? // ผู้ใช้ที่เชิญ (ไว้อ้างอิง ไม่ทำ relation เพื่อความเรียบง่าย)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([groupId, userId])
+  @@index([userId, status])
+}
+
+// งานของกลุ่ม (สิ่งที่ต้องช่วยกันทำ) - รอ AI กระจายให้สมาชิก
+model GroupTask {
+  id               String               @id @default(cuid())
+  groupId          String
+  group            Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  estimatedMinutes Int                  @default(60) // ใช้คำนวณว่าต้องการช่วงว่างยาวแค่ไหน
+  dueDate          DateTime? // กำหนดส่ง (ไม่บังคับ) - AI จะไม่วางเกินวันนี้
+  createdById      String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  assignment       GroupTaskAssignment?
+
+  @@index([groupId])
+}
+
+// ผลการมอบหมายงานกลุ่ม (AI เสนอ 1 งาน → 1 คน + ช่วงเวลา) รอสมาชิก approve ลงปฏิทินตัวเอง
+model GroupTaskAssignment {
+  id               String    @id @default(cuid())
+  groupTaskId      String    @unique
+  groupTask        GroupTask @relation(fields: [groupTaskId], references: [id], onDelete: Cascade)
+  assignedToUserId String
+  date             String // "YYYY-MM-DD"
+  startTime        String // "HH:mm"
+  endTime          String // "HH:mm"
+  status           String    @default("suggested") // "suggested" | "approved" | "rejected"
+  approvedEventId  String? // event ที่สร้างในปฏิทินส่วนตัวตอน approve (เฟส 3d)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([assignedToUserId, status])
 }
 
 model ChatMessage {
