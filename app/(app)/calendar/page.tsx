@@ -6,41 +6,56 @@ import { useSession } from 'next-auth/react';
 import {
   addDays,
   addMonths,
-  endOfMonth,
+  addWeeks,
   endOfWeek,
   format,
-  isSameDay,
-  isSameMonth,
-  startOfMonth,
   startOfWeek,
+  subDays,
   subMonths,
+  subWeeks,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Pencil, Sparkles, Trash2, MapPin } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
 import Modal from '@/components/Modal';
 import CategoryManager from '@/components/CategoryManager';
 import EventFormModal from '@/components/EventFormModal';
 import EddyMascot from '@/components/EddyMascot';
-import { getColorOption } from '@/lib/colors';
+import CalendarToolbar from '@/components/calendar/CalendarToolbar';
+import MiniCalendar from '@/components/calendar/MiniCalendar';
+import MonthView from '@/components/calendar/MonthView';
+import TimeGridView from '@/components/calendar/TimeGridView';
 import { buildWeeklySummary } from '@/lib/aiMock';
-import type { CalendarCategory, CalendarEvent, PastelColor } from '@/lib/types';
+import type { CalendarCategory, CalendarEvent, CalendarView, PastelColor } from '@/lib/types';
 
-const weekDayLabels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 const thMonths = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
 ];
-function thMonthYear(d: Date) {
-  return `${thMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
-}
-function thFullDate(d: Date) {
-  return `${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
-}
+const thMonthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
 function toISODate(d: Date) {
   return format(d, 'yyyy-MM-dd');
 }
 
+// ชื่อช่วงเวลาที่แสดงบน toolbar ตามมุมมองที่เลือก
+function toolbarTitle(view: CalendarView, anchor: Date) {
+  if (view === 'month') {
+    return `${thMonths[anchor.getMonth()]} ${anchor.getFullYear() + 543}`;
+  }
+  if (view === 'day') {
+    return `${anchor.getDate()} ${thMonths[anchor.getMonth()]} ${anchor.getFullYear() + 543}`;
+  }
+  // week
+  const start = startOfWeek(anchor);
+  const end = endOfWeek(anchor);
+  const be = end.getFullYear() + 543;
+  if (start.getMonth() === end.getMonth()) {
+    return `${start.getDate()} – ${end.getDate()} ${thMonthsShort[end.getMonth()]} ${be}`;
+  }
+  return `${start.getDate()} ${thMonthsShort[start.getMonth()]} – ${end.getDate()} ${thMonthsShort[end.getMonth()]} ${be}`;
+}
 
 interface ModalState {
   open: boolean;
@@ -63,8 +78,9 @@ function CalendarPageContent() {
   const { data: session } = useSession();
   const userName = session?.user?.name || session?.user?.email || 'เพื่อน';
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState(new Date());
+  const [view, setView] = useState<CalendarView>('week');
+  // วันอ้างอิงของมุมมองปัจจุบัน (มุมมองวัน = วันนั้น, สัปดาห์ = สัปดาห์ที่คร่อมวันนั้น, เดือน = เดือนของวันนั้น)
+  const [anchor, setAnchor] = useState(new Date());
 
   const [categories, setCategories] = useState<CalendarCategory[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -85,15 +101,13 @@ function CalendarPageContent() {
   }, []);
 
   // รับกิจกรรมที่ Eddy ช่วยแปลงจากแชท (quick-add) ผ่าน query param แล้วเปิด modal ให้ทันที
-  // ใช้ searchParams เป็น dependency (ไม่ใช่ []) เพราะ ChatWidget อยู่ใน layout ที่ mount ค้างไว้ตลอด
-  // ถ้าผู้ใช้กด "เพิ่มลงปฏิทิน" ตอนอยู่หน้า /calendar อยู่แล้ว จะเป็นแค่ soft navigation ไม่ remount หน้านี้ใหม่
   useEffect(() => {
     const quickAdd = searchParams.get('quickAdd');
     if (!quickAdd) return;
     try {
       const draft = JSON.parse(decodeURIComponent(quickAdd));
       setModalState({ open: true, prefill: draft });
-      if (draft.date) setSelectedDay(new Date(draft.date));
+      if (draft.date) setAnchor(new Date(draft.date));
     } catch {
       // ignore malformed param
     }
@@ -101,50 +115,37 @@ function CalendarPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // มาจาก mini calendar ในหน้า Dashboard - เลือกวันที่ระบุมาให้ทันที (ไม่เปิด modal)
+  // มาจาก mini calendar ในหน้า Dashboard - กระโดดไปวันที่ระบุ (เปิดเป็นมุมมองวัน)
   useEffect(() => {
     const date = searchParams.get('date');
     if (!date) return;
-    const d = new Date(date);
-    setSelectedDay(d);
-    setCurrentMonth(d);
+    setAnchor(new Date(date));
+    setView('day');
     router.replace('/calendar');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const days = useMemo(() => {
-    const start = startOfWeek(startOfMonth(currentMonth));
-    const end = endOfWeek(endOfMonth(currentMonth));
-    const result: Date[] = [];
-    let day = start;
-    while (day <= end) {
-      result.push(day);
-      day = addDays(day, 1);
-    }
-    return result;
-  }, [currentMonth]);
+  const visibleEvents = useMemo(
+    () => events.filter((ev) => visibleIds.has(ev.categoryId)),
+    [events, visibleIds],
+  );
 
-  function categoryOf(ev: CalendarEvent) {
-    return categories.find((c) => c.id === ev.categoryId);
-  }
+  // วันที่จะส่งให้มุมมอง time-grid: 1 วัน หรือ 7 วันของสัปดาห์
+  const gridDays = useMemo(() => {
+    if (view === 'day') return [anchor];
+    const start = startOfWeek(anchor);
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }, [view, anchor]);
 
-  function eventsForDay(day: Date) {
-    return events
-      .filter((ev) => isSameDay(new Date(ev.date), day))
-      .filter((ev) => visibleIds.has(ev.categoryId));
-  }
-
-  const selectedDayEvents = eventsForDay(selectedDay);
-
-  // สรุปภาพรวมสัปดาห์ของวันที่เลือกอยู่ - แสดงแบบ local ทันที แล้วค่อยสลับเป็นเวอร์ชัน AI เมื่อโหลดเสร็จ
+  // ---- สรุปสัปดาห์ด้วย AI (คงไว้จากเดิม แสดงแบบ local ก่อน แล้วสลับเป็น AI เมื่อโหลดเสร็จ) ----
   const weekEvents = useMemo(() => {
-    const weekStart = startOfWeek(selectedDay);
-    const weekEnd = endOfWeek(selectedDay);
+    const weekStart = startOfWeek(anchor);
+    const weekEnd = endOfWeek(anchor);
     return events.filter((ev) => {
       const d = new Date(ev.date);
       return d >= weekStart && d <= weekEnd && visibleIds.has(ev.categoryId);
     });
-  }, [events, visibleIds, selectedDay]);
+  }, [events, visibleIds, anchor]);
 
   const localWeeklySummary = useMemo(() => buildWeeklySummary(weekEvents, categories), [weekEvents, categories]);
   const [aiWeeklySummary, setAiWeeklySummary] = useState<string | null>(null);
@@ -162,7 +163,6 @@ function CalendarPageContent() {
           body: JSON.stringify({ weekEvents, categories }),
         });
         const data = await res.json();
-        // เพิกเฉยถ้ามี request ใหม่กว่ายิงออกไปแล้วระหว่างรอ (กัน response เก่ามาทับผลใหม่)
         if (seq === summaryRequestSeq.current && data.summary) setAiWeeklySummary(data.summary);
       } catch {
         // เงียบไว้ - ใช้ localWeeklySummary ต่อไป
@@ -172,6 +172,21 @@ function CalendarPageContent() {
   }, [weekEvents, categories]);
 
   const weeklySummary = aiWeeklySummary ?? localWeeklySummary;
+
+  // ---- Navigation ----
+  function goPrev() {
+    setAnchor((d) => (view === 'day' ? subDays(d, 1) : view === 'week' ? subWeeks(d, 1) : subMonths(d, 1)));
+  }
+  function goNext() {
+    setAnchor((d) => (view === 'day' ? addDays(d, 1) : view === 'week' ? addWeeks(d, 1) : addMonths(d, 1)));
+  }
+  function goToday() {
+    setAnchor(new Date());
+  }
+  function openDay(day: Date) {
+    setAnchor(day);
+    setView('day');
+  }
 
   // ---- Category handlers ----
   async function addCategory(name: string, color: PastelColor) {
@@ -221,8 +236,12 @@ function CalendarPageContent() {
   }
 
   // ---- Event handlers ----
-  function openAddModal(date?: Date) {
-    setModalState({ open: true, defaultDate: toISODate(date ?? selectedDay) });
+  function openAddModal(date?: Date, startTime?: string) {
+    setModalState({
+      open: true,
+      defaultDate: toISODate(date ?? anchor),
+      prefill: startTime ? { startTime } : undefined,
+    });
   }
 
   function openEditModal(ev: CalendarEvent) {
@@ -235,7 +254,6 @@ function CalendarPageContent() {
 
   async function saveEvent(ev: CalendarEvent) {
     const isExisting = events.some((e) => e.id === ev.id);
-
     if (isExisting) {
       setEvents((prev) => prev.map((e) => (e.id === ev.id ? ev : e)));
       await fetch(`/api/events/${ev.id}`, {
@@ -245,7 +263,6 @@ function CalendarPageContent() {
       });
       return;
     }
-
     const res = await fetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -265,109 +282,17 @@ function CalendarPageContent() {
     <div className="px-4 md:px-10">
       <Topbar userName={userName} />
 
-      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <Card>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold text-ink">{thMonthYear(currentMonth)}</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-                className="rounded-full bg-eddy-50 p-2 text-eddy-600 hover:bg-eddy-100"
-                aria-label="เดือนก่อนหน้า"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-                className="rounded-full bg-eddy-50 p-2 text-eddy-600 hover:bg-eddy-100"
-                aria-label="เดือนถัดไป"
-              >
-                <ChevronRight size={18} />
-              </button>
-              <button
-                onClick={() => openAddModal()}
-                className="ml-2 flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-2 font-display text-xs font-semibold text-white"
-              >
-                <Plus size={14} /> เพิ่มกิจกรรม
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-7 gap-1 text-center font-body text-xs font-semibold text-ink-muted">
-            {weekDayLabels.map((d) => (
-              <div key={d} className="py-2">
-                {d}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {days.map((day) => {
-              const dayEvents = eventsForDay(day);
-              const inMonth = isSameMonth(day, currentMonth);
-              const isSelected = isSameDay(day, selectedDay);
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDay(day)}
-                  onDoubleClick={() => openAddModal(day)}
-                  title="คลิกเพื่อดู วันคลิกสองครั้งเพื่อเพิ่มกิจกรรม"
-                  className={`flex min-h-[78px] flex-col items-start gap-1 rounded-clay-sm p-2 text-left transition-colors ${
-                    isSelected
-                      ? 'bg-eddy-500 shadow-clay-sm'
-                      : inMonth
-                      ? 'bg-eddy-50 hover:bg-eddy-100'
-                      : 'bg-transparent opacity-40'
-                  }`}
-                >
-                  <span className={`font-display text-sm font-semibold ${isSelected ? 'text-white' : 'text-ink'}`}>
-                    {format(day, 'd')}
-                  </span>
-                  <div className="flex flex-col gap-0.5">
-                    {dayEvents.slice(0, 2).map((ev) => {
-                      const cat = categoryOf(ev);
-                      const chipClass = cat ? getColorOption(cat.color).chipClass : 'bg-eddy-100 text-ink-muted';
-                      return (
-                        <span
-                          key={ev.id}
-                          className={`truncate rounded-full px-2 py-0.5 font-body text-[10px] ${chipClass} ${
-                            isSelected ? 'ring-1 ring-white/60' : ''
-                          }`}
-                        >
-                          {ev.title}
-                        </span>
-                      );
-                    })}
-                    {dayEvents.length > 2 && (
-                      <span className={`font-body text-[10px] ${isSelected ? 'text-white/80' : 'text-ink-muted'}`}>
-                        +{dayEvents.length - 2} เพิ่มเติม
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </Card>
-
-        <div className="flex flex-col gap-6">
-          {/* เฟส 2 (mock AI): สรุปภาพรวมสัปดาห์ */}
-          <Card tone="white" className="flex items-start gap-3">
-            <EddyMascot mood="think" size={48} float={false} />
-            <div>
-              <p className="flex items-center gap-1 font-display text-sm font-bold text-ink">
-                <Sparkles size={14} /> เอ็ดดี้สรุปสัปดาห์นี้
-              </p>
-              <p className="mt-1 font-body text-sm text-ink-muted">{weeklySummary}</p>
-            </div>
+      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+        {/* ---------- Sidebar ซ้าย (แบบ Google) ---------- */}
+        <aside className="flex flex-col gap-5">
+          <Card className="!p-4">
+            <MiniCalendar selectedDate={anchor} events={visibleEvents} onSelectDate={setAnchor} />
           </Card>
 
-          {/* Category manager */}
-          <Card>
-            <h2 className="font-display text-base font-bold text-ink">หมวดหมู่ปฏิทิน</h2>
-            <p className="mt-1 font-body text-xs text-ink-muted">
-              ติ๊กออกเพื่อซ่อนหมวดหมู่นั้นจากปฏิทินชั่วคราว
-            </p>
+          {/* หมวดหมู่ปฏิทิน + ตัวกรอง */}
+          <Card className="!p-4">
+            <h2 className="font-display text-sm font-bold text-ink">ปฏิทินของฉัน</h2>
+            <p className="mt-1 font-body text-xs text-ink-muted">ติ๊กออกเพื่อซ่อนหมวดหมู่จากปฏิทินชั่วคราว</p>
             <div className="mt-3">
               <CategoryManager
                 categories={categories}
@@ -380,81 +305,58 @@ function CalendarPageContent() {
             </div>
           </Card>
 
-          {/* Selected day detail panel */}
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display text-base font-bold text-ink">{thFullDate(selectedDay)}</h2>
-                <p className="font-body text-xs text-ink-muted">
-                  {selectedDayEvents.length > 0
-                    ? `วันนี้มี ${selectedDayEvents.length} กิจกรรม`
-                    : 'ยังไม่มีกิจกรรมในวันนี้'}
-                </p>
-              </div>
-              <button
-                onClick={() => openAddModal(selectedDay)}
-                className="flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-2 font-display text-xs font-semibold text-white hover:bg-eddy-600"
-              >
-                <Plus size={13} /> เพิ่ม
-              </button>
-            </div>
-            <div className="mt-4 flex flex-col gap-3">
-              {selectedDayEvents.length === 0 && (
-                <p className="rounded-clay-sm bg-eddy-50 px-4 py-6 text-center font-body text-sm text-ink-muted">
-                  ว่างทั้งวัน — ดับเบิลคลิกวันในปฏิทิน หรือกด &quot;เพิ่ม&quot; เพื่อสร้างกิจกรรมได้เลย
-                </p>
-              )}
-              {selectedDayEvents.map((ev) => {
-                const cat = categoryOf(ev);
-                const color = cat ? getColorOption(cat.color) : null;
-                return (
-                  <div key={ev.id} className="flex gap-3 rounded-clay-sm bg-eddy-50 p-3">
-                    <span className={`w-1.5 flex-shrink-0 self-stretch rounded-full ${color ? color.dotClass : 'bg-eddy-200'}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-body text-sm font-semibold text-ink">{ev.title}</p>
-                        <div className="flex flex-shrink-0 items-center gap-1">
-                          <button
-                            onClick={() => openEditModal(ev)}
-                            aria-label="แก้ไขกิจกรรม"
-                            className="rounded-full p-1 text-ink-muted hover:bg-white hover:text-eddy-600"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('ลบกิจกรรมนี้ใช่ไหม?')) deleteEvent(ev.id);
-                            }}
-                            aria-label="ลบกิจกรรม"
-                            className="rounded-full p-1 text-ink-muted hover:bg-white hover:text-eddy-700"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      {ev.startTime && (
-                        <p className="mt-0.5 font-body text-xs text-ink-muted">
-                          {ev.startTime}
-                          {ev.endTime ? `–${ev.endTime}` : ''} น.
-                        </p>
-                      )}
-                      {ev.location && (
-                        <p className="mt-0.5 flex items-center gap-1 font-body text-xs text-ink-muted">
-                          <MapPin size={11} /> {ev.location}
-                        </p>
-                      )}
-                      {ev.description && (
-                        <p className="mt-1 truncate font-body text-xs text-ink-muted">{ev.description}</p>
-                      )}
-                      <span className={`mt-2 inline-block rounded-full px-2 py-0.5 font-body text-[10px] ${color ? color.chipClass : 'bg-eddy-100 text-ink-muted'}`}>
-                        {cat?.name ?? 'ไม่มีหมวดหมู่'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+          {/* สรุปสัปดาห์ด้วย AI */}
+          <Card tone="white" className="flex items-start gap-3 !p-4">
+            <EddyMascot mood="think" size={44} float={false} />
+            <div>
+              <p className="flex items-center gap-1 font-display text-sm font-bold text-ink">
+                <Sparkles size={14} /> เอ็ดดี้สรุปสัปดาห์นี้
+              </p>
+              <p className="mt-1 font-body text-xs text-ink-muted">{weeklySummary}</p>
             </div>
           </Card>
+        </aside>
+
+        {/* ---------- ส่วนปฏิทินหลัก ---------- */}
+        <div className="flex flex-col gap-4">
+          <CalendarToolbar
+            view={view}
+            title={toolbarTitle(view, anchor)}
+            onViewChange={setView}
+            onPrev={goPrev}
+            onNext={goNext}
+            onToday={goToday}
+            onAdd={() => openAddModal()}
+          />
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={view}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              {view === 'month' ? (
+                <MonthView
+                  currentMonth={anchor}
+                  events={visibleEvents}
+                  categories={categories}
+                  onAddOnDay={(day) => openAddModal(day)}
+                  onOpenDay={openDay}
+                  onEventClick={openEditModal}
+                />
+              ) : (
+                <TimeGridView
+                  days={gridDays}
+                  events={visibleEvents}
+                  categories={categories}
+                  onAddSlot={(day, startTime) => openAddModal(day, startTime)}
+                  onEventClick={openEditModal}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </section>
 

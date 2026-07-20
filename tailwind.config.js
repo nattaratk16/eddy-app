@@ -9,11 +9,12 @@ module.exports = {
     extend: {
       colors: {
         // Primary navy/blue scale - the "EDDY" brand color (elegant, modern)
+        // ธีม Genie: eddy 50–300 = ฟ้าอ่อน (พื้นผิว/เส้นขอบ/hover), 400–900 = น้ำเงินแบรนด์ (accent)
         eddy: {
-          50: '#F3F7FC',
-          100: '#E4EDF8',
-          200: '#C6D9EF',
-          300: '#9DBEE2',
+          50: '#EEF5FC',
+          100: '#E1ECF8',
+          200: '#CBDFF2',
+          300: '#A9C8E8',
           400: '#6B98CE',
           500: '#3D72B4',
           600: '#2C5690',
@@ -58,15 +59,27 @@ module.exports = {
           rose: '#FFDED4',
           'rose-dark': '#F89177',
         },
+        // Accent (indigo/violet) - จับคู่กับ eddy blue สำหรับไล่เฉด gradient แบบพรีเมียม
+        accent: {
+          50: '#EEF0FE',
+          100: '#E0E3FD',
+          200: '#C7CCFB',
+          300: '#A5ADF7',
+          400: '#818CF8',
+          500: '#6366F1',
+          600: '#4F46E5',
+          700: '#4338CA',
+        },
         // Sparing premium accent (mascot sparkle, small badges) - navy+gold reads elegant
         gold: {
           DEFAULT: '#C9A15A',
           light: '#E0BE7C',
         },
+        // ธีม Genie: ตัวอักษรดำอมฟ้าเย็น (cool near-black) เข้ากับพื้นฟ้า
         ink: {
-          DEFAULT: '#14202E',
-          soft: '#47576B',
-          muted: '#8593A3',
+          DEFAULT: '#1F2733',
+          soft: '#566072',
+          muted: '#8A97A8',
         },
       },
       fontFamily: {
@@ -74,16 +87,16 @@ module.exports = {
         body: ['var(--font-body)'],
       },
       borderRadius: {
-        clay: '20px',
+        clay: '18px',
         'clay-sm': '12px',
-        'clay-lg': '28px',
+        'clay-lg': '26px',
       },
       boxShadow: {
-        // Elegant soft elevation - refined "premium SaaS card" look (navy-tinted, low opacity)
-        clay: '0 18px 40px -16px rgba(13, 28, 51, 0.18), 0 2px 8px rgba(13, 28, 51, 0.06)',
-        'clay-sm': '0 8px 20px -10px rgba(13, 28, 51, 0.16), 0 1px 4px rgba(13, 28, 51, 0.05)',
-        'clay-inset': 'inset 0 2px 6px rgba(13, 28, 51, 0.08)',
-        'clay-pop': '0 24px 48px -12px rgba(13, 28, 51, 0.28)',
+        // ธีม Genie: การ์ดลอยนุ่มๆ เงาอมฟ้าเบาๆ (ไม่แบนแบบ Notion)
+        clay: '0 6px 20px -8px rgba(59, 110, 180, 0.18), 0 1px 3px rgba(31, 39, 51, 0.04)',
+        'clay-sm': '0 2px 8px -3px rgba(59, 110, 180, 0.14), 0 1px 2px rgba(31, 39, 51, 0.04)',
+        'clay-inset': 'inset 0 1px 2px rgba(31, 39, 51, 0.04)',
+        'clay-pop': '0 20px 48px -12px rgba(31, 39, 51, 0.24), 0 4px 12px -6px rgba(59, 110, 180, 0.18)',
       },
       keyframes: {
         float: {
@@ -102,12 +115,34 @@ module.exports = {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        // เอนทรานซ์: เลื่อนขึ้น + จางเข้า (ใช้ทำ stagger ตอนหน้าโหลด)
+        fadeInUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.96)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        // จุดเวลาปัจจุบันในปฏิทิน - เต้นเบาๆ
+        pulseDot: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.35)', opacity: '0.7' },
+        },
       },
       animation: {
         float: 'float 4s ease-in-out infinite',
         floatSlow: 'floatSlow 6s ease-in-out infinite',
         blink: 'blink 4s ease-in-out infinite',
         pop: 'pop 0.25s ease-out',
+        'fade-in-up': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in': 'fadeIn 0.4s ease-out both',
+        'scale-in': 'scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'pulse-dot': 'pulseDot 2s ease-in-out infinite',
       },
     },
   },

@@ -23,8 +23,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={id}
             className={clsx(
-              'w-full rounded-clay-sm border-none bg-eddy-50 px-4 py-3 text-ink shadow-clay-inset',
-              'placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300',
+              'w-full rounded-clay-sm border border-eddy-200 bg-white px-4 py-3 text-ink transition-colors',
+              'placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25',
               icon && 'pl-11',
               className
             )}

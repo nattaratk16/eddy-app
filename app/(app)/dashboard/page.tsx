@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CheckCircle2, ListTodo, CalendarClock, Sparkles } from 'lucide-react';
+import { ListTodo, Sparkles, ArrowRight } from 'lucide-react';
 import {
   addDays,
   endOfMonth,
@@ -14,7 +14,8 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
-import EddyMascot from '@/components/EddyMascot';
+import FaceBubble from '@/components/FaceBubble';
+import Reveal from '@/components/motion/Reveal';
 import { getColorOption } from '@/lib/colors';
 import type { CalendarCategory } from '@/lib/types';
 
@@ -54,6 +55,12 @@ export default async function DashboardPage() {
 
   const doneCount = todayTasks.filter((t) => t.done).length;
   const highPriorityUndone = todayTasks.filter((t) => !t.done && t.priority === 'high').length;
+  const donePct = todayTasks.length > 0 ? Math.round((doneCount / todayTasks.length) * 100) : 0;
+
+  // วงแหวนความคืบหน้า (SVG donut)
+  const ringR = 32;
+  const ringC = 2 * Math.PI * ringR;
+  const ringOffset = ringC * (1 - donePct / 100);
 
   // ---- mini calendar grid ----
   const gridDays: Date[] = [];
@@ -74,50 +81,94 @@ export default async function DashboardPage() {
     <div className="px-4 md:px-10">
       <Topbar userName={userName} />
 
-      {/* Stat cards */}
-      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card tone="blue">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-body text-sm text-eddy-700">งานวันนี้</p>
-              <p className="font-display text-3xl font-bold text-ink">{todayTasks.length}</p>
+      {/* ---------- Bento: การ์ดฮีโร่ + สถิติ ---------- */}
+      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* การ์ดโฟกัสวันนี้ (มืด เด่น) */}
+        <Reveal className="sm:col-span-2">
+          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-white/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-6 text-ink">
+            <div className="relative z-10 flex-1">
+              <p className="font-body text-sm text-ink-soft">โฟกัสวันนี้</p>
+              <p className="mt-1 font-display text-2xl font-bold leading-snug text-ink">
+                {highPriorityUndone > 0
+                  ? `มีงานสำคัญ ${highPriorityUndone} อย่างรออยู่`
+                  : 'ไม่มีงานสำคัญค้าง เยี่ยมมาก!'}
+              </p>
+              <p className="mt-1 font-body text-sm text-ink-soft">
+                {todayTasks.length} งาน · {upcomingEvents.length} กิจกรรมที่จะถึง
+              </p>
+              <Link
+                href="/todo"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 font-display text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.03] hover:bg-black active:scale-95"
+              >
+                <Sparkles size={14} /> จัดการงาน <ArrowRight size={14} />
+              </Link>
             </div>
-            <ListTodo className="text-eddy-600" size={32} />
-          </div>
-        </Card>
-        <Card tone="mint">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-body text-sm text-eddy-700">เสร็จแล้ว</p>
-              <p className="font-display text-3xl font-bold text-ink">{doneCount}/{todayTasks.length}</p>
+            {/* แทนมาสคอต: กลุ่มหน้ายิ้มสไตล์ Genie */}
+            <div className="relative z-10 hidden shrink-0 -space-x-3 sm:flex">
+              <FaceBubble bg="bg-pastel-peach" className="h-14 w-14" />
+              <FaceBubble bg="bg-white" className="h-16 w-16" />
+              <FaceBubble bg="bg-pastel-mint" className="h-14 w-14" />
             </div>
-            <CheckCircle2 className="text-eddy-600" size={32} />
+            <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/40 blur-2xl" />
           </div>
-        </Card>
-        <Card tone="peach">
-          <div className="flex items-center justify-between">
+        </Reveal>
+
+        {/* สถิติ: งานวันนี้ */}
+        <Reveal delay={0.08} hover>
+          <Card className="flex h-full items-center gap-4 transition-colors duration-200 hover:border-eddy-300">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-eddy-700">
+              <ListTodo size={24} />
+            </span>
             <div>
-              <p className="font-body text-sm text-eddy-700">กิจกรรมที่จะถึง</p>
-              <p className="font-display text-3xl font-bold text-ink">{upcomingEvents.length}</p>
+              <p className="font-body text-sm text-ink-muted">งานวันนี้</p>
+              <p className="font-display text-3xl font-bold leading-tight text-ink">{todayTasks.length}</p>
             </div>
-            <CalendarClock className="text-eddy-600" size={32} />
-          </div>
-        </Card>
+          </Card>
+        </Reveal>
+
+        {/* สถิติ: ความคืบหน้า (วงแหวน) */}
+        <Reveal delay={0.16} hover>
+          <Card className="flex h-full items-center gap-4 transition-colors duration-200 hover:border-eddy-300">
+            <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center">
+              <svg viewBox="0 0 80 80" className="h-14 w-14 -rotate-90">
+                <circle cx="40" cy="40" r={ringR} fill="none" stroke="#E1ECF8" strokeWidth="8" />
+                <circle
+                  cx="40"
+                  cy="40"
+                  r={ringR}
+                  fill="none"
+                  stroke="#3D72B4"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={ringC}
+                  strokeDashoffset={ringOffset}
+                />
+              </svg>
+              <span className="absolute font-display text-xs font-bold text-ink">{donePct}%</span>
+            </div>
+            <div>
+              <p className="font-body text-sm text-ink-muted">เสร็จแล้ว</p>
+              <p className="font-display text-2xl font-bold leading-tight text-ink">
+                {doneCount}/{todayTasks.length}
+              </p>
+            </div>
+          </Card>
+        </Reveal>
       </section>
 
-      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left: today's tasks + weekly timeline */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
+      {/* ---------- งานวันนี้ + มินิปฏิทิน ---------- */}
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Reveal className="lg:col-span-2" delay={0.22}>
           <Card>
             <h2 className="font-display text-lg font-bold text-ink">งานวันนี้</h2>
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-4 flex flex-col gap-2.5">
               {todayTasks.length === 0 && (
-                <p className="py-4 text-center font-body text-sm text-ink-muted">ยังไม่มีงานเลย</p>
+                <p className="py-6 text-center font-body text-sm text-ink-muted">ยังไม่มีงานเลย</p>
               )}
               {todayTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 rounded-clay-sm bg-eddy-50 px-4 py-3"
+                  className="flex items-center gap-3 rounded-clay-sm bg-eddy-50 px-4 py-3 transition-colors hover:bg-eddy-100"
                 >
                   <span
                     className={`h-5 w-5 flex-shrink-0 rounded-full border-2 ${
@@ -134,68 +185,9 @@ export default async function DashboardPage() {
               ))}
             </div>
           </Card>
+        </Reveal>
 
-          <Card>
-            <h2 className="font-display text-lg font-bold text-ink">ตารางสัปดาห์นี้</h2>
-            <div className="mt-4 flex flex-col divide-y divide-eddy-50">
-              {weekDays.map((day) => {
-                const dayEvents = eventsByDate.get(toISODate(day)) ?? [];
-                const isToday = isSameDay(day, today);
-                return (
-                  <div key={day.toISOString()} className="flex gap-4 py-3 first:pt-0 last:pb-0">
-                    <div className="w-14 flex-shrink-0 text-center">
-                      <p className={`font-display text-xs font-semibold ${isToday ? 'text-eddy-600' : 'text-ink-muted'}`}>
-                        {weekDayLabels[day.getDay()]}
-                      </p>
-                      <p
-                        className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full font-display text-sm font-bold ${
-                          isToday ? 'bg-eddy-500 text-white' : 'text-ink'
-                        }`}
-                      >
-                        {format(day, 'd')}
-                      </p>
-                    </div>
-                    <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
-                      {dayEvents.length === 0 ? (
-                        <p className="font-body text-xs text-ink-muted">ไม่มีกิจกรรม</p>
-                      ) : (
-                        dayEvents.map((ev) => {
-                          const cat = categoryById.get(ev.categoryId);
-                          const dotClass = cat ? getColorOption(cat.color).dotClass : 'bg-eddy-200';
-                          return (
-                            <div key={ev.id} className="flex items-center gap-2">
-                              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${dotClass}`} />
-                              <span className="font-body text-sm text-ink">{ev.title}</span>
-                              {ev.startTime && (
-                                <span className="font-body text-xs text-ink-muted">{ev.startTime}</span>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
-
-        {/* Right: Eddy tip + mini calendar + upcoming events */}
-        <div className="flex flex-col gap-6">
-          <Card tone="white" className="flex flex-col items-center text-center">
-            <EddyMascot mood="think" size={88} />
-            <p className="mt-3 font-display text-sm font-bold text-ink">เอ็ดดี้แนะนำ</p>
-            <p className="mt-1 font-body text-sm text-ink-muted">
-              {highPriorityUndone > 0
-                ? `วันนี้คุณมีงาน "สำคัญมาก" ${highPriorityUndone} อย่าง ลองทำให้เสร็จก่อนช่วงบ่ายนะ!`
-                : 'ตอนนี้ไม่มีงานสำคัญมากค้างอยู่ เก่งมาก!'}
-            </p>
-            <button className="mt-4 flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-4 py-2 font-display text-sm font-semibold text-white">
-              <Sparkles size={14} /> ถามเอ็ดดี้เพิ่ม
-            </button>
-          </Card>
-
+        <Reveal delay={0.28}>
           <Card>
             <h2 className="font-display text-base font-bold text-ink">{format(today, 'MMMM yyyy')}</h2>
             <div className="mt-3 grid grid-cols-7 gap-1 text-center font-body text-[10px] font-semibold text-ink-muted">
@@ -233,21 +225,71 @@ export default async function DashboardPage() {
               })}
             </div>
           </Card>
+        </Reveal>
+      </section>
 
+      {/* ---------- ตารางสัปดาห์ + กิจกรรมที่จะถึง ---------- */}
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Reveal className="lg:col-span-2" delay={0.34}>
+          <Card>
+            <h2 className="font-display text-lg font-bold text-ink">ตารางสัปดาห์นี้</h2>
+            <div className="mt-4 flex flex-col divide-y divide-eddy-100">
+              {weekDays.map((day) => {
+                const dayEvents = eventsByDate.get(toISODate(day)) ?? [];
+                const isToday = isSameDay(day, today);
+                return (
+                  <div key={day.toISOString()} className="flex gap-4 py-3 first:pt-0 last:pb-0">
+                    <div className="w-14 flex-shrink-0 text-center">
+                      <p className={`font-display text-xs font-semibold ${isToday ? 'text-eddy-600' : 'text-ink-muted'}`}>
+                        {weekDayLabels[day.getDay()]}
+                      </p>
+                      <p
+                        className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full font-display text-sm font-bold ${
+                          isToday ? 'bg-eddy-500 text-white' : 'text-ink'
+                        }`}
+                      >
+                        {format(day, 'd')}
+                      </p>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
+                      {dayEvents.length === 0 ? (
+                        <p className="font-body text-xs text-ink-muted">ไม่มีกิจกรรม</p>
+                      ) : (
+                        dayEvents.map((ev) => {
+                          const cat = categoryById.get(ev.categoryId);
+                          const dotClass = cat ? getColorOption(cat.color).dotClass : 'bg-eddy-200';
+                          return (
+                            <div key={ev.id} className="flex items-center gap-2">
+                              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${dotClass}`} />
+                              <span className="font-body text-sm text-ink">{ev.title}</span>
+                              {ev.startTime && <span className="font-body text-xs text-ink-muted">{ev.startTime}</span>}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </Reveal>
+
+        <Reveal delay={0.4}>
           <Card>
             <h2 className="font-display text-base font-bold text-ink">กิจกรรมที่จะถึง</h2>
-            <div className="mt-3 flex flex-col gap-2">
+            <div className="mt-3 flex flex-col gap-2.5">
               {upcomingEvents.length === 0 && (
-                <p className="font-body text-sm text-ink-muted">ไม่มีกิจกรรมที่จะถึงเร็วๆ นี้</p>
+                <p className="py-4 font-body text-sm text-ink-muted">ไม่มีกิจกรรมที่จะถึงเร็วๆ นี้</p>
               )}
               {upcomingEvents.map((ev) => {
                 const cat = categoryById.get(ev.categoryId);
                 const dotClass = cat ? getColorOption(cat.color).dotClass : 'bg-eddy-200';
                 return (
-                  <div key={ev.id} className="flex items-center gap-3">
-                    <span className={`h-2.5 w-2.5 rounded-full ${dotClass}`} />
-                    <div>
-                      <p className="font-body text-sm text-ink">{ev.title}</p>
+                  <div key={ev.id} className="flex items-center gap-3 rounded-clay-sm px-2 py-1.5 transition-colors hover:bg-eddy-50">
+                    <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${dotClass}`} />
+                    <div className="min-w-0">
+                      <p className="truncate font-body text-sm text-ink">{ev.title}</p>
                       <p className="font-body text-xs text-ink-muted">
                         {toISODate(ev.date)} {ev.startTime ? `• ${ev.startTime}` : ''}
                       </p>
@@ -257,7 +299,7 @@ export default async function DashboardPage() {
               })}
             </div>
           </Card>
-        </div>
+        </Reveal>
       </section>
     </div>
   );

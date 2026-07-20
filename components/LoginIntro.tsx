@@ -1,0 +1,76 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Sparkles, ArrowRight } from 'lucide-react';
+import SkyBackground from './SkyBackground';
+import FaceBubble from './FaceBubble';
+
+// Splash intro ที่เด้งขึ้นมาคลุมหน้า login - กดเข้าสู่ระบบแล้ว fade/scale ออกเผยฟอร์ม
+export default function LoginIntro({ onEnter }: { onEnter: () => void }) {
+  const faces = ['bg-pastel-blue', 'bg-pastel-peach', 'bg-pastel-lilac'];
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-6"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.4, ease: 'easeInOut' } }}
+    >
+      <SkyBackground />
+
+      <motion.div
+        className="relative z-10 flex flex-col items-center text-center"
+        initial={{ scale: 0.85, opacity: 0, y: 24 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.05 }}
+      >
+        <div className="mb-7 flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-ink">
+          <Sparkles size={26} className="text-eddy-500" fill="currentColor" /> EDDY
+        </div>
+
+        {/* หน้ายิ้มเด้งเข้าทีละตัว */}
+        <div className="mb-7 flex -space-x-3">
+          {faces.map((bg, i) => (
+            <motion.span
+              key={bg}
+              initial={{ scale: 0, y: -10 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 14, delay: 0.35 + i * 0.12 }}
+            >
+              <FaceBubble bg={bg} className="h-16 w-16" />
+            </motion.span>
+          ))}
+        </div>
+
+        <motion.h1
+          className="font-display text-3xl font-bold leading-snug tracking-tight text-ink sm:text-4xl"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+        >
+          ยินดีต้อนรับสู่ EDDY
+        </motion.h1>
+        <motion.p
+          className="mt-3 max-w-sm font-body text-base text-ink-soft"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+        >
+          ผู้ช่วย AI ที่ช่วยจัดปฏิทิน วางแผนงาน และเตือนสิ่งที่ต้องทำ
+        </motion.p>
+
+        <motion.button
+          onClick={onEnter}
+          className="group mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-8 py-3.5 font-display text-base font-semibold text-white shadow-clay transition-colors hover:bg-black"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.72, duration: 0.4 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+        >
+          เข้าสู่ระบบ
+          <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" />
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}

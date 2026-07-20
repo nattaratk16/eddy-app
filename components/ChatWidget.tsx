@@ -91,7 +91,7 @@ export default function ChatWidget() {
       {/* Floating action button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-24 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-eddy-500 shadow-clay-pop transition-transform hover:scale-105 md:bottom-8 md:right-8"
+        className="fixed bottom-24 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-ink shadow-clay-pop ring-1 ring-black/5 transition-transform hover:scale-105 md:bottom-8 md:right-8"
         aria-label="เปิดแชทกับ Eddy"
       >
         {open ? <X color="white" size={26} /> : <EddyMascot size={48} float={false} />}
@@ -100,11 +100,11 @@ export default function ChatWidget() {
       {/* Chat panel */}
       {open && (
         <div className="fixed bottom-40 right-4 z-40 flex h-[480px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-clay bg-white shadow-clay-pop md:bottom-28 md:right-8">
-          <div className="flex items-center gap-3 bg-gradient-to-r from-eddy-500 to-eddy-400 px-5 py-4 text-white">
+          <div className="flex items-center gap-3 bg-ink px-5 py-4 text-white">
             <EddyMascot size={36} float={false} />
             <div>
               <p className="font-display text-sm font-bold">คุยกับเอ็ดดี้</p>
-              <p className="flex items-center gap-1 text-[11px] text-eddy-50/90">
+              <p className="flex items-center gap-1 text-[11px] text-white/70">
                 <Sparkles size={12} /> ขับเคลื่อนด้วย Gemini AI
               </p>
             </div>

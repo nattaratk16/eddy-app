@@ -7,9 +7,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<string, string> = {
-  primary: 'bg-eddy-500 text-white shadow-clay-sm hover:bg-eddy-600 hover:shadow-clay hover:-translate-y-0.5',
-  secondary: 'bg-white text-eddy-600 shadow-clay-sm hover:bg-eddy-50 hover:shadow-clay hover:-translate-y-0.5',
-  ghost: 'bg-transparent text-ink-soft hover:bg-eddy-50',
+  // ธีม Genie: ปุ่มหลักเป็น pill สีดำ
+  primary:
+    'bg-ink text-white hover:bg-black hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-eddy-400/50',
+  secondary:
+    'border border-eddy-200 bg-white text-ink hover:bg-eddy-50 hover:border-eddy-300',
+  ghost: 'bg-transparent text-ink-soft hover:bg-eddy-50 hover:text-ink',
 };
 
 export default function Button({
@@ -22,8 +25,8 @@ export default function Button({
   return (
     <button
       className={clsx(
-        'rounded-clay-sm px-6 py-3 font-display font-semibold text-[15px] transition-all duration-150',
-        'active:translate-y-0 active:shadow-clay-sm disabled:cursor-not-allowed disabled:opacity-60',
+        'rounded-full px-6 py-3 font-display font-semibold text-[15px] transition-all duration-150 focus:outline-none focus-visible:outline-none',
+        'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
         variantClasses[variant],
         fullWidth && 'w-full',
         className

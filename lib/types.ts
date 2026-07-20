@@ -60,3 +60,65 @@ export interface CalendarEvent {
 export interface ChatMessagePayload {
   message: string;
 }
+
+/** มุมมองปฏิทิน: วัน / สัปดาห์ / เดือน (สไตล์ Google/Apple Calendar) */
+export type CalendarView = 'day' | 'week' | 'month';
+
+// ---------- เฟส 3: ระบบกลุ่ม ----------
+export type GroupRole = 'owner' | 'member';
+export type GroupMemberStatus = 'pending' | 'accepted' | 'declined';
+
+export interface GroupMemberInfo {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  image?: string | null;
+  role: GroupRole;
+  status: GroupMemberStatus;
+  showEventTitles: boolean;
+  isMe: boolean;
+}
+
+export interface GroupInfo {
+  id: string;
+  name: string;
+  description?: string | null;
+  color: PastelColor;
+  ownerId: string;
+  isOwner: boolean;
+  memberCount: number; // จำนวนสมาชิกที่รับคำเชิญแล้ว
+  members?: GroupMemberInfo[]; // ใส่มาเฉพาะตอนดูรายละเอียดกลุ่ม
+}
+
+/** งานของกลุ่ม + ผลการมอบหมาย (เฟส 3c) */
+export interface GroupAssignmentInfo {
+  id: string;
+  assignedToUserId: string;
+  assignedToName: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  status: 'suggested' | 'approved' | 'rejected';
+  isMine: boolean; // งานนี้ถูกมอบหมายให้ฉัน
+}
+
+export interface GroupTaskInfo {
+  id: string;
+  title: string;
+  description?: string | null;
+  estimatedMinutes: number;
+  dueDate?: string | null; // YYYY-MM-DD
+  createdById: string;
+  assignment?: GroupAssignmentInfo | null;
+}
+
+/** คำเชิญเข้ากลุ่มที่รอเราตอบรับ */
+export interface GroupInvitation {
+  id: string; // id ของ GroupMember (แถวคำเชิญ)
+  groupId: string;
+  groupName: string;
+  groupColor: PastelColor;
+  memberCount: number;
+  invitedByName?: string | null;
+}

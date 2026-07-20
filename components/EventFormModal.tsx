@@ -25,7 +25,7 @@ interface EventFormModalProps {
 }
 
 const inputClass =
-  'w-full rounded-clay-sm bg-eddy-50 px-4 py-2.5 font-body text-sm text-ink shadow-clay-inset placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300';
+  'w-full rounded-clay-sm border border-eddy-200 bg-white px-4 py-2.5 font-body text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
 const labelClass = 'mb-1.5 block font-display text-sm font-semibold text-ink-soft';
 
 export default function EventFormModal({
