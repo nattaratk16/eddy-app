@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, Crown, ListChecks, LogOut, Sparkles, Trash2, UserCheck } from 'lucide-react';
+import { ArrowRight, Clock, Crown, ListChecks, LogOut, Sparkles, Trash2, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 import Card from '@/components/Card';
 import WorkloadPanel from '@/components/groups/WorkloadPanel';
@@ -92,86 +92,95 @@ export default function GroupOverviewPage({ params }: { params: { id: string } }
   const onCalendar = tasks.filter((t) => t.assignment?.status === 'approved').length;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
-      {/* ---- สมาชิก ---- */}
-      <Card>
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-display text-base font-bold text-ink">สมาชิก</h2>
-          <span className="font-body text-xs text-ink-muted">{accepted.length} คน</span>
-        </div>
-
-        <div className="mt-3 flex flex-col divide-y divide-eddy-100">
-          {accepted.map((m) => (
-            <MemberRow key={m.id} m={m} isOwnerView={group.isOwner} ownerId={group.ownerId} onRemove={removeMember} />
-          ))}
-        </div>
-
-        {pending.length > 0 && (
-          <div className="mt-5 rounded-clay-sm bg-eddy-50/70 p-3">
-            <h3 className="flex items-center gap-1.5 font-display text-xs font-bold text-ink-soft">
-              <Clock size={13} /> รอตอบรับคำเชิญ ({pending.length})
-            </h3>
-            <div className="mt-1 flex flex-col divide-y divide-eddy-100">
-              {pending.map((m) => (
-                <MemberRow
-                  key={m.id}
-                  m={m}
-                  isOwnerView={group.isOwner}
-                  ownerId={group.ownerId}
-                  onRemove={removeMember}
-                  pending
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* ---- คอลัมน์ขวา: สถานะงาน + ภาระงาน ---- */}
-      <div className="flex flex-col gap-5">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_280px]">
+      {/* ---- คอลัมน์หลัก: สิ่งที่ต้องดูจริงๆ ของกลุ่ม ---- */}
+      <div className="flex min-w-0 flex-col gap-5">
         <Card>
-          <h2 className="flex items-center gap-1.5 font-display text-base font-bold text-ink">
-            <ListChecks size={16} className="text-eddy-500" /> งานกลุ่ม
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-1.5 font-display text-base font-bold text-ink">
+              <ListChecks size={17} className="text-eddy-500" /> งานกลุ่ม
+            </h2>
+            <Link
+              href={`/groups/${params.id}/tasks`}
+              className="flex items-center gap-1 font-body text-xs font-semibold text-eddy-600 transition-colors hover:underline"
+            >
+              จัดการงานกลุ่ม <ArrowRight size={13} />
+            </Link>
+          </div>
 
           {tasks.length === 0 ? (
-            <div className="mt-3">
-              <p className="font-body text-xs text-ink-muted">ยังไม่มีงานในกลุ่มนี้</p>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <p className="font-body text-sm text-ink-muted">ยังไม่มีงานในกลุ่มนี้</p>
               <Link
                 href={`/groups/${params.id}/tasks`}
-                className="mt-3 flex items-center justify-center gap-1.5 rounded-clay-sm bg-gradient-to-r from-eddy-500 to-accent-500 px-4 py-2 font-display text-caption font-semibold text-white shadow-clay-sm transition-all hover:brightness-110"
+                className="flex items-center gap-1.5 rounded-clay-sm bg-gradient-to-r from-eddy-500 to-accent-500 px-4 py-2 font-display text-caption font-semibold text-white shadow-clay-sm transition-all hover:brightness-110"
               >
                 <Sparkles size={14} /> เพิ่มงานแรก
               </Link>
             </div>
           ) : (
             <>
-              <dl className="mt-3 flex flex-col gap-2">
-                <StatRow label="ทั้งหมด" value={`${tasks.length} งาน`} />
-                <StatRow label="ยังไม่ได้มอบหมาย" value={`${unassigned} งาน`} tone={unassigned > 0 ? 'warn' : 'muted'} />
-                <StatRow label="ลงปฏิทินแล้ว" value={`${onCalendar} งาน`} tone="ok" />
-              </dl>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <BigStat label="งานทั้งหมด" value={tasks.length} />
+                <BigStat label="ยังไม่ได้มอบหมาย" value={unassigned} tone={unassigned > 0 ? 'warn' : 'default'} />
+                <BigStat label="ลงปฏิทินแล้ว" value={onCalendar} tone={onCalendar > 0 ? 'ok' : 'default'} />
+              </div>
 
               {waitingMe > 0 && (
                 <Link
                   href={`/groups/${params.id}/tasks`}
-                  className="mt-3 flex items-center gap-2 rounded-clay-sm bg-pastel-yellow/70 px-3 py-2 transition-colors hover:brightness-95"
+                  className="mt-4 flex items-center gap-2.5 rounded-clay-sm bg-pastel-yellow/70 px-4 py-3 transition-colors hover:brightness-95"
                 >
-                  <UserCheck size={15} className="flex-shrink-0 text-eddy-700" />
-                  <span className="font-body text-xs text-ink">
+                  <UserCheck size={18} className="flex-shrink-0 text-eddy-700" />
+                  <span className="min-w-0 flex-1 font-body text-sm text-ink">
                     มี <b>{waitingMe} งาน</b> รอคุณกดยืนยันลงปฏิทิน
                   </span>
+                  <ArrowRight size={16} className="flex-shrink-0 text-ink-muted" />
                 </Link>
               )}
             </>
           )}
         </Card>
-      </div>
 
-      {/* ---- กราฟภาระงาน (เต็มความกว้าง - แท่งแนวตั้งต้องการที่กว้างกว่าคอลัมน์ข้าง) ---- */}
-      <div className="lg:col-span-2">
+        {/* กราฟภาระงาน - หัวใจของระบบกลุ่ม ให้พื้นที่ใหญ่สุด */}
         <Card>
           <WorkloadPanel groupId={params.id} />
+        </Card>
+      </div>
+
+      {/* ---- คอลัมน์ขวา: รายชื่อสมาชิกแบบย่อ ---- */}
+      <div className="flex flex-col gap-5">
+        <Card className="!p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="font-display text-sm font-bold text-ink">สมาชิก</h2>
+            <span className="font-body text-xs text-ink-muted">{accepted.length} คน</span>
+          </div>
+
+          <div className="mt-2 flex flex-col divide-y divide-eddy-100">
+            {accepted.map((m) => (
+              <MemberRow key={m.id} m={m} isOwnerView={group.isOwner} ownerId={group.ownerId} onRemove={removeMember} />
+            ))}
+          </div>
+
+          {pending.length > 0 && (
+            <div className="mt-3 rounded-clay-sm bg-eddy-50/70 p-2.5">
+              <h3 className="flex items-center gap-1.5 font-display text-[11px] font-bold text-ink-soft">
+                <Clock size={12} /> รอตอบรับ ({pending.length})
+              </h3>
+              <div className="mt-1 flex flex-col divide-y divide-eddy-100">
+                {pending.map((m) => (
+                  <MemberRow
+                    key={m.id}
+                    m={m}
+                    isOwnerView={group.isOwner}
+                    ownerId={group.ownerId}
+                    onRemove={removeMember}
+                    pending
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 
@@ -204,18 +213,17 @@ export default function GroupOverviewPage({ params }: { params: { id: string } }
   );
 }
 
-function StatRow({ label, value, tone = 'muted' }: { label: string; value: string; tone?: 'muted' | 'ok' | 'warn' }) {
+/** ตัวเลขใหญ่ในการ์ดงานกลุ่ม */
+function BigStat({ label, value, tone = 'default' }: { label: string; value: number; tone?: 'default' | 'ok' | 'warn' }) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <dt className="font-body text-xs text-ink-muted">{label}</dt>
-      <dd
-        className={clsx(
-          'font-display text-xs font-bold',
-          tone === 'ok' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : 'text-ink',
-        )}
-      >
-        {value}
-      </dd>
+    <div
+      className={clsx(
+        'rounded-clay-sm px-3 py-3 text-center',
+        tone === 'warn' ? 'bg-pastel-yellow/60' : tone === 'ok' ? 'bg-pastel-mint/60' : 'bg-eddy-50',
+      )}
+    >
+      <p className="font-display text-2xl font-bold leading-none text-ink">{value}</p>
+      <p className="mt-1.5 font-body text-[11px] text-ink-muted">{label}</p>
     </div>
   );
 }
@@ -235,14 +243,14 @@ function MemberRow({
 }) {
   const canRemove = (isOwnerView && m.userId !== ownerId) || m.isMe;
   return (
-    <div className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+    <div className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
       {m.image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={m.image} alt={m.name} className="h-9 w-9 flex-shrink-0 rounded-full object-cover" />
+        <img src={m.image} alt={m.name} className="h-8 w-8 flex-shrink-0 rounded-full object-cover" />
       ) : (
         <span
           className={clsx(
-            'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full font-display text-sm font-bold text-white',
+            'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white',
             pending ? 'bg-ink-muted' : 'bg-ink',
           )}
         >
@@ -250,25 +258,21 @@ function MemberRow({
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 truncate font-body text-sm font-semibold text-ink">
-          {m.name}
-          {m.isMe && (
-            <span className="rounded-full bg-eddy-100 px-1.5 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
-              คุณ
-            </span>
-          )}
-          {m.role === 'owner' && <Crown size={12} className="flex-shrink-0 text-amber-500" />}
+        <p className="flex items-center gap-1 truncate font-body text-xs font-semibold text-ink">
+          <span className="truncate">{m.name}</span>
+          {m.isMe && <span className="flex-shrink-0 font-normal text-ink-muted">(คุณ)</span>}
+          {m.role === 'owner' && <Crown size={11} className="flex-shrink-0 text-amber-500" />}
         </p>
-        <p className="truncate font-body text-xs text-ink-muted">{m.email}</p>
+        {/* คอลัมน์แคบ - อีเมลยาวกว่าชื่อมาก แสดงเฉพาะคนที่ยังไม่ตอบรับ (ใช้ระบุตัวว่าเชิญใครไป) */}
+        {pending && <p className="truncate font-body text-[11px] text-ink-muted">{m.email}</p>}
       </div>
-      {pending && <span className="flex-shrink-0 font-body text-[11px] text-ink-muted">รอตอบรับ</span>}
       {canRemove && (
         <button
           onClick={() => onRemove(m.id)}
           aria-label={m.isMe ? 'ออกจากกลุ่ม' : `เอา ${m.name} ออกจากกลุ่ม`}
-          className="flex-shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-eddy-700"
+          className="flex-shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-eddy-700"
         >
-          <Trash2 size={15} />
+          <Trash2 size={14} />
         </button>
       )}
     </div>
