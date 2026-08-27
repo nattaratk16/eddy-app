@@ -112,6 +112,8 @@ export interface GroupInfo {
   isOwner: boolean;
   memberCount: number; // จำนวนสมาชิกที่รับคำเชิญแล้ว
   members?: GroupMemberInfo[]; // ใส่มาเฉพาะตอนดูรายละเอียดกลุ่ม
+  taskCount?: number; // จำนวนงานกลุ่มทั้งหมด (มาเฉพาะตอนดึงรายการกลุ่ม)
+  waitingForMeCount?: number; // งานที่มอบหมายให้ฉันและรอฉันกดยืนยัน
 }
 
 /** งานของกลุ่ม + ผลการมอบหมาย (เฟส 3c) */

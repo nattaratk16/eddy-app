@@ -1,14 +1,27 @@
 'use client';
 
+/**
+ * แท็บ "งานกลุ่ม"
+ * หัวกลุ่ม + แท็บ อยู่ใน layout.tsx แล้ว หน้านี้ดูแลแค่เนื้อหา
+ *
+ * จัดใหม่จากเดิมที่เป็นรายการยาวเรียงต่อกันหมด:
+ *   - แยกงานเป็น 3 กลุ่มตามสถานะ (รอคุณยืนยัน / ยังไม่ได้มอบหมาย / มอบหมายแล้ว)
+ *     เพราะสิ่งที่ต้องลงมือทำจริงๆ คือสองกลุ่มแรก
+ *   - ฟอร์มเพิ่มงานย้ายไปอยู่ในปุ่ม "เพิ่มงาน" (เดิมกางค้างไว้กินพื้นที่ตลอด)
+ *   - ภาระงานสมาชิกอยู่คอลัมน์ขวา เห็นได้ตลอดโดยไม่ต้องกดจัดตารางก่อน
+ */
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Plus, Sparkles, Trash2, Clock, CalendarClock, UserCheck, Check, X } from 'lucide-react';
+import { CalendarClock, Check, Clock, Plus, Sparkles, Trash2, UserCheck, X } from 'lucide-react';
+import clsx from 'clsx';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Modal from '@/components/Modal';
 import Reveal from '@/components/motion/Reveal';
+import WorkloadPanel, { type WorkloadRow } from '@/components/groups/WorkloadPanel';
+import { notifyGroupUpdated } from '@/lib/groupEvents';
 import type { GroupTaskInfo } from '@/lib/types';
 
-// คุมความสูงทุกช่องให้เท่ากัน (h-11) เพื่อให้ input/select/date/ปุ่ม อยู่ในแนวเดียวกันเป๊ะ
+// คุมความสูงทุกช่องให้เท่ากัน (h-11) เพื่อให้ input/select/date อยู่ในแนวเดียวกันเป๊ะ
 const fieldClass =
   'h-11 w-full rounded-clay-sm border border-eddy-200 bg-white px-4 font-body text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
 const fieldLabel = 'mb-1 block font-display text-xs font-semibold text-ink-soft';
@@ -21,29 +34,23 @@ const DURATIONS = [
   { v: '180', label: '3 ชั่วโมง' },
 ];
 
-/** แถวภาระงานที่ได้จาก POST /api/groups/[id]/distribute */
-interface MemberWorkloadRow {
-  userId: string;
-  name: string;
-  committedMinutes: number;
-  freeMinutes: number;
-  assignedMinutes: number;
-  score: number | null; // null = ไม่เหลือเวลาว่างเลย
-}
-
-/** 90 -> "1 ชม. 30 น." */
-function formatHours(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m} น.`;
-  return m === 0 ? `${h} ชม.` : `${h} ชม. ${m} น.`;
-}
+const statusChip: Record<string, string> = {
+  suggested: 'bg-pastel-yellow text-eddy-700',
+  approved: 'bg-pastel-mint text-eddy-700',
+  rejected: 'bg-pastel-pink text-eddy-700',
+};
+const statusText: Record<string, string> = {
+  suggested: 'รอยืนยัน',
+  approved: 'ลงปฏิทินแล้ว',
+  rejected: 'ปฏิเสธแล้ว',
+};
 
 export default function GroupTasksPage({ params }: { params: { id: string } }) {
   const [tasks, setTasks] = useState<GroupTaskInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const [addOpen, setAddOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [minutes, setMinutes] = useState('60');
   const [due, setDue] = useState('');
@@ -51,8 +58,9 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
 
   const [distributing, setDistributing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  // ภาระงานของสมาชิกหลังเอ็ดดี้จัดเสร็จ (Workload Score) - โชว์ให้เห็นว่ากระจายเป็นธรรมแค่ไหน
-  const [workload, setWorkload] = useState<MemberWorkloadRow[]>([]);
+  // ภาระงานหลังกระจายเสร็จ (ถ้ายังไม่กด = ให้ WorkloadPanel โหลดค่าปัจจุบันเอง)
+  const [distributedWorkload, setDistributedWorkload] = useState<WorkloadRow[] | undefined>();
+  const [workloadKey, setWorkloadKey] = useState(0);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/groups/${params.id}/tasks`);
@@ -85,6 +93,8 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
     setTitle('');
     setMinutes('60');
     setDue('');
+    setAddOpen(false);
+    notifyGroupUpdated();
   }
 
   async function respondAssignment(assignmentId: string, approve: boolean) {
@@ -93,14 +103,21 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ approve }),
     });
-    if (res.ok) load();
+    if (res.ok) {
+      load();
+      // ยืนยันแล้วงานกลายเป็น event จริง -> ภาระงานเปลี่ยน ให้โหลดค่าใหม่แทนค่าจากตอนกระจาย
+      setDistributedWorkload(undefined);
+      setWorkloadKey((k) => k + 1);
+    }
   }
 
   async function removeTask(taskId: string) {
     if (!confirm('ลบงานนี้?')) return;
     const res = await fetch(`/api/groups/${params.id}/tasks/${taskId}`, { method: 'DELETE' });
-    if (res.ok) setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    else {
+    if (res.ok) {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      notifyGroupUpdated();
+    } else {
       const d = await res.json().catch(() => ({}));
       alert(d.error ?? 'ลบไม่สำเร็จ');
     }
@@ -109,199 +126,250 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
   async function distribute() {
     setDistributing(true);
     setResult(null);
-    setWorkload([]);
     const res = await fetch(`/api/groups/${params.id}/distribute`, { method: 'POST' });
     const data = await res.json();
     setDistributing(false);
     if (!res.ok) return setResult(data.error ?? 'จัดตารางไม่สำเร็จ');
-    setWorkload(data.workload ?? []);
+    setDistributedWorkload(data.workload ?? undefined);
     if (data.assigned === 0 && data.unassigned === 0) setResult(data.message ?? 'ไม่มีงานที่ต้องจัด');
     else
       setResult(
-        `เอ็ดดี้จัดให้ ${data.assigned} งาน${data.unassigned ? ` · หาเวลาว่างไม่พอ ${data.unassigned} งาน` : ''}${data.usedAI ? '' : ' (ใช้การคำนวณพื้นฐาน)'}`,
+        `เอ็ดดี้จัดให้ ${data.assigned} งาน${data.unassigned ? ` · หาเวลาว่างไม่พอ ${data.unassigned} งาน` : ''}${
+          data.usedAI ? '' : ' (ใช้การคำนวณพื้นฐาน)'
+        }`,
       );
     load();
   }
 
-  if (notFound)
-    return (
-      <div className="px-4 py-16 text-center md:px-10">
-        <p className="font-display text-lg font-bold text-ink">ไม่พบกลุ่มนี้</p>
-        <Link href="/groups" className="mt-3 inline-block font-body text-sm font-semibold text-eddy-600">← กลับไปหน้ากลุ่ม</Link>
-      </div>
-    );
+  if (notFound) return <p className="py-10 text-center font-body text-sm text-ink-muted">ไม่พบงานของกลุ่มนี้</p>;
 
-  const statusChip: Record<string, string> = {
-    suggested: 'bg-pastel-yellow text-eddy-700',
-    approved: 'bg-pastel-mint text-eddy-700',
-    rejected: 'bg-pastel-pink text-eddy-700',
-  };
-  const statusText: Record<string, string> = { suggested: 'รอยืนยัน', approved: 'ลงปฏิทินแล้ว', rejected: 'ปฏิเสธ' };
+  // แยกงานตามสิ่งที่ต้องลงมือทำก่อน
+  const waitingMe = tasks.filter((t) => t.assignment?.isMine && t.assignment.status === 'suggested');
+  const unassigned = tasks.filter((t) => !t.assignment || t.assignment.status === 'rejected');
+  const assigned = tasks.filter((t) => !waitingMe.includes(t) && !unassigned.includes(t));
+
+  const sections: { key: string; title: string; hint?: string; items: GroupTaskInfo[] }[] = [
+    { key: 'me', title: 'รอคุณยืนยัน', hint: 'กดยืนยันแล้วงานจะไปโผล่ในปฏิทินส่วนตัวของคุณ', items: waitingMe },
+    {
+      key: 'todo',
+      title: 'ยังไม่ได้มอบหมาย',
+      hint: 'กด "ให้เอ็ดดี้จัดตาราง" เพื่อหาคนที่ว่างและเวลาที่ไม่ชนกัน',
+      items: unassigned,
+    },
+    { key: 'done', title: 'มอบหมายแล้ว', items: assigned },
+  ];
 
   return (
-    <div className="px-4 pt-8 md:px-10">
-      <Link href={`/groups/${params.id}`} className="mb-4 inline-flex items-center gap-1 font-body text-sm font-semibold text-ink-soft transition-colors hover:text-ink">
-        <ArrowLeft size={16} /> กลับไปกลุ่ม
-      </Link>
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">งานกลุ่ม</h1>
-          <p className="font-body text-sm text-ink-muted">เพิ่มงานที่ต้องช่วยกันทำ แล้วให้เอ็ดดี้หาเวลาว่างจัดให้แต่ละคน</p>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="min-w-0">
+        {/* แถบเครื่องมือ */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-body text-sm text-ink-muted">
+            เพิ่มงานที่ต้องช่วยกันทำ แล้วให้เอ็ดดี้หาเวลาว่างจัดให้แต่ละคน
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-1.5 rounded-full bg-eddy-50 px-4 py-2 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-100"
+            >
+              <Plus size={15} /> เพิ่มงาน
+            </button>
+            <Button
+              onClick={distribute}
+              disabled={distributing || tasks.length === 0}
+              className="!rounded-full !px-4 !py-2"
+            >
+              <span className="flex items-center gap-1.5 font-display text-caption">
+                <Sparkles size={15} /> {distributing ? 'เอ็ดดี้กำลังจัด...' : 'ให้เอ็ดดี้จัดตาราง'}
+              </span>
+            </Button>
+          </div>
         </div>
-        <Button onClick={distribute} disabled={distributing || tasks.length === 0}>
-          <span className="flex items-center gap-1.5">
-            <Sparkles size={16} /> {distributing ? 'เอ็ดดี้กำลังจัด...' : 'ให้เอ็ดดี้จัดตาราง'}
-          </span>
-        </Button>
+
+        {result && (
+          <p className="mt-3 flex items-center gap-2 rounded-clay-sm bg-pastel-mint/50 px-4 py-2.5 font-body text-sm text-ink">
+            <Sparkles size={15} className="flex-shrink-0 text-eddy-600" /> {result}
+          </p>
+        )}
+
+        {/* รายการงานแยกตามสถานะ */}
+        {loading ? (
+          <p className="py-10 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>
+        ) : tasks.length === 0 ? (
+          <Card className="mt-4 flex flex-col items-center gap-2 py-12 text-center">
+            <p className="font-display text-base font-bold text-ink">ยังไม่มีงานกลุ่ม</p>
+            <p className="max-w-xs font-body text-sm text-ink-muted">
+              เพิ่มงานที่ต้องช่วยกันทำ แล้วเอ็ดดี้จะหาเวลาว่างที่ตรงกันของสมาชิกให้เอง
+            </p>
+            <button
+              onClick={() => setAddOpen(true)}
+              className="mt-1 flex items-center gap-1.5 rounded-clay-sm bg-gradient-to-r from-eddy-500 to-accent-500 px-4 py-2 font-display text-caption font-semibold text-white shadow-clay-sm transition-all hover:brightness-110"
+            >
+              <Plus size={15} /> เพิ่มงานแรก
+            </button>
+          </Card>
+        ) : (
+          <div className="mt-4 flex flex-col gap-6">
+            {sections
+              .filter((s) => s.items.length > 0)
+              .map((section) => (
+                <section key={section.key}>
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="font-display text-sm font-bold text-ink">{section.title}</h2>
+                    <span className="font-body text-xs text-ink-muted">{section.items.length} งาน</span>
+                  </div>
+                  {section.hint && <p className="mt-0.5 font-body text-[11px] text-ink-muted">{section.hint}</p>}
+
+                  <div className="mt-2 flex flex-col gap-2">
+                    {section.items.map((t, i) => (
+                      <Reveal key={t.id} delay={i * 0.03}>
+                        <TaskRow task={t} onRemove={removeTask} onRespond={respondAssignment} />
+                      </Reveal>
+                    ))}
+                  </div>
+                </section>
+              ))}
+          </div>
+        )}
       </div>
 
-      {result && (
-        <div className="mt-4 rounded-clay border border-eddy-100 bg-pastel-mint/40 px-4 py-3">
-          <p className="flex items-center gap-2 font-body text-sm text-ink">
-            <Sparkles size={16} className="flex-shrink-0 text-eddy-600" /> {result}
-          </p>
+      {/* คอลัมน์ขวา: ภาระงานสมาชิก */}
+      <div>
+        <Card className="lg:sticky lg:top-6">
+          <WorkloadPanel groupId={params.id} rows={distributedWorkload} refreshKey={workloadKey} />
+        </Card>
+      </div>
 
-          {/* ภาระงานของแต่ละคนหลังจัดเสร็จ - แท่งยาว = สัดส่วนเวลาที่มีงานอยู่แล้วเทียบกับเวลาที่มีทั้งหมด */}
-          {workload.length > 0 && (
-            <div className="mt-3 border-t border-eddy-100/70 pt-3">
-              <p className="mb-2 font-display text-xs font-semibold text-ink-soft">
-                ภาระงานของสมาชิกใน 7 วันข้างหน้า (งานที่มีอยู่แล้ว ÷ เวลาว่าง)
-              </p>
-              <ul className="flex flex-col gap-2">
-                {[...workload]
-                  .sort((a, b) => (a.score ?? Infinity) - (b.score ?? Infinity))
-                  .map((m) => {
-                    const capacity = m.committedMinutes + m.freeMinutes;
-                    const pct = capacity > 0 ? Math.round((m.committedMinutes / capacity) * 100) : 100;
-                    return (
-                      <li key={m.userId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="w-28 flex-shrink-0 truncate font-body text-xs text-ink">{m.name}</span>
-                        <span className="h-2 min-w-[120px] flex-1 overflow-hidden rounded-full bg-white">
-                          <span
-                            className="block h-full rounded-full bg-gradient-to-r from-eddy-400 to-accent-400"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </span>
-                        <span className="font-display text-[11px] font-semibold text-eddy-700">
-                          {m.score === null ? 'เต็ม' : m.score.toFixed(2)}
-                        </span>
-                        <span className="font-body text-[11px] text-ink-muted">
-                          งาน {formatHours(m.committedMinutes)} · ว่าง {formatHours(m.freeMinutes)}
-                          {m.assignedMinutes > 0 ? ` · รอบนี้ได้เพิ่ม ${formatHours(m.assignedMinutes)}` : ''}
-                        </span>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ฟอร์มเพิ่มงาน */}
-      <Card className="mt-5">
-        <h2 className="font-display text-base font-bold text-ink">เพิ่มงานใหม่</h2>
+      {/* Modal เพิ่มงาน */}
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="เพิ่มงานกลุ่ม" maxWidth="max-w-md">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             addTask();
           }}
-          className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex flex-col gap-3"
         >
-          <div className="flex-1">
-            <label className={fieldLabel} htmlFor="gt-title">ชื่องาน</label>
+          <div>
+            <label className={fieldLabel} htmlFor="gt-title">
+              ชื่องาน
+            </label>
             <input
               id="gt-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="เช่น ทำสไลด์นำเสนอ"
+              autoFocus
               className={fieldClass}
             />
           </div>
-          <div className="w-full sm:w-36">
-            <label className={fieldLabel} htmlFor="gt-minutes">ใช้เวลา</label>
-            <select id="gt-minutes" value={minutes} onChange={(e) => setMinutes(e.target.value)} className={fieldClass}>
-              {DURATIONS.map((d) => (
-                <option key={d.v} value={d.v}>{d.label}</option>
-              ))}
-            </select>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className={fieldLabel} htmlFor="gt-minutes">
+                ใช้เวลา
+              </label>
+              <select id="gt-minutes" value={minutes} onChange={(e) => setMinutes(e.target.value)} className={fieldClass}>
+                {DURATIONS.map((d) => (
+                  <option key={d.v} value={d.v}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className={fieldLabel} htmlFor="gt-due">
+                กำหนดส่ง (ไม่บังคับ)
+              </label>
+              <input id="gt-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} className={fieldClass} />
+            </div>
           </div>
-          <div className="w-full sm:w-44">
-            <label className={fieldLabel} htmlFor="gt-due">กำหนดส่ง (ไม่บังคับ)</label>
-            <input id="gt-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} className={fieldClass} />
+          <div className="mt-1 flex justify-end gap-2">
+            <Button variant="ghost" type="button" onClick={() => setAddOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button type="submit" disabled={adding || !title.trim()}>
+              <span className="flex items-center justify-center gap-1.5">
+                <Plus size={16} /> {adding ? 'กำลังเพิ่ม...' : 'เพิ่มงาน'}
+              </span>
+            </Button>
           </div>
-          <Button type="submit" disabled={adding} className="!h-11 !py-0">
-            <span className="flex items-center justify-center gap-1.5"><Plus size={16} /> เพิ่ม</span>
-          </Button>
         </form>
-      </Card>
+      </Modal>
+    </div>
+  );
+}
 
-      {/* รายการงาน */}
-      <div className="mt-5 flex flex-col gap-3">
-        {loading ? (
-          <p className="py-10 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>
-        ) : tasks.length === 0 ? (
-          <Card className="py-12 text-center font-body text-sm text-ink-muted">ยังไม่มีงานกลุ่ม เพิ่มงานแรกด้านบนได้เลย</Card>
-        ) : (
-          tasks.map((t, i) => (
-            <Reveal key={t.id} delay={i * 0.04}>
-              <Card className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-sm font-semibold text-ink">{t.title}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs text-ink-muted">
-                    <span className="flex items-center gap-1"><Clock size={12} /> {t.estimatedMinutes} นาที</span>
-                    {t.dueDate && <span className="flex items-center gap-1"><CalendarClock size={12} /> ส่ง {t.dueDate}</span>}
-                  </div>
-                  {t.assignment && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-clay-sm bg-eddy-50 px-3 py-2">
-                      <UserCheck size={14} className="text-eddy-600" />
-                      <span className="font-body text-xs text-ink">
-                        {t.assignment.isMine ? 'คุณ' : t.assignment.assignedToName} · {t.assignment.date} {t.assignment.startTime}-{t.assignment.endTime} น.
-                      </span>
-                      <span className={`rounded-full px-2 py-0.5 font-body text-[10px] font-semibold ${statusChip[t.assignment.status]}`}>
-                        {statusText[t.assignment.status]}
-                      </span>
-                      {t.assignment.isMine && t.assignment.status === 'suggested' && (
-                        <span className="ml-auto flex items-center gap-1.5">
-                          <button
-                            onClick={() => respondAssignment(t.assignment!.id, true)}
-                            className="flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 font-display text-[11px] font-semibold text-white transition-colors hover:bg-black"
-                          >
-                            <Check size={12} /> ยืนยันลงปฏิทิน
-                          </button>
-                          <button
-                            onClick={() => respondAssignment(t.assignment!.id, false)}
-                            aria-label="ปฏิเสธ"
-                            className="flex items-center justify-center rounded-full border border-eddy-200 p-1 text-ink-muted transition-colors hover:bg-white hover:text-eddy-700"
-                          >
-                            <X size={13} />
-                          </button>
-                        </span>
-                      )}
-                      {t.assignment.isMine && t.assignment.status === 'approved' && (
-                        <button
-                          onClick={() => respondAssignment(t.assignment!.id, false)}
-                          className="ml-auto flex items-center gap-1 rounded-full border border-eddy-200 px-2.5 py-1 font-display text-[11px] font-semibold text-ink-soft transition-colors hover:bg-white"
-                        >
-                          <X size={12} /> เอาออกจากปฏิทิน
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+function TaskRow({
+  task,
+  onRemove,
+  onRespond,
+}: {
+  task: GroupTaskInfo;
+  onRemove: (id: string) => void;
+  onRespond: (assignmentId: string, approve: boolean) => void;
+}) {
+  const a = task.assignment;
+  return (
+    <Card className="flex items-start gap-3 !p-4">
+      <div className="min-w-0 flex-1">
+        <p className="font-body text-sm font-semibold text-ink">{task.title}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs text-ink-muted">
+          <span className="flex items-center gap-1">
+            <Clock size={12} /> {task.estimatedMinutes} นาที
+          </span>
+          {task.dueDate && (
+            <span className="flex items-center gap-1">
+              <CalendarClock size={12} /> ส่ง {task.dueDate}
+            </span>
+          )}
+        </div>
+
+        {a && a.status !== 'rejected' && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-clay-sm bg-eddy-50 px-3 py-2">
+            <UserCheck size={14} className="flex-shrink-0 text-eddy-600" />
+            <span className="font-body text-xs text-ink">
+              {a.isMine ? 'คุณ' : a.assignedToName} · {a.date} {a.startTime}-{a.endTime} น.
+            </span>
+            <span className={clsx('rounded-full px-2 py-0.5 font-body text-[10px] font-semibold', statusChip[a.status])}>
+              {statusText[a.status]}
+            </span>
+
+            {a.isMine && a.status === 'suggested' && (
+              <span className="ml-auto flex items-center gap-1.5">
                 <button
-                  onClick={() => removeTask(t.id)}
-                  aria-label="ลบงาน"
-                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-eddy-700"
+                  onClick={() => onRespond(a.id, true)}
+                  className="flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 font-display text-[11px] font-semibold text-white transition-colors hover:bg-black"
                 >
-                  <Trash2 size={15} />
+                  <Check size={12} /> ยืนยันลงปฏิทิน
                 </button>
-              </Card>
-            </Reveal>
-          ))
+                <button
+                  onClick={() => onRespond(a.id, false)}
+                  aria-label="ปฏิเสธงานนี้"
+                  className="flex items-center justify-center rounded-full border border-eddy-200 p-1 text-ink-muted transition-colors hover:bg-white hover:text-eddy-700"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+
+            {a.isMine && a.status === 'approved' && (
+              <button
+                onClick={() => onRespond(a.id, false)}
+                className="ml-auto flex items-center gap-1 rounded-full border border-eddy-200 px-2.5 py-1 font-display text-[11px] font-semibold text-ink-soft transition-colors hover:bg-white"
+              >
+                <X size={12} /> เอาออกจากปฏิทิน
+              </button>
+            )}
+          </div>
         )}
       </div>
-    </div>
+
+      <button
+        onClick={() => onRemove(task.id)}
+        aria-label={`ลบงาน ${task.title}`}
+        className="flex-shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-eddy-700"
+      >
+        <Trash2 size={15} />
+      </button>
+    </Card>
   );
 }

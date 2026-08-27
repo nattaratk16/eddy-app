@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
-import { totalFreeMinutes, placeTask, type FreeSlot } from '@/lib/freeTime';
-import { buildDateWindow, freeSlotsForUsers, nowMinutesBangkok, todayISOBangkok } from '@/lib/schedule';
-import { computeMemberWorkload, rankCandidates, workloadScore, type MemberWorkload } from '@/lib/workload';
+import { totalFreeMinutes, placeTask } from '@/lib/freeTime';
+import { buildDateWindow } from '@/lib/schedule';
+import { computeGroupWorkload } from '@/lib/groupWorkload';
+import { rankCandidates, workloadScore } from '@/lib/workload';
 import { minutesToTime } from '@/lib/calendarLayout';
 import { distributeGroupTasks } from '@/lib/gemini';
 
 const WINDOW_DAYS = 7;
-const DEFAULT_TASK_MINUTES = 60; // งาน To-do ที่ไม่ได้ระบุเวลา ให้ถือว่า 1 ชม. ตอนคิดภาระงาน
 
 // POST /api/groups/[id]/distribute - ให้ AI หาเวลาว่างร่วม + กระจายงานกลุ่มให้สมาชิก
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -46,51 +46,14 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   // รวมทั้ง Event ปกติ + Loop ชีวิต และตัดเวลาที่ผ่านมาแล้วของวันนี้ทิ้งให้เรียบร้อย
   // (อาร์เรย์ที่ได้ mutate ได้ - placeTask จะตัดเวลาที่ใช้ออกเพื่อกันงานถัดไปวางทับ)
   const memberIds = members.map((m) => m.userId);
-  const slotsByUser: Map<string, FreeSlot[]> = await freeSlotsForUsers(memberIds, dates);
-
-  // ---- Workload Score: งานที่ค้างอยู่ของแต่ละคนเทียบกับเวลาว่างที่เหลือ ----
-  const windowEnd = new Date(new Date(`${dates[dates.length - 1]}T00:00:00.000Z`).getTime() + 86400000);
-  const [pendingTodos, otherGroupAssignments] = await Promise.all([
-    // งาน To-do ที่ยังไม่เสร็จและยังไม่ได้จัดลงปฏิทิน (ยังไม่กินช่องเวลา แต่เป็นภาระจริง)
-    // นับเฉพาะที่มีกำหนดส่งภายในช่วงที่กำลังจัด (รวมงานที่เลยกำหนดแล้ว) ไม่งั้นงานไกลๆ จะทำให้ตัวเลขเฟ้อ
-    prisma.task.findMany({
-      where: { userId: { in: memberIds }, done: false, scheduledEventId: null, dueDate: { not: null, lt: windowEnd } },
-      select: { userId: true, estimatedMinutes: true },
-    }),
-    // งานกลุ่มอื่นที่ถูกมอบหมายไว้แล้วแต่ยังไม่ยืนยัน (ยังไม่กลายเป็น event เลยไม่ถูกนับเป็นเวลาไม่ว่าง)
-    prisma.groupTaskAssignment.findMany({
-      where: {
-        assignedToUserId: { in: memberIds },
-        status: 'suggested',
-        groupTask: { groupId: { not: params.id } },
-      },
-      select: { assignedToUserId: true, groupTask: { select: { estimatedMinutes: true } } },
-    }),
-  ]);
-
-  const pendingByUser = new Map<string, number>();
-  const addPending = (uid: string, minutes: number) => pendingByUser.set(uid, (pendingByUser.get(uid) ?? 0) + minutes);
-  for (const t of pendingTodos) addPending(t.userId, t.estimatedMinutes ?? DEFAULT_TASK_MINUTES);
-  for (const a of otherGroupAssignments) addPending(a.assignedToUserId, a.groupTask.estimatedMinutes);
-
-  const today = { date: todayISOBangkok(), nowMin: nowMinutesBangkok() };
-  const workloadByUser = new Map<string, MemberWorkload>();
-  for (const m of members) {
-    workloadByUser.set(
-      m.userId,
-      computeMemberWorkload(
-        {
-          userId: m.userId,
-          dayStart: m.user.dayStart,
-          dayEnd: m.user.dayEnd,
-          freeMinutes: totalFreeMinutes(slotsByUser.get(m.userId) ?? []),
-          pendingMinutes: pendingByUser.get(m.userId) ?? 0,
-        },
-        dates,
-        today,
-      ),
-    );
-  }
+  // เวลาว่าง + ภาระงาน (Workload Score) ของสมาชิกทุกคน - ใช้ตัวคำนวณเดียวกับ GET /workload
+  // ไม่นับงานที่รอยืนยันของกลุ่มนี้เป็นภาระ เพราะกำลังจะถูกแทนที่ด้วยการมอบหมายชุดใหม่
+  const { slotsByUser, workloadByUser } = await computeGroupWorkload(
+    memberIds,
+    dates,
+    members.map((m) => ({ userId: m.userId, dayStart: m.user.dayStart, dayEnd: m.user.dayEnd })),
+    params.id,
+  );
 
   // ให้ Gemini เลือก "ใครทำงานไหน" (ล้มเหลว/ไม่มี key ก็ปล่อยว่าง แล้วใช้ local ล้วน)
   const geminiPref = new Map<string, string>();

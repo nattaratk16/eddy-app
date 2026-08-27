@@ -17,9 +17,27 @@ export async function GET() {
     orderBy: { createdAt: 'desc' },
   });
 
-  const groups = memberships.map((m) =>
-    serializeGroup(m.group, userId, { memberCount: m.group.members.length }),
-  );
+  // จำนวนงานของแต่ละกลุ่ม + งานที่รอฉันกดยืนยัน (ใช้ทำป้ายบนการ์ดในหน้ารายการกลุ่ม)
+  const groupIds = memberships.map((m) => m.groupId);
+  const [taskCounts, waitingForMe] = await Promise.all([
+    prisma.groupTask.groupBy({ by: ['groupId'], where: { groupId: { in: groupIds } }, _count: { _all: true } }),
+    prisma.groupTaskAssignment.findMany({
+      where: { assignedToUserId: userId, status: 'suggested', groupTask: { groupId: { in: groupIds } } },
+      select: { groupTask: { select: { groupId: true } } },
+    }),
+  ]);
+  const taskCountByGroup = new Map(taskCounts.map((t) => [t.groupId, t._count._all]));
+  const waitingByGroup = new Map<string, number>();
+  for (const a of waitingForMe) {
+    const gid = a.groupTask.groupId;
+    waitingByGroup.set(gid, (waitingByGroup.get(gid) ?? 0) + 1);
+  }
+
+  const groups = memberships.map((m) => ({
+    ...serializeGroup(m.group, userId, { memberCount: m.group.members.length }),
+    taskCount: taskCountByGroup.get(m.groupId) ?? 0,
+    waitingForMeCount: waitingByGroup.get(m.groupId) ?? 0,
+  }));
   return NextResponse.json({ groups });
 }
 

@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { addDays, addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
-import { ArrowLeft, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import Card from '@/components/Card';
 import TimeGridView from '@/components/calendar/TimeGridView';
 import { getColorOption } from '@/lib/colors';
@@ -30,7 +29,6 @@ function weekTitle(start: Date) {
 
 export default function GroupCalendarPage({ params }: { params: { id: string } }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const [groupName, setGroupName] = useState('');
   const [members, setMembers] = useState<MemberInfo[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +43,6 @@ export default function GroupCalendarPage({ params }: { params: { id: string } }
       return;
     }
     const data = await res.json();
-    setGroupName(data.groupName);
     setMembers(data.members ?? []);
     setEvents(data.events ?? []);
     setLoading(false);
@@ -71,25 +68,28 @@ export default function GroupCalendarPage({ params }: { params: { id: string } }
     setSavingPrivacy(false);
   }
 
-  if (notFound)
-    return (
-      <div className="px-4 py-16 text-center md:px-10">
-        <p className="font-display text-lg font-bold text-ink">ไม่พบกลุ่มนี้</p>
-        <Link href="/groups" className="mt-3 inline-block font-body text-sm font-semibold text-eddy-600">← กลับไปหน้ากลุ่ม</Link>
-      </div>
-    );
+  if (notFound) return <p className="py-10 text-center font-body text-sm text-ink-muted">ไม่พบปฏิทินของกลุ่มนี้</p>;
 
   return (
-    <div className="px-4 pt-8 md:px-10">
-      <Link href={`/groups/${params.id}`} className="mb-4 inline-flex items-center gap-1 font-body text-sm font-semibold text-ink-soft transition-colors hover:text-ink">
-        <ArrowLeft size={16} /> กลับไปกลุ่ม
-      </Link>
-
+    <div>
+      {/* แถบบน: เลือกสัปดาห์ + ความเป็นส่วนตัวของฉัน */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">ปฏิทินกลุ่ม</h1>
-          <p className="font-body text-sm text-ink-muted">{groupName} · ตารางของสมาชิกทุกคน</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWeekStart(startOfWeek(new Date()))}
+            className="rounded-full border border-eddy-100 bg-white px-3.5 py-2 font-display text-xs font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
+          >
+            สัปดาห์นี้
+          </button>
+          <button onClick={() => setWeekStart((w) => subWeeks(w, 1))} className="rounded-full p-2 text-eddy-600 transition-colors hover:bg-eddy-50" aria-label="สัปดาห์ก่อน">
+            <ChevronLeft size={20} />
+          </button>
+          <button onClick={() => setWeekStart((w) => addWeeks(w, 1))} className="rounded-full p-2 text-eddy-600 transition-colors hover:bg-eddy-50" aria-label="สัปดาห์ถัดไป">
+            <ChevronRight size={20} />
+          </button>
+          <h2 className="ml-1 font-display text-base font-bold text-ink">{weekTitle(weekStart)}</h2>
         </div>
+
         {/* toggle ความเป็นส่วนตัวของฉัน */}
         {me && (
           <button
@@ -104,7 +104,7 @@ export default function GroupCalendarPage({ params }: { params: { id: string } }
       </div>
 
       {/* legend สมาชิก */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
         {members.map((m) => (
           <span key={m.id} className="flex items-center gap-1.5 font-body text-xs text-ink">
             <span className={`h-3 w-3 rounded-full ${getColorOption(m.color).dotClass}`} />
@@ -113,23 +113,6 @@ export default function GroupCalendarPage({ params }: { params: { id: string } }
             {!m.showEventTitles && !m.isMe && <EyeOff size={11} className="text-ink-muted" />}
           </span>
         ))}
-      </div>
-
-      {/* ตัวควบคุมสัปดาห์ */}
-      <div className="mt-5 flex items-center gap-2">
-        <button
-          onClick={() => setWeekStart(startOfWeek(new Date()))}
-          className="rounded-full border border-eddy-100 bg-white px-3.5 py-2 font-display text-xs font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
-        >
-          สัปดาห์นี้
-        </button>
-        <button onClick={() => setWeekStart((w) => subWeeks(w, 1))} className="rounded-full p-2 text-eddy-600 transition-colors hover:bg-eddy-50" aria-label="สัปดาห์ก่อน">
-          <ChevronLeft size={20} />
-        </button>
-        <button onClick={() => setWeekStart((w) => addWeeks(w, 1))} className="rounded-full p-2 text-eddy-600 transition-colors hover:bg-eddy-50" aria-label="สัปดาห์ถัดไป">
-          <ChevronRight size={20} />
-        </button>
-        <h2 className="ml-1 font-display text-base font-bold text-ink">{weekTitle(weekStart)}</h2>
       </div>
 
       <div className="mt-4">

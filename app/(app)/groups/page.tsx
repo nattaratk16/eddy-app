@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Crown, Check, X, ChevronRight } from 'lucide-react';
+import { Users, Plus, Crown, Check, X, ChevronRight, UserCheck } from 'lucide-react';
 import Card from '@/components/Card';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -154,7 +154,16 @@ export default function GroupsPage() {
                           {g.isOwner && <Crown size={14} className="flex-shrink-0 text-amber-500" />}
                         </div>
                         {g.description && <p className="mt-0.5 truncate font-body text-xs text-ink-muted">{g.description}</p>}
-                        <p className="mt-2 font-body text-xs text-ink-muted">{g.memberCount} สมาชิก</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs text-ink-muted">
+                          <span>{g.memberCount} สมาชิก</span>
+                          {(g.taskCount ?? 0) > 0 && <span>{g.taskCount} งาน</span>}
+                        </div>
+                        {/* งานที่ต้องลงมือทำ - ป้ายนี้คือเหตุผลหลักที่ต้องเปิดกลุ่มนั้น */}
+                        {(g.waitingForMeCount ?? 0) > 0 && (
+                          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-pastel-yellow px-2 py-0.5 font-display text-[10px] font-bold text-eddy-700">
+                            <UserCheck size={11} /> รอคุณยืนยัน {g.waitingForMeCount} งาน
+                          </span>
+                        )}
                       </div>
                       <ChevronRight size={18} className="flex-shrink-0 text-ink-muted" />
                     </Card>
