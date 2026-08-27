@@ -10,7 +10,7 @@
  * และปุ่ม "เชิญสมาชิก" ใช้ได้จากทุกหน้า (เดิมอยู่แค่หน้าภาพรวม)
  * --------------------------------------------------------------
  */
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, UserPlus, Users } from 'lucide-react';
@@ -40,7 +40,10 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
   // รหัสให้เพื่อนเข้าร่วมเอง (กลุ่มเก่าที่ยังไม่มีรหัส จะสร้างให้ตอนเปิด modal ครั้งแรก)
   const [joinCode, setJoinCode] = useState<string | null>(null);
   const [codeBusy, setCodeBusy] = useState(false);
+  const [codeError, setCodeError] = useState('');
   const [copied, setCopied] = useState(false);
+  // จำว่าเคยขอรหัสให้กลุ่มนี้ไปแล้ว - กันยิงซ้ำไม่รู้จบตอนเซิร์ฟเวอร์ตอบ error
+  const codeRequestedFor = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     const [gRes, tRes] = await Promise.all([
@@ -55,19 +58,27 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
     load();
   }, [load]);
 
+  // อัปเดตรหัสจากข้อมูลกลุ่ม แต่ห้ามล้างรหัสที่เพิ่งสร้างไปทิ้ง
+  // (ข้อมูลกลุ่มที่โหลดมาก่อนหน้าอาจยังไม่มีรหัส)
   useEffect(() => {
-    setJoinCode(group?.joinCode ?? null);
+    if (group?.joinCode) setJoinCode(group.joinCode);
   }, [group?.joinCode]);
 
-  // เปิด modal แล้วยังไม่มีรหัส (กลุ่มที่สร้างก่อนมีฟีเจอร์นี้) -> ขอให้เซิร์ฟเวอร์สร้างให้
+  // เปิด modal แล้วยังไม่มีรหัส (กลุ่มที่สร้างก่อนมีฟีเจอร์นี้) -> ขอให้เซิร์ฟเวอร์สร้างให้ "ครั้งเดียว"
   useEffect(() => {
-    if (!inviteOpen || joinCode || codeBusy) return;
+    if (!inviteOpen || joinCode || codeRequestedFor.current === params.id) return;
+    codeRequestedFor.current = params.id;
     setCodeBusy(true);
+    setCodeError('');
     fetch(`/api/groups/${params.id}/join-code`, { method: 'POST' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d?.joinCode && setJoinCode(d.joinCode))
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok || !data?.joinCode) throw new Error(data?.error ?? 'สร้างรหัสกลุ่มไม่สำเร็จ');
+        setJoinCode(data.joinCode);
+      })
+      .catch((err: Error) => setCodeError(err.message))
       .finally(() => setCodeBusy(false));
-  }, [inviteOpen, joinCode, codeBusy, params.id]);
+  }, [inviteOpen, joinCode, params.id]);
 
   // หน้าลูกแก้ข้อมูลกลุ่ม (เชิญ/เอาสมาชิกออก/เพิ่มงาน) -> ให้หัวกลุ่มอัปเดตตาม
   useEffect(() => {
@@ -106,17 +117,26 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
     }
   }
 
-  async function regenerateCode() {
-    if (!group?.isOwner || codeBusy) return;
-    if (!confirm('เปลี่ยนรหัสใหม่? รหัสเดิมจะใช้เข้ากลุ่มไม่ได้อีก')) return;
+  /** ขอรหัสใหม่ - ใช้ทั้งปุ่ม "เปลี่ยนรหัสใหม่" และปุ่มลองใหม่ตอนสร้างรหัสไม่สำเร็จ */
+  async function requestCode(regenerate: boolean) {
+    if (codeBusy) return;
+    if (regenerate && !confirm('เปลี่ยนรหัสใหม่? รหัสเดิมจะใช้เข้ากลุ่มไม่ได้อีก')) return;
     setCodeBusy(true);
-    const res = await fetch(`/api/groups/${params.id}/join-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ regenerate: true }),
-    });
-    setCodeBusy(false);
-    if (res.ok) setJoinCode((await res.json()).joinCode);
+    setCodeError('');
+    try {
+      const res = await fetch(`/api/groups/${params.id}/join-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regenerate }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.joinCode) throw new Error(data?.error ?? 'ขอรหัสกลุ่มไม่สำเร็จ');
+      setJoinCode(data.joinCode);
+    } catch (err) {
+      setCodeError(err instanceof Error ? err.message : 'ขอรหัสกลุ่มไม่สำเร็จ');
+    } finally {
+      setCodeBusy(false);
+    }
   }
 
   const base = `/groups/${params.id}`;
@@ -265,14 +285,28 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
               {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
             </button>
           </div>
-          {group?.isOwner && (
-            <button
-              onClick={regenerateCode}
-              disabled={codeBusy}
-              className="mt-2 flex items-center gap-1 font-body text-[11px] font-semibold text-ink-muted transition-colors hover:text-ink disabled:opacity-50"
-            >
-              <RefreshCw size={11} /> เปลี่ยนรหัสใหม่
-            </button>
+          {codeError ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="font-body text-[11px] text-eddy-700">{codeError}</p>
+              <button
+                onClick={() => requestCode(false)}
+                disabled={codeBusy}
+                className="flex items-center gap-1 font-body text-[11px] font-semibold text-eddy-600 transition-colors hover:underline disabled:opacity-50"
+              >
+                <RefreshCw size={11} /> ลองอีกครั้ง
+              </button>
+            </div>
+          ) : (
+            group?.isOwner &&
+            joinCode && (
+              <button
+                onClick={() => requestCode(true)}
+                disabled={codeBusy}
+                className="mt-2 flex items-center gap-1 font-body text-[11px] font-semibold text-ink-muted transition-colors hover:text-ink disabled:opacity-50"
+              >
+                <RefreshCw size={11} /> เปลี่ยนรหัสใหม่
+              </button>
+            )
           )}
         </div>
 
