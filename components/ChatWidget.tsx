@@ -50,11 +50,12 @@ export default function ChatWidget() {
         const res = await fetch('/api/chat/history');
         const data = await res.json();
         const past: ChatMessage[] = (data.messages ?? []).map(
-          (m: { id: string; role: 'user' | 'eddy'; text: string; draft?: ParsedMessageIntent }) => ({
+          (m: { id: string; role: 'user' | 'eddy'; text: string; draft?: ParsedMessageIntent; added?: boolean }) => ({
             id: m.id,
             role: m.role,
             text: m.text,
             draft: m.draft,
+            added: m.added,
           }),
         );
         // มีประวัติแล้วก็ไม่ต้องขึ้นข้อความต้อนรับซ้ำ
@@ -129,6 +130,12 @@ export default function ChatWidget() {
     });
     if (!res.ok) return;
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, added: true } : m)));
+    // จำไว้ในฐานข้อมูลด้วย ไม่งั้นรีเฟรชแล้วปุ่มกลับมาให้กดซ้ำจนได้งานซ้ำ
+    fetch('/api/chat/history', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: messageId }),
+    }).catch(() => {});
   }
 
   return (

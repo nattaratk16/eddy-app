@@ -88,10 +88,20 @@ export async function POST(req: NextRequest) {
   // เก็บ draft ไปด้วยเพื่อให้กลับมากดเพิ่มลงปฏิทิน/สิ่งที่ต้องทำต่อได้
   // แต่ไม่เก็บ slotAdvice เพราะช่วงเวลาว่างเปลี่ยนตลอด ต้องคำนวณสดเสมอ
   try {
+    // ต้องกำหนดเวลาเองให้ต่างกัน 1 ms: createMany เขียนพร้อมกัน default now() จะได้ค่าเท่ากันเป๊ะ
+    // แล้วตอนดึงประวัติกลับมาเรียงตามเวลา ลำดับของสองข้อความนี้จะสลับกันแบบสุ่ม
+    // (คำตอบเอ็ดดี้ไปโผล่เหนือคำถามของผู้ใช้)
+    const askedAt = new Date();
     await prisma.chatMessage.createMany({
       data: [
-        { userId, role: 'user', text: message },
-        { userId, role: 'eddy', text: reply, draft: draft ? JSON.stringify(draft) : null },
+        { userId, role: 'user', text: message, createdAt: askedAt },
+        {
+          userId,
+          role: 'eddy',
+          text: reply,
+          draft: draft ? JSON.stringify(draft) : null,
+          createdAt: new Date(askedAt.getTime() + 1),
+        },
       ],
     });
   } catch {
