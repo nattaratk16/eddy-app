@@ -33,7 +33,16 @@ import { getColorOption } from '@/lib/colors';
 import { timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
-const weekDayLabels = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+// ตัวย่อภาษาไทยแบบมาตรฐาน - ย่อเหลือตัวเดียวไม่ได้เพราะ "อาทิตย์" กับ "อังคาร" จะกลายเป็น "อ" เหมือนกัน
+const weekDayLabels = [
+  { full: 'อาทิตย์', short: 'อา.' },
+  { full: 'จันทร์', short: 'จ.' },
+  { full: 'อังคาร', short: 'อ.' },
+  { full: 'พุธ', short: 'พ.' },
+  { full: 'พฤหัส', short: 'พฤ.' },
+  { full: 'ศุกร์', short: 'ศ.' },
+  { full: 'เสาร์', short: 'ส.' },
+];
 const thMonths = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
@@ -98,9 +107,12 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
         {/* หัวตารางชื่อวัน */}
         <div className="grid grid-cols-7 border-b border-eddy-100 bg-eddy-50/60">
           {weekDayLabels.map((d) => (
-            <div key={d} className="py-2 text-center font-display text-xs font-semibold text-ink-muted">
-              <span className="hidden sm:inline">{d}</span>
-              <span className="sm:hidden">{d.slice(0, 1)}</span>
+            <div
+              key={d.full}
+              className="min-w-0 truncate px-1 py-2 text-center font-display text-xs font-semibold text-ink-muted"
+            >
+              <span className="hidden lg:inline">{d.full}</span>
+              <span className="lg:hidden">{d.short}</span>
             </div>
           ))}
         </div>
@@ -110,6 +122,7 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
             const list = dayEvents(day);
             const inMonth = isSameMonth(day, today);
             const isCurrent = isToday(day);
+            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
             return (
               <button
                 key={day.toISOString()}
@@ -117,25 +130,29 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
                 onClick={() => setOpenDay(day)}
                 title={`ดูกิจกรรมของวันที่ ${format(day, 'd')} ทั้งหมด`}
                 className={clsx(
-                  'flex min-h-[104px] flex-col gap-1 border-b border-r border-eddy-100 p-1.5 text-left transition-colors last:border-r-0 hover:bg-eddy-50/60',
-                  inMonth ? 'bg-white' : 'bg-eddy-50/30',
+                  // min-w-0 + overflow-hidden สำคัญมาก: ถ้าไม่ใส่ ชื่อกิจกรรมยาวๆ จะดันคอลัมน์นั้นให้กว้าง
+                  // แล้วคอลัมน์ที่เหลือ (โดยเฉพาะอาทิตย์ที่อยู่ซ้ายสุด) จะถูกบีบจนเลขวันที่เบียดกัน
+                  'flex min-h-[112px] min-w-0 flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 text-left transition-colors hover:bg-eddy-50/60',
+                  // เส้นขอบขวาของคอลัมน์เสาร์ และเส้นล่างของแถวสุดท้าย ซ้ำกับกรอบนอก
+                  '[&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0',
+                  !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-white',
                 )}
               >
                 <span
                   className={clsx(
-                    'flex h-6 w-6 flex-shrink-0 items-center justify-center self-end rounded-full font-display text-xs font-semibold',
+                    'flex h-6 w-6 flex-shrink-0 items-center justify-center self-start rounded-full font-display text-xs font-semibold',
                     isCurrent ? 'bg-eddy-500 text-white' : inMonth ? 'text-ink' : 'text-ink-muted/60',
                   )}
                 >
                   {format(day, 'd')}
                 </span>
 
-                <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="flex w-full min-w-0 flex-col gap-0.5">
                   {list.slice(0, MAX_CHIPS).map((ev) => {
                     const cat = categoryOf(ev);
                     const color = cat ? getColorOption(cat.color) : null;
                     return (
-                      <span key={ev.id} className="flex items-center gap-1 truncate font-body text-[11px] text-ink">
+                      <span key={ev.id} className="flex w-full min-w-0 items-center gap-1 font-body text-[11px] text-ink">
                         <span
                           className={clsx('h-1.5 w-1.5 flex-shrink-0 rounded-full', color ? color.dotClass : 'bg-eddy-300')}
                         />

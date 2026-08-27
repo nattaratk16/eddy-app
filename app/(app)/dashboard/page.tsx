@@ -214,7 +214,8 @@ export default async function DashboardPage() {
       {/* ---------- ปฏิทินเดือน (รวมมินิปฏิทิน + ตารางสัปดาห์เดิมไว้ด้วยกัน) ---------- */}
       <section className="mt-5">
         <Reveal delay={0.34}>
-          <Card>
+          {/* padding น้อยกว่าการ์ดอื่น - ปฏิทินมีกรอบของตัวเองอยู่แล้ว ไม่ต้องมีขอบซ้อนขอบ */}
+          <Card className="!p-4 sm:!p-5">
             <DashboardCalendar
               events={monthEvents.map((ev) => ({
                 id: ev.id,
