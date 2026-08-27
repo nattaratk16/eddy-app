@@ -28,7 +28,9 @@ model User {
   username     String? @unique // ชื่อผู้ใช้ (handle) - ไม่ซ้ำกัน
   title        String? // บทบาท/ตำแหน่ง เช่น "นักศึกษาวิศวกรรม", "นักการตลาด", "ครู"
   organization String? // สถานศึกษา/ที่ทำงาน
-  status       String? // "student" | "working" | "other"
+  status       String? // "student" | "working" | "other" (ช่องเก่า - ไม่ได้ใช้แล้ว)
+  role         String? // บทบาทจาก onboarding: "school" | "university" | "working" - ใช้ปรับ category/ภาษา/บริบท AI
+  onboardedAt  DateTime? // เวลาที่ทำ onboarding เสร็จ/ข้าม (null = ยังไม่เคยทำ -> ให้เด้งไปหน้า onboarding)
   avatarColor  String? // สีพื้นอวาตาร์ (คีย์จากพาเลตพาสเทล)
   avatarEmoji  String? // อีโมจิใช้เป็นอวาตาร์ (ถ้าไม่ได้ใส่รูป)
   timezone     String? // โซนเวลา IANA เช่น "Asia/Bangkok"
@@ -45,6 +47,26 @@ model User {
   // เฟส 3: ระบบกลุ่ม
   ownedGroups      Group[]       @relation("GroupOwner")
   groupMemberships GroupMember[] @relation("GroupMemberships")
+  // Loop ชีวิต (กิจกรรมประจำที่ซ้ำทุกสัปดาห์)
+  recurringEvents  RecurringEvent[]
+}
+
+// Loop ชีวิตพื้นฐาน - บล็อกเวลาที่ซ้ำทุกสัปดาห์ (ตารางเรียนประจำ / เวลาทำงาน)
+// รองรับทั้ง 2 แบบด้วย field days (นักเรียน = หลายบล็อกเล็ก, วัยทำงาน = บล็อกใหญ่หลายวัน)
+model RecurringEvent {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  days       String // วันในสัปดาห์แบบ "1,2,3,4,5" (0=อาทิตย์ .. 6=เสาร์)
+  startTime  String // "HH:mm"
+  endTime    String // "HH:mm"
+  categoryId String? // อ้างอิงหมวดหมู่ (เก็บเป็น string ไม่ทำ FK เพื่อไม่ให้ลบหมวดแล้วลบ loop ตาม)
+  endDate    DateTime? // ใช้ถึงวันไหน (เช่น สิ้นเทอม) - null = ตลอดไป
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
 }
 
 // ---------- ตารางมาตรฐานของ NextAuth adapter (สำหรับ Google OAuth) ----------
@@ -97,6 +119,11 @@ model Task {
   userId    String
   subtasks  Subtask[]
 
+  // งานที่เอ็ดดี้จัดลงปฏิทินให้แล้ว -> ผูกกับ event ที่สร้างขึ้น (null = ยังไม่ได้ลงปฏิทิน)
+  // onDelete: SetNull -> ถ้าผู้ใช้ลบ event นั้นในหน้าปฏิทิน งานจะกลับมาเป็น "ยังไม่ได้จัดลงปฏิทิน" อัตโนมัติ
+  scheduledEventId String? @unique
+  scheduledEvent   Event?  @relation("TaskSchedule", fields: [scheduledEventId], references: [id], onDelete: SetNull)
+
   @@index([userId, done])
 }
 
@@ -138,6 +165,9 @@ model Event {
   userId      String
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId  String
+
+  // ฝั่งตรงข้ามของ Task.scheduledEvent (event นี้ถูกสร้างจากงานใน To-do หรือเปล่า)
+  scheduledForTask Task? @relation("TaskSchedule")
 
   @@index([userId, date])
 }
