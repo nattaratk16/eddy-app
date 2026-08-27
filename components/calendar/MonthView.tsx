@@ -12,6 +12,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
+import { Plus } from 'lucide-react';
 import { getColorOption } from '@/lib/colors';
 import { timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
@@ -23,9 +24,9 @@ interface MonthViewProps {
   currentMonth: Date;
   events: CalendarEvent[];
   categories: CalendarCategory[];
-  /** คลิกพื้นที่ว่างของวัน → เพิ่มกิจกรรมวันนั้น */
+  /** ปุ่ม + ที่โผล่ตอนชี้เมาส์ในช่องวัน → เพิ่มกิจกรรมวันนั้นทันที */
   onAddOnDay: (day: Date) => void;
-  /** คลิกเลขวัน หรือ "+N เพิ่มเติม" → เปิดมุมมองวันของวันนั้น */
+  /** คลิกช่องวัน / เลขวัน / "+N เพิ่มเติม" → เปิดไทม์ไลน์ของวันนั้น */
   onOpenDay: (day: Date) => void;
   /** คลิกกิจกรรม → แก้ไข */
   onEventClick: (event: CalendarEvent) => void;
@@ -80,13 +81,25 @@ export default function MonthView({
           return (
             <div
               key={day.toISOString()}
-              onClick={() => onAddOnDay(day)}
-              title="คลิกเพื่อเพิ่มกิจกรรมในวันนี้"
-              className={`min-h-[104px] cursor-pointer border-b border-r border-eddy-100 p-1.5 transition-colors last:border-r-0 hover:bg-eddy-50/40 ${
+              onClick={() => onOpenDay(day)}
+              title="คลิกเพื่อดูไทม์ไลน์ของวันนี้"
+              className={`group min-h-[104px] cursor-pointer border-b border-r border-eddy-100 p-1.5 transition-colors last:border-r-0 hover:bg-eddy-50/40 ${
                 inMonth ? 'bg-white' : 'bg-eddy-50/30'
               }`}
             >
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                {/* ปุ่มเพิ่มด่วน - โผล่ตอนชี้เมาส์ที่ช่องวัน (คลิกที่ช่องเปล่าๆ = ดูไทม์ไลน์) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddOnDay(day);
+                  }}
+                  aria-label={`เพิ่มกิจกรรมวันที่ ${format(day, 'd')}`}
+                  title="เพิ่มกิจกรรมในวันนี้"
+                  className="flex h-5 w-5 items-center justify-center rounded-full text-ink-muted opacity-0 transition-opacity hover:bg-eddy-100 hover:text-eddy-600 focus:opacity-100 group-hover:opacity-100"
+                >
+                  <Plus size={13} />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

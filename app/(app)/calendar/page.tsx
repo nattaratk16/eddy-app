@@ -2,32 +2,37 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import {
   addDays,
   addMonths,
   addWeeks,
   endOfWeek,
   format,
+  isSameDay,
   startOfWeek,
   subDays,
   subMonths,
   subWeeks,
 } from 'date-fns';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, CalendarDays, Check, Repeat } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
 import Modal from '@/components/Modal';
+import Popover from '@/components/Popover';
 import CategoryManager from '@/components/CategoryManager';
 import EventFormModal from '@/components/EventFormModal';
 import EddyMascot from '@/components/EddyMascot';
 import CalendarToolbar from '@/components/calendar/CalendarToolbar';
 import MiniCalendar from '@/components/calendar/MiniCalendar';
 import MonthView from '@/components/calendar/MonthView';
+import DayTimeline from '@/components/calendar/DayTimeline';
 import TimeGridView from '@/components/calendar/TimeGridView';
+import RecurringManager from '@/components/RecurringManager';
 import { buildWeeklySummary } from '@/lib/aiMock';
-import type { CalendarCategory, CalendarEvent, CalendarView, PastelColor } from '@/lib/types';
+import { expandRecurring } from '@/lib/recurring';
+import type { CalendarCategory, CalendarEvent, CalendarView, PastelColor, RecurringEventInfo } from '@/lib/types';
 
 const thMonths = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -64,6 +69,13 @@ interface ModalState {
   defaultDate?: string;
 }
 
+// หมวดหมู่เสมือนสำหรับกิจกรรมที่ดึงมาจาก Google Calendar (อ่านอย่างเดียว)
+const GOOGLE_CATEGORY_ID = '__google__';
+const GOOGLE_CATEGORY: CalendarCategory = { id: GOOGLE_CATEGORY_ID, name: 'Google Calendar', color: 'sky' };
+// หมวดหมู่เสมือนสำหรับ Loop ประจำที่ไม่ได้ผูกหมวดหมู่จริง
+const LOOP_CATEGORY_ID = '__loop__';
+const LOOP_CATEGORY: CalendarCategory = { id: LOOP_CATEGORY_ID, name: 'Loop ประจำ', color: 'lilac' };
+
 export default function CalendarPage() {
   return (
     <Suspense fallback={null}>
@@ -86,6 +98,17 @@ function CalendarPageContent() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const [modalState, setModalState] = useState<ModalState>({ open: false });
+  // วันที่กำลังเปิดดูไทม์ไลน์ (จากการคลิกช่องวันในมุมมองเดือน) - null = ปิดอยู่
+  const [timelineDay, setTimelineDay] = useState<Date | null>(null);
+
+  // Loop ชีวิต (กิจกรรมประจำ)
+  const [recurring, setRecurring] = useState<RecurringEventInfo[]>([]);
+
+  // กิจกรรมจาก Google Calendar (อ่านอย่างเดียว)
+  const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
+  const [showGoogle, setShowGoogle] = useState(true);
+  // loading = กำลังเช็ค, connected = เชื่อม+ดึงได้, account-error = เชื่อมบัญชีแล้วแต่ดึงไม่ได้, off = ยังไม่เชื่อม
+  const [googleStatus, setGoogleStatus] = useState<'loading' | 'connected' | 'account-error' | 'off'>('loading');
 
   // โหลดหมวดหมู่และกิจกรรมจริงจาก /api/categories และ /api/events (Prisma + PostgreSQL)
   useEffect(() => {
@@ -129,6 +152,56 @@ function CalendarPageContent() {
     () => events.filter((ev) => visibleIds.has(ev.categoryId)),
     [events, visibleIds],
   );
+
+  // โหลด Loop ชีวิต (กิจกรรมประจำ) - โหลดครั้งเดียว
+  const loadRecurring = () => fetch('/api/recurring').then((r) => r.json()).then((d) => setRecurring(d.recurring ?? []));
+  useEffect(() => {
+    loadRecurring();
+  }, []);
+
+  // ดึงกิจกรรมจาก Google Calendar (โหลดช่วง ±45 วันรอบวันที่ดูอยู่ - รีเฟรชเมื่อเปลี่ยนเดือน)
+  const monthKey = format(anchor, 'yyyy-MM');
+  useEffect(() => {
+    (async () => {
+      const start = format(subDays(anchor, 45), 'yyyy-MM-dd');
+      const end = format(addDays(anchor, 45), 'yyyy-MM-dd');
+      try {
+        const res = await fetch(`/api/google/calendar?start=${start}&end=${end}`);
+        const data = await res.json();
+        if (data.connected) {
+          setGoogleStatus('connected');
+          setGoogleEvents(
+            (data.events ?? []).map((e: CalendarEvent) => ({ ...e, categoryId: GOOGLE_CATEGORY_ID })),
+          );
+        } else {
+          setGoogleStatus(data.hasAccount ? 'account-error' : 'off');
+          setGoogleEvents([]);
+        }
+      } catch {
+        setGoogleStatus('off');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthKey]);
+
+  // ขยาย Loop ประจำเป็นกิจกรรมจริงในช่วง ±45 วันรอบวันที่ดูอยู่
+  const recurringEvents = useMemo(() => {
+    const dates = Array.from({ length: 91 }, (_, i) => format(addDays(anchor, i - 45), 'yyyy-MM-dd'));
+    return expandRecurring(recurring, dates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recurring, monthKey]);
+
+  // กิจกรรม + หมวดหมู่ที่ส่งให้มุมมองปฏิทิน (รวม Loop ประจำ + Google ถ้าเปิดแสดง)
+  const displayEvents = useMemo(
+    () => [...visibleEvents, ...recurringEvents, ...(showGoogle ? googleEvents : [])],
+    [visibleEvents, recurringEvents, googleEvents, showGoogle],
+  );
+  const displayCategories = useMemo(() => {
+    const extra: CalendarCategory[] = [];
+    if (recurringEvents.length > 0) extra.push(LOOP_CATEGORY);
+    if (showGoogle && googleEvents.length > 0) extra.push(GOOGLE_CATEGORY);
+    return extra.length ? [...categories, ...extra] : categories;
+  }, [categories, recurringEvents.length, showGoogle, googleEvents.length]);
 
   // วันที่จะส่งให้มุมมอง time-grid: 1 วัน หรือ 7 วันของสัปดาห์
   const gridDays = useMemo(() => {
@@ -188,6 +261,11 @@ function CalendarPageContent() {
     setView('day');
   }
 
+  // คลิกช่องวันในมุมมองเดือน -> เปิดไทม์ไลน์ของวันนั้นก่อน (ไม่เด้งฟอร์มเพิ่มทันทีเหมือนเดิม)
+  function openDayTimeline(day: Date) {
+    setTimelineDay(day);
+  }
+
   // ---- Category handlers ----
   async function addCategory(name: string, color: PastelColor) {
     const res = await fetch('/api/categories', {
@@ -245,6 +323,7 @@ function CalendarPageContent() {
   }
 
   function openEditModal(ev: CalendarEvent) {
+    if (ev.source === 'google' || ev.source === 'recurring') return; // อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ
     setModalState({ open: true, editing: ev });
   }
 
@@ -283,16 +362,16 @@ function CalendarPageContent() {
       <Topbar userName={userName} />
 
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-        {/* ---------- Sidebar ซ้าย (แบบ Google) ---------- */}
+        {/* ---------- Sidebar ซ้าย (โล่ง: มินิปฏิทิน + หมวดหมู่) ---------- */}
         <aside className="flex flex-col gap-5">
           <Card className="!p-4">
-            <MiniCalendar selectedDate={anchor} events={visibleEvents} onSelectDate={setAnchor} />
+            <MiniCalendar selectedDate={anchor} events={displayEvents} onSelectDate={setAnchor} />
           </Card>
 
           {/* หมวดหมู่ปฏิทิน + ตัวกรอง */}
           <Card className="!p-4">
-            <h2 className="font-display text-sm font-bold text-ink">ปฏิทินของฉัน</h2>
-            <p className="mt-1 font-body text-xs text-ink-muted">ติ๊กออกเพื่อซ่อนหมวดหมู่จากปฏิทินชั่วคราว</p>
+            <h2 className="font-display text-h3 text-ink">ปฏิทินของฉัน</h2>
+            <p className="mt-1 font-body text-caption text-ink-muted">ติ๊กออกเพื่อซ่อนหมวดหมู่จากปฏิทินชั่วคราว</p>
             <div className="mt-3">
               <CategoryManager
                 categories={categories}
@@ -304,21 +383,87 @@ function CalendarPageContent() {
               />
             </div>
           </Card>
-
-          {/* สรุปสัปดาห์ด้วย AI */}
-          <Card tone="white" className="flex items-start gap-3 !p-4">
-            <EddyMascot mood="think" size={44} float={false} />
-            <div>
-              <p className="flex items-center gap-1 font-display text-sm font-bold text-ink">
-                <Sparkles size={14} /> เอ็ดดี้สรุปสัปดาห์นี้
-              </p>
-              <p className="mt-1 font-body text-xs text-ink-muted">{weeklySummary}</p>
-            </div>
-          </Card>
         </aside>
 
         {/* ---------- ส่วนปฏิทินหลัก ---------- */}
         <div className="flex flex-col gap-4">
+          {/* แถบเครื่องมือรอง: สรุป AI / Loop / Google (เก็บเป็น popover ให้หน้าโล่ง) */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* สรุปสัปดาห์ด้วย AI */}
+            <Popover label="สรุปสัปดาห์" icon={<Sparkles size={14} />} width="w-80">
+              <div className="flex items-start gap-3">
+                <EddyMascot mood="think" size={44} float={false} />
+                <div>
+                  <p className="font-display text-sm font-bold text-ink">เอ็ดดี้สรุปสัปดาห์นี้</p>
+                  <p className="mt-1 font-body text-xs text-ink-muted">{weeklySummary}</p>
+                </div>
+              </div>
+            </Popover>
+
+            {/* Loop ชีวิต (ตารางประจำ) */}
+            <Popover label="Loop ประจำ" icon={<Repeat size={14} />} badge={recurring.length} width="w-80">
+              <RecurringManager categories={categories} onChange={loadRecurring} />
+            </Popover>
+
+            {/* เชื่อม Google Calendar (อ่านอย่างเดียว) */}
+            <Popover
+              label="Google"
+              icon={<CalendarDays size={14} />}
+              dotClass={
+                googleStatus === 'connected'
+                  ? 'bg-emerald-500'
+                  : googleStatus === 'account-error'
+                  ? 'bg-amber-500'
+                  : 'bg-ink-muted/40'
+              }
+              width="w-72"
+            >
+              <div className="flex items-center gap-2">
+                <CalendarDays size={16} className="text-eddy-600" />
+                <h2 className="font-display text-sm font-bold text-ink">Google Calendar</h2>
+              </div>
+              {googleStatus === 'connected' ? (
+                <>
+                  <p className="mt-1 flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
+                    <Check size={13} /> เชื่อมต่อแล้ว
+                  </p>
+                  <label className="mt-2 flex cursor-pointer items-center gap-2 font-body text-xs text-ink-soft">
+                    <input
+                      type="checkbox"
+                      checked={showGoogle}
+                      onChange={(e) => setShowGoogle(e.target.checked)}
+                      className="h-4 w-4 accent-eddy-500"
+                    />
+                    แสดงกิจกรรมจาก Google ({googleEvents.length})
+                  </label>
+                </>
+              ) : googleStatus === 'account-error' ? (
+                <div className="mt-1">
+                  <p className="flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
+                    <Check size={13} /> เชื่อมบัญชี Google แล้ว
+                  </p>
+                  <p className="mt-1 font-body text-xs text-eddy-700">
+                    แต่ยังดึงปฏิทินไม่ได้ — ต้องเปิดใช้ &quot;Google Calendar API&quot; ในโปรเจกต์ Google Cloud ก่อน แล้วรอ 1-2 นาที
+                  </p>
+                </div>
+              ) : googleStatus === 'off' ? (
+                <>
+                  <p className="mt-1 font-body text-xs text-ink-muted">
+                    เชื่อมเพื่อดึงกิจกรรมจากปฏิทิน Google มาแสดงในที่เดียว
+                  </p>
+                  <button
+                    onClick={() => signIn('google')}
+                    className="mt-2 rounded-full bg-ink px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
+                  >
+                    เชื่อม Google Calendar
+                  </button>
+                </>
+              ) : (
+                <p className="mt-1 font-body text-xs text-ink-muted">กำลังตรวจสอบ...</p>
+              )}
+            </Popover>
+          </div>
+
           <CalendarToolbar
             view={view}
             title={toolbarTitle(view, anchor)}
@@ -340,17 +485,17 @@ function CalendarPageContent() {
               {view === 'month' ? (
                 <MonthView
                   currentMonth={anchor}
-                  events={visibleEvents}
-                  categories={categories}
+                  events={displayEvents}
+                  categories={displayCategories}
                   onAddOnDay={(day) => openAddModal(day)}
-                  onOpenDay={openDay}
+                  onOpenDay={openDayTimeline}
                   onEventClick={openEditModal}
                 />
               ) : (
                 <TimeGridView
                   days={gridDays}
-                  events={visibleEvents}
-                  categories={categories}
+                  events={displayEvents}
+                  categories={displayCategories}
                   onAddSlot={(day, startTime) => openAddModal(day, startTime)}
                   onEventClick={openEditModal}
                 />
@@ -359,6 +504,36 @@ function CalendarPageContent() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* ไทม์ไลน์ของวันที่คลิกในมุมมองเดือน - ดูก่อนว่ามีอะไร แล้วค่อยกดเข้าไปแก้ */}
+      <Modal
+        open={timelineDay !== null}
+        onClose={() => setTimelineDay(null)}
+        title={timelineDay ? toolbarTitle('day', timelineDay) : ''}
+        maxWidth="max-w-lg"
+      >
+        {timelineDay && (
+          <DayTimeline
+            // ใช้เกณฑ์เดียวกับที่ MonthView ใช้กรองกิจกรรมลงช่องวัน จะได้ตรงกับที่เห็นในตารางเป๊ะ
+            events={displayEvents.filter((ev) => isSameDay(new Date(ev.date), timelineDay))}
+            categories={displayCategories}
+            onEventClick={(ev) => {
+              setTimelineDay(null);
+              openEditModal(ev);
+            }}
+            onAdd={() => {
+              const day = timelineDay;
+              setTimelineDay(null);
+              openAddModal(day);
+            }}
+            onOpenDayView={() => {
+              const day = timelineDay;
+              setTimelineDay(null);
+              openDay(day);
+            }}
+          />
+        )}
+      </Modal>
 
       <Modal
         open={modalState.open}
