@@ -114,6 +114,8 @@ export interface GroupInfo {
   members?: GroupMemberInfo[]; // ใส่มาเฉพาะตอนดูรายละเอียดกลุ่ม
   taskCount?: number; // จำนวนงานกลุ่มทั้งหมด (มาเฉพาะตอนดึงรายการกลุ่ม)
   waitingForMeCount?: number; // งานที่มอบหมายให้ฉันและรอฉันกดยืนยัน
+  joinCode?: string | null; // รหัสให้เพื่อนเข้าร่วมกลุ่มเอง
+  memberAvatars?: { name: string; image: string | null }[]; // รูปสมาชิกไม่กี่คนแรก ใช้โชว์บนการ์ด
 }
 
 /** งานของกลุ่ม + ผลการมอบหมาย (เฟส 3c) */

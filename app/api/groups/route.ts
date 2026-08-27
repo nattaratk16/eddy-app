@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { serializeGroup } from '@/lib/groups';
+import { generateJoinCode } from '@/lib/joinCode';
 
 // GET /api/groups - กลุ่มที่ฉันเป็นสมาชิก (รับคำเชิญแล้ว)
 export async function GET() {
@@ -12,7 +13,14 @@ export async function GET() {
   const memberships = await prisma.groupMember.findMany({
     where: { userId, status: 'accepted' },
     include: {
-      group: { include: { members: { where: { status: 'accepted' }, select: { id: true } } } },
+      group: {
+        include: {
+          members: {
+            where: { status: 'accepted' },
+            select: { id: true, user: { select: { name: true, email: true, image: true } } },
+          },
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -34,7 +42,13 @@ export async function GET() {
   }
 
   const groups = memberships.map((m) => ({
-    ...serializeGroup(m.group, userId, { memberCount: m.group.members.length }),
+    ...serializeGroup(m.group, userId, {
+      memberCount: m.group.members.length,
+      avatars: m.group.members.slice(0, 4).map((mem) => ({
+        name: mem.user.name || mem.user.email.split('@')[0],
+        image: mem.user.image,
+      })),
+    }),
     taskCount: taskCountByGroup.get(m.groupId) ?? 0,
     waitingForMeCount: waitingByGroup.get(m.groupId) ?? 0,
   }));
@@ -57,6 +71,7 @@ export async function POST(req: NextRequest) {
       name,
       description: typeof body?.description === 'string' ? body.description.trim() || null : null,
       color: typeof body?.color === 'string' ? body.color : 'blue',
+      joinCode: generateJoinCode(), // ให้กลุ่มมีรหัสชวนเพื่อนตั้งแต่แรก
       ownerId: userId,
       members: { create: { userId, role: 'owner', status: 'accepted', showEventTitles: true } },
     },

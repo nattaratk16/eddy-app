@@ -1,5 +1,6 @@
 // ตัวช่วยสำหรับระบบกลุ่ม (เฟส 3) - สิทธิ์การเข้าถึง + แปลงข้อมูลส่งออก
 import { prisma } from './prisma';
+import { generateJoinCode } from './joinCode';
 import type { GroupInfo, GroupMemberInfo, PastelColor } from './types';
 import type { GroupMember, User } from '@prisma/client';
 
@@ -33,9 +34,9 @@ export function serializeMember(m: MemberWithUser, currentUserId: string): Group
 }
 
 export function serializeGroup(
-  group: { id: string; name: string; description: string | null; color: string; ownerId: string },
+  group: { id: string; name: string; description: string | null; color: string; ownerId: string; joinCode?: string | null },
   currentUserId: string,
-  opts?: { memberCount?: number; members?: MemberWithUser[] },
+  opts?: { memberCount?: number; members?: MemberWithUser[]; avatars?: { name: string; image: string | null }[] },
 ): GroupInfo {
   return {
     id: group.id,
@@ -44,7 +45,25 @@ export function serializeGroup(
     color: group.color as PastelColor,
     ownerId: group.ownerId,
     isOwner: group.ownerId === currentUserId,
+    joinCode: group.joinCode ?? null,
     memberCount: opts?.memberCount ?? opts?.members?.filter((m) => m.status === 'accepted').length ?? 0,
     members: opts?.members?.map((m) => serializeMember(m, currentUserId)),
+    memberAvatars: opts?.avatars,
   };
+}
+
+/**
+ * หา joinCode ที่ยังไม่ซ้ำ แล้วบันทึกให้กลุ่ม
+ * กลุ่มที่สร้างก่อนมีฟีเจอร์นี้จะยังไม่มีรหัส - เรียกฟังก์ชันนี้ตอนที่ต้องใช้ครั้งแรก
+ */
+export async function ensureJoinCode(groupId: string, existing?: string | null): Promise<string> {
+  if (existing) return existing;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateJoinCode();
+    const taken = await prisma.group.findUnique({ where: { joinCode: code }, select: { id: true } });
+    if (taken) continue;
+    const updated = await prisma.group.update({ where: { id: groupId }, data: { joinCode: code } });
+    return updated.joinCode!;
+  }
+  throw new Error('สร้างรหัสกลุ่มไม่สำเร็จ ลองใหม่อีกครั้ง');
 }

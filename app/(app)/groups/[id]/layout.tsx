@@ -13,7 +13,7 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, CalendarDays, Crown, ListChecks, LayoutGrid, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, UserPlus, Users } from 'lucide-react';
 import clsx from 'clsx';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -37,6 +37,10 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // รหัสให้เพื่อนเข้าร่วมเอง (กลุ่มเก่าที่ยังไม่มีรหัส จะสร้างให้ตอนเปิด modal ครั้งแรก)
+  const [joinCode, setJoinCode] = useState<string | null>(null);
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const [gRes, tRes] = await Promise.all([
@@ -50,6 +54,20 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setJoinCode(group?.joinCode ?? null);
+  }, [group?.joinCode]);
+
+  // เปิด modal แล้วยังไม่มีรหัส (กลุ่มที่สร้างก่อนมีฟีเจอร์นี้) -> ขอให้เซิร์ฟเวอร์สร้างให้
+  useEffect(() => {
+    if (!inviteOpen || joinCode || codeBusy) return;
+    setCodeBusy(true);
+    fetch(`/api/groups/${params.id}/join-code`, { method: 'POST' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.joinCode && setJoinCode(d.joinCode))
+      .finally(() => setCodeBusy(false));
+  }, [inviteOpen, joinCode, codeBusy, params.id]);
 
   // หน้าลูกแก้ข้อมูลกลุ่ม (เชิญ/เอาสมาชิกออก/เพิ่มงาน) -> ให้หัวกลุ่มอัปเดตตาม
   useEffect(() => {
@@ -75,6 +93,30 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
     setInviteEmail('');
     load();
     notifyGroupUpdated();
+  }
+
+  async function copyCode() {
+    if (!joinCode) return;
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // เบราว์เซอร์ไม่ให้เขียนคลิปบอร์ด (เช่นไม่ใช่ https) - ผู้ใช้ยังคัดลอกเองได้จากรหัสที่แสดงอยู่
+    }
+  }
+
+  async function regenerateCode() {
+    if (!group?.isOwner || codeBusy) return;
+    if (!confirm('เปลี่ยนรหัสใหม่? รหัสเดิมจะใช้เข้ากลุ่มไม่ได้อีก')) return;
+    setCodeBusy(true);
+    const res = await fetch(`/api/groups/${params.id}/join-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ regenerate: true }),
+    });
+    setCodeBusy(false);
+    if (res.ok) setJoinCode((await res.json()).joinCode);
   }
 
   const base = `/groups/${params.id}`;
@@ -204,6 +246,42 @@ export default function GroupLayout({ children, params }: { children: ReactNode;
 
       {/* ---- เชิญสมาชิก (ใช้ได้จากทุกแท็บ) ---- */}
       <Modal open={inviteOpen} onClose={() => setInviteOpen(false)} title="เชิญสมาชิก" maxWidth="max-w-md">
+        {/* วิธีที่ 1: ส่งรหัสให้เพื่อนกรอกเอง - ง่ายกว่าเพราะไม่ต้องรู้อีเมลของเพื่อน */}
+        <div className="rounded-clay-sm bg-eddy-50 p-4">
+          <p className="font-display text-xs font-semibold text-ink-soft">รหัสกลุ่ม</p>
+          <p className="mt-0.5 font-body text-[11px] text-ink-muted">
+            ส่งรหัสนี้ให้เพื่อน แล้วให้กด &quot;เข้าร่วมกลุ่ม&quot; ในหน้ากลุ่ม
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="flex-1 rounded-clay-sm bg-white px-4 py-2.5 text-center font-display text-xl font-bold tracking-[0.3em] text-ink">
+              {joinCode ?? (codeBusy ? '••••••' : '—')}
+            </span>
+            <button
+              onClick={copyCode}
+              disabled={!joinCode}
+              aria-label="คัดลอกรหัสกลุ่ม"
+              className="flex items-center gap-1 rounded-clay-sm bg-ink px-3 py-2.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
+            </button>
+          </div>
+          {group?.isOwner && (
+            <button
+              onClick={regenerateCode}
+              disabled={codeBusy}
+              className="mt-2 flex items-center gap-1 font-body text-[11px] font-semibold text-ink-muted transition-colors hover:text-ink disabled:opacity-50"
+            >
+              <RefreshCw size={11} /> เปลี่ยนรหัสใหม่
+            </button>
+          )}
+        </div>
+
+        <div className="my-4 flex items-center gap-3">
+          <span className="h-px flex-1 bg-eddy-100" />
+          <span className="font-body text-[11px] text-ink-muted">หรือเชิญด้วยอีเมล</span>
+          <span className="h-px flex-1 bg-eddy-100" />
+        </div>
+
         <p className="font-body text-sm text-ink-muted">กรอกอีเมลของเพื่อน (เพื่อนต้องมีบัญชี EDDY อยู่แล้ว)</p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input

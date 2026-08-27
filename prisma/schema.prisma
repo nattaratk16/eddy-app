@@ -180,6 +180,9 @@ model Group {
   name        String
   description String?
   color       String        @default("blue") // ใช้พาเลตพาสเทลเดียวกับ category เป็นสีประจำกลุ่ม
+  // รหัสเข้าร่วมกลุ่ม 6 ตัว (เช่น "K7M2QD") - ใครมีรหัสก็เข้ากลุ่มได้เองโดยไม่ต้องรอเจ้าของเชิญ
+  // เป็น null ได้เพราะกลุ่มที่สร้างก่อนมีฟีเจอร์นี้ยังไม่มีรหัส (สร้างให้ตอนเปิดใช้ครั้งแรก)
+  joinCode    String?       @unique
   ownerId     String
   owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt   DateTime      @default(now())
