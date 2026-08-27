@@ -84,6 +84,20 @@ export async function POST(req: NextRequest) {
     slotAdvice = await adviseSlot(userId, draft.date, draft.startTime ?? null);
   }
 
+  // เก็บบทสนทนาไว้ - เปิดแชทครั้งหน้าจะได้อ่านย้อนได้ (เขียนทีเดียว 2 แถว ประหยัด round trip)
+  // เก็บ draft ไปด้วยเพื่อให้กลับมากดเพิ่มลงปฏิทิน/สิ่งที่ต้องทำต่อได้
+  // แต่ไม่เก็บ slotAdvice เพราะช่วงเวลาว่างเปลี่ยนตลอด ต้องคำนวณสดเสมอ
+  try {
+    await prisma.chatMessage.createMany({
+      data: [
+        { userId, role: 'user', text: message },
+        { userId, role: 'eddy', text: reply, draft: draft ? JSON.stringify(draft) : null },
+      ],
+    });
+  } catch {
+    // บันทึกประวัติไม่สำเร็จไม่ควรทำให้แชทพัง - ตอบผู้ใช้ต่อไปตามปกติ
+  }
+
   return NextResponse.json({ reply, draft, slotAdvice });
 }
 

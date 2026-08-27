@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, X, Sparkles, CalendarPlus, ListPlus, Check, AlertTriangle, Clock } from 'lucide-react';
+import { Send, X, Sparkles, CalendarPlus, ListPlus, Check, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import EddyMascot from './EddyMascot';
 import type { ParsedMessageIntent } from '@/lib/gemini';
 import type { SlotAdvice, SlotSuggestion } from '@/lib/slotAdvice';
@@ -31,11 +31,47 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // โหลดประวัติแค่ครั้งเดียวตอนเปิดแชทครั้งแรก - ไม่โหลดพร้อมทุกหน้าที่มีปุ่มแชทลอยอยู่
+  const historyLoaded = useRef(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, open]);
+
+  // เปิดแชทครั้งแรก -> ดึงบทสนทนาเก่ามาต่อ
+  useEffect(() => {
+    if (!open || historyLoaded.current) return;
+    historyLoaded.current = true;
+    setLoadingHistory(true);
+    (async () => {
+      try {
+        const res = await fetch('/api/chat/history');
+        const data = await res.json();
+        const past: ChatMessage[] = (data.messages ?? []).map(
+          (m: { id: string; role: 'user' | 'eddy'; text: string; draft?: ParsedMessageIntent }) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+            draft: m.draft,
+          }),
+        );
+        // มีประวัติแล้วก็ไม่ต้องขึ้นข้อความต้อนรับซ้ำ
+        if (past.length > 0) setMessages(past);
+      } catch {
+        // โหลดประวัติไม่ได้ก็เริ่มบทสนทนาใหม่ได้ตามปกติ
+      } finally {
+        setLoadingHistory(false);
+      }
+    })();
+  }, [open]);
+
+  async function clearHistory() {
+    if (!confirm('ล้างประวัติแชททั้งหมด?')) return;
+    setMessages(initialMessages);
+    await fetch('/api/chat/history', { method: 'DELETE' });
+  }
 
   async function sendMessage() {
     const text = input.trim();
@@ -111,15 +147,26 @@ export default function ChatWidget() {
         <div className="fixed bottom-40 right-4 z-40 flex h-[480px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-clay bg-white shadow-clay-pop md:bottom-28 md:right-8">
           <div className="flex items-center gap-3 bg-ink px-5 py-4 text-white">
             <EddyMascot size={36} float={false} />
-            <div>
+            <div className="flex-1">
               <p className="font-display text-sm font-bold">คุยกับเอ็ดดี้</p>
               <p className="flex items-center gap-1 text-[11px] text-white/70">
                 <Sparkles size={12} /> ขับเคลื่อนด้วย Gemini AI
               </p>
             </div>
+            <button
+              onClick={clearHistory}
+              aria-label="ล้างประวัติแชท"
+              title="ล้างประวัติแชท"
+              className="rounded-full p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Trash2 size={15} />
+            </button>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-eddy-50 px-4 py-4">
+            {loadingHistory && (
+              <p className="text-center font-body text-xs text-ink-muted">กำลังโหลดบทสนทนาก่อนหน้า...</p>
+            )}
             {messages.map((m) => (
               <div key={m.id} className="flex flex-col gap-2">
                 <div

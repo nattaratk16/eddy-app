@@ -249,7 +249,13 @@ model ChatMessage {
   id        String   @id @default(cuid())
   role      String // "user" | "eddy"
   text      String
+  // การ์ด "เอ็ดดี้อ่านได้ว่า..." ที่แนบมากับข้อความ เก็บเป็น JSON string
+  // (เก็บไว้ด้วยเพื่อให้เปิดแชทใหม่แล้วยังกดเพิ่มลงปฏิทิน/สิ่งที่ต้องทำต่อได้)
+  // ไม่เก็บตัวเลือกเวลาที่เสนอ เพราะช่องว่างเปลี่ยนตลอด ต้องคำนวณใหม่เสมอ
+  draft     String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+
+  @@index([userId, createdAt])
 }
