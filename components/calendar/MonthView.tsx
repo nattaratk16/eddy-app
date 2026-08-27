@@ -17,7 +17,16 @@ import { getColorOption } from '@/lib/colors';
 import { timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
-const weekDayLabels = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+// ตัวย่อภาษาไทยแบบมาตรฐาน - ย่อเหลือตัวเดียวไม่ได้เพราะ "อาทิตย์" กับ "อังคาร" จะกลายเป็น "อ" เหมือนกัน
+const weekDayLabels = [
+  { full: 'อาทิตย์', short: 'อา.' },
+  { full: 'จันทร์', short: 'จ.' },
+  { full: 'อังคาร', short: 'อ.' },
+  { full: 'พุธ', short: 'พ.' },
+  { full: 'พฤหัส', short: 'พฤ.' },
+  { full: 'ศุกร์', short: 'ศ.' },
+  { full: 'เสาร์', short: 'ส.' },
+];
 const MAX_CHIPS = 3;
 
 interface MonthViewProps {
@@ -65,9 +74,12 @@ export default function MonthView({
       {/* หัวตารางชื่อวัน */}
       <div className="grid grid-cols-7 border-b border-eddy-100 bg-eddy-50/50">
         {weekDayLabels.map((d) => (
-          <div key={d} className="py-2 text-center font-display text-xs font-semibold text-ink-muted">
-            <span className="hidden sm:inline">{d}</span>
-            <span className="sm:hidden">{d.slice(0, 1)}</span>
+          <div
+            key={d.full}
+            className="min-w-0 truncate px-1 py-2 text-center font-display text-xs font-semibold text-ink-muted"
+          >
+            <span className="hidden lg:inline">{d.full}</span>
+            <span className="lg:hidden">{d.short}</span>
           </div>
         ))}
       </div>
@@ -78,28 +90,19 @@ export default function MonthView({
           const dayEvents = eventsForDay(day);
           const inMonth = isSameMonth(day, currentMonth);
           const today = isToday(day);
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
           return (
             <div
               key={day.toISOString()}
               onClick={() => onOpenDay(day)}
               title="คลิกเพื่อดูไทม์ไลน์ของวันนี้"
-              className={`group min-h-[104px] cursor-pointer border-b border-r border-eddy-100 p-1.5 transition-colors last:border-r-0 hover:bg-eddy-50/40 ${
-                inMonth ? 'bg-white' : 'bg-eddy-50/30'
+              // min-w-0 + overflow-hidden สำคัญมาก: ถ้าไม่ใส่ ชื่อกิจกรรมยาวๆ จะดันคอลัมน์นั้นให้กว้าง
+              // แล้วคอลัมน์ที่เหลือ (โดยเฉพาะอาทิตย์ที่อยู่ซ้ายสุด) จะถูกบีบจนเลขวันที่เบียดกัน
+              className={`group flex min-h-[112px] min-w-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 hover:bg-eddy-50/40 ${
+                !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-white'
               }`}
             >
               <div className="flex items-center justify-between">
-                {/* ปุ่มเพิ่มด่วน - โผล่ตอนชี้เมาส์ที่ช่องวัน (คลิกที่ช่องเปล่าๆ = ดูไทม์ไลน์) */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddOnDay(day);
-                  }}
-                  aria-label={`เพิ่มกิจกรรมวันที่ ${format(day, 'd')}`}
-                  title="เพิ่มกิจกรรมในวันนี้"
-                  className="flex h-5 w-5 items-center justify-center rounded-full text-ink-muted opacity-0 transition-opacity hover:bg-eddy-100 hover:text-eddy-600 focus:opacity-100 group-hover:opacity-100"
-                >
-                  <Plus size={13} />
-                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -115,9 +118,21 @@ export default function MonthView({
                 >
                   {format(day, 'd')}
                 </button>
+                {/* ปุ่มเพิ่มด่วน - โผล่ตอนชี้เมาส์ที่ช่องวัน (คลิกที่ช่องเปล่าๆ = ดูไทม์ไลน์) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddOnDay(day);
+                  }}
+                  aria-label={`เพิ่มกิจกรรมวันที่ ${format(day, 'd')}`}
+                  title="เพิ่มกิจกรรมในวันนี้"
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-ink-muted opacity-0 transition-opacity hover:bg-eddy-100 hover:text-eddy-600 focus:opacity-100 group-hover:opacity-100"
+                >
+                  <Plus size={13} />
+                </button>
               </div>
 
-              <div className="mt-0.5 flex flex-col gap-0.5">
+              <div className="flex w-full min-w-0 flex-col gap-0.5">
                 {dayEvents.slice(0, MAX_CHIPS).map((ev) => {
                   const cat = categoryOf(ev);
                   const color = cat ? getColorOption(cat.color) : null;
@@ -128,7 +143,7 @@ export default function MonthView({
                         e.stopPropagation();
                         onEventClick(ev);
                       }}
-                      className="flex items-center gap-1 truncate rounded px-1 py-0.5 text-left font-body text-[11px] text-ink transition-colors hover:bg-eddy-50"
+                      className="flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left font-body text-[11px] text-ink transition-colors hover:bg-white"
                     >
                       <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${color ? color.dotClass : 'bg-eddy-300'}`} />
                       {ev.startTime && <span className="flex-shrink-0 text-ink-muted">{ev.startTime}</span>}
