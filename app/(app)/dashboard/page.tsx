@@ -1,15 +1,6 @@
 import Link from 'next/link';
 import { ListTodo, Sparkles, ArrowRight } from 'lucide-react';
-import {
-  addDays,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameDay,
-  isSameMonth,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
+import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from 'date-fns';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import Topbar from '@/components/Topbar';
@@ -17,6 +8,7 @@ import Card from '@/components/Card';
 import FaceBubble from '@/components/FaceBubble';
 import EddyMascot from '@/components/EddyMascot';
 import Reveal from '@/components/motion/Reveal';
+import DashboardCalendar from '@/components/dashboard/DashboardCalendar';
 import { getColorOption } from '@/lib/colors';
 import type { CalendarCategory } from '@/lib/types';
 
@@ -26,7 +18,6 @@ const priorityTone: Record<string, string> = {
   medium: 'bg-pastel-yellow text-eddy-700',
   low: 'bg-pastel-mint text-eddy-700',
 };
-const weekDayLabels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
 function toISODate(d: Date) {
   return format(d, 'yyyy-MM-dd');
@@ -40,9 +31,9 @@ export default async function DashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // ช่วงที่ปฏิทินเดือนต้องใช้ (คร่อมสัปดาห์แรก/สุดท้ายของเดือน)
   const gridStart = startOfWeek(startOfMonth(today));
   const gridEnd = endOfWeek(endOfMonth(today));
-  const weekStart = startOfWeek(today);
 
   const [todayTasks, monthEvents, upcomingEvents, categories] = await Promise.all([
     prisma.task.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 }),
@@ -62,21 +53,6 @@ export default async function DashboardPage() {
   const ringR = 32;
   const ringC = 2 * Math.PI * ringR;
   const ringOffset = ringC * (1 - donePct / 100);
-
-  // ---- mini calendar grid ----
-  const gridDays: Date[] = [];
-  for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) gridDays.push(d);
-  const eventDateSet = new Set(monthEvents.map((ev) => toISODate(ev.date)));
-
-  // ---- weekly timeline ----
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const eventsByDate = new Map<string, typeof monthEvents>();
-  for (const ev of monthEvents) {
-    const key = toISODate(ev.date);
-    const list = eventsByDate.get(key) ?? [];
-    list.push(ev);
-    eventsByDate.set(key, list);
-  }
 
   return (
     <div className="px-4 md:px-10">
@@ -203,95 +179,8 @@ export default async function DashboardPage() {
           </Card>
         </Reveal>
 
+        {/* กิจกรรมที่จะถึง - ย้ายขึ้นมาคู่กับงานวันนี้ */}
         <Reveal delay={0.28}>
-          <Card>
-            <h2 className="font-display text-h3 text-ink">{format(today, 'MMMM yyyy')}</h2>
-            <div className="mt-3 grid grid-cols-7 gap-1 text-center font-body text-micro font-semibold text-ink-muted">
-              {weekDayLabels.map((d) => (
-                <div key={d} className="py-1">
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {gridDays.map((day) => {
-                const inMonth = isSameMonth(day, today);
-                const isToday = isSameDay(day, today);
-                const hasEvent = eventDateSet.has(toISODate(day));
-                return (
-                  <Link
-                    key={day.toISOString()}
-                    href={`/calendar?date=${toISODate(day)}`}
-                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-clay-sm font-body text-xs transition-colors ${
-                      isToday
-                        ? 'bg-eddy-500 font-bold text-white'
-                        : inMonth
-                        ? 'text-ink hover:bg-eddy-50'
-                        : 'text-ink-muted/50 hover:bg-eddy-50'
-                    }`}
-                  >
-                    {format(day, 'd')}
-                    <span
-                      className={`h-1 w-1 rounded-full ${
-                        hasEvent ? (isToday ? 'bg-white' : 'bg-eddy-400') : 'bg-transparent'
-                      }`}
-                    />
-                  </Link>
-                );
-              })}
-            </div>
-          </Card>
-        </Reveal>
-      </section>
-
-      {/* ---------- ตารางสัปดาห์ + กิจกรรมที่จะถึง ---------- */}
-      <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
-        <Reveal className="lg:col-span-2" delay={0.34}>
-          <Card>
-            <h2 className="font-display text-h3 text-ink">ตารางสัปดาห์นี้</h2>
-            <div className="mt-4 flex flex-col divide-y divide-eddy-100">
-              {weekDays.map((day) => {
-                const dayEvents = eventsByDate.get(toISODate(day)) ?? [];
-                const isToday = isSameDay(day, today);
-                return (
-                  <div key={day.toISOString()} className="flex gap-4 py-3 first:pt-0 last:pb-0">
-                    <div className="w-14 flex-shrink-0 text-center">
-                      <p className={`font-display text-xs font-semibold ${isToday ? 'text-eddy-600' : 'text-ink-muted'}`}>
-                        {weekDayLabels[day.getDay()]}
-                      </p>
-                      <p
-                        className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full font-display text-sm font-bold ${
-                          isToday ? 'bg-eddy-500 text-white' : 'text-ink'
-                        }`}
-                      >
-                        {format(day, 'd')}
-                      </p>
-                    </div>
-                    <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
-                      {dayEvents.length === 0 ? (
-                        <p className="font-body text-xs text-ink-muted">ไม่มีกิจกรรม</p>
-                      ) : (
-                        dayEvents.map((ev) => {
-                          const cat = categoryById.get(ev.categoryId);
-                          const dotClass = cat ? getColorOption(cat.color).dotClass : 'bg-eddy-200';
-                          return (
-                            <div key={ev.id} className="flex items-center gap-2">
-                              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${dotClass}`} />
-                              <span className="font-body text-sm text-ink">{ev.title}</span>
-                              {ev.startTime && <span className="font-body text-xs text-ink-muted">{ev.startTime}</span>}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </Reveal>
-
-        <Reveal delay={0.4}>
           <Card>
             <h2 className="font-display text-h3 text-ink">กิจกรรมที่จะถึง</h2>
             <div className="mt-3 flex flex-col gap-2.5">
@@ -302,7 +191,11 @@ export default async function DashboardPage() {
                 const cat = categoryById.get(ev.categoryId);
                 const dotClass = cat ? getColorOption(cat.color).dotClass : 'bg-eddy-200';
                 return (
-                  <div key={ev.id} className="flex items-center gap-3 rounded-clay-sm px-2 py-1.5 transition-colors hover:bg-eddy-50">
+                  <Link
+                    key={ev.id}
+                    href={`/calendar?date=${toISODate(ev.date)}`}
+                    className="flex items-center gap-3 rounded-clay-sm px-2 py-1.5 transition-colors hover:bg-eddy-50"
+                  >
                     <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${dotClass}`} />
                     <div className="min-w-0">
                       <p className="truncate font-body text-sm text-ink">{ev.title}</p>
@@ -310,10 +203,32 @@ export default async function DashboardPage() {
                         {toISODate(ev.date)} {ev.startTime ? `• ${ev.startTime}` : ''}
                       </p>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
+          </Card>
+        </Reveal>
+      </section>
+
+      {/* ---------- ปฏิทินเดือน (รวมมินิปฏิทิน + ตารางสัปดาห์เดิมไว้ด้วยกัน) ---------- */}
+      <section className="mt-5">
+        <Reveal delay={0.34}>
+          <Card>
+            <DashboardCalendar
+              events={monthEvents.map((ev) => ({
+                id: ev.id,
+                title: ev.title,
+                date: toISODate(ev.date),
+                startTime: ev.startTime ?? undefined,
+                endTime: ev.endTime ?? undefined,
+                location: ev.location ?? undefined,
+                description: ev.description ?? undefined,
+                categoryId: ev.categoryId,
+              }))}
+              categories={[...categoryById.values()]}
+              todayISO={toISODate(today)}
+            />
           </Card>
         </Reveal>
       </section>
