@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { Task } from '@/lib/types';
-import type { Task as PrismaTask } from '@prisma/client';
+import type { Task as PrismaTask, Event as PrismaEvent } from '@prisma/client';
 
-function serialize(t: PrismaTask): Task {
+function serialize(t: PrismaTask & { scheduledEvent?: PrismaEvent | null }): Task {
   return {
     id: t.id,
     title: t.title,
@@ -13,6 +13,14 @@ function serialize(t: PrismaTask): Task {
     dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : undefined,
     category: t.category ?? undefined,
     estimatedMinutes: t.estimatedMinutes ?? undefined,
+    scheduled: t.scheduledEvent
+      ? {
+          eventId: t.scheduledEvent.id,
+          date: t.scheduledEvent.date.toISOString().slice(0, 10),
+          startTime: t.scheduledEvent.startTime ?? undefined,
+          endTime: t.scheduledEvent.endTime ?? undefined,
+        }
+      : undefined,
   };
 }
 
@@ -42,6 +50,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         : null
       : undefined;
 
+  // unschedule = เอางานออกจากปฏิทิน -> ลบ event ที่เอ็ดดี้สร้างไว้ (ความสัมพันธ์จะถูกล้างเป็น null เอง)
+  if (body.unschedule === true && existing.scheduledEventId) {
+    await prisma.event.deleteMany({ where: { id: existing.scheduledEventId, userId: session.user.id } });
+  }
+
   const task = await prisma.task.update({
     where: { id: params.id },
     data: {
@@ -51,7 +64,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(body.category !== undefined && { category: body.category || null }),
       ...(dueDate !== undefined && { dueDate }),
       ...(estimatedMinutes !== undefined && { estimatedMinutes }),
+      ...(body.unschedule === true && { scheduledEventId: null }),
     },
+    include: { scheduledEvent: true },
   });
 
   return NextResponse.json({ task: serialize(task) });
@@ -66,6 +81,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // ลบ event ที่เอ็ดดี้สร้างจากงานนี้ไปด้วย ไม่ให้ค้างในปฏิทินหลังงานถูกลบ
+  if (existing.scheduledEventId) {
+    await prisma.event.deleteMany({ where: { id: existing.scheduledEventId, userId: session.user.id } });
+  }
   await prisma.task.delete({ where: { id: params.id } });
 
   return NextResponse.json({ ok: true });

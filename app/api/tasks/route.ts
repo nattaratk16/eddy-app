@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { Task } from '@/lib/types';
-import type { Task as PrismaTask, Subtask as PrismaSubtask } from '@prisma/client';
+import type { Task as PrismaTask, Subtask as PrismaSubtask, Event as PrismaEvent } from '@prisma/client';
 
-function serialize(t: PrismaTask & { subtasks?: PrismaSubtask[] }): Task {
+function serialize(t: PrismaTask & { subtasks?: PrismaSubtask[]; scheduledEvent?: PrismaEvent | null }): Task {
   return {
     id: t.id,
     title: t.title,
@@ -14,6 +14,15 @@ function serialize(t: PrismaTask & { subtasks?: PrismaSubtask[] }): Task {
     category: t.category ?? undefined,
     subtasks: t.subtasks?.map((s) => ({ id: s.id, title: s.title, done: s.done })),
     estimatedMinutes: t.estimatedMinutes ?? undefined,
+    // งานที่เอ็ดดี้จัดลงปฏิทินให้แล้ว (ถ้า event ถูกลบในหน้าปฏิทิน ความสัมพันธ์จะถูกล้างเป็น null เอง)
+    scheduled: t.scheduledEvent
+      ? {
+          eventId: t.scheduledEvent.id,
+          date: t.scheduledEvent.date.toISOString().slice(0, 10),
+          startTime: t.scheduledEvent.startTime ?? undefined,
+          endTime: t.scheduledEvent.endTime ?? undefined,
+        }
+      : undefined,
   };
 }
 
@@ -24,7 +33,7 @@ export async function GET() {
   const tasks = await prisma.task.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
-    include: { subtasks: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] } },
+    include: { subtasks: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] }, scheduledEvent: true },
   });
   return NextResponse.json({ tasks: tasks.map(serialize) });
 }

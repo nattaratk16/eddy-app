@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
-import { computeFreeSlots, totalFreeMinutes, placeTask, type FreeSlot } from '@/lib/freeTime';
+import { totalFreeMinutes, placeTask, type FreeSlot } from '@/lib/freeTime';
+import { buildDateWindow, freeSlotsForUsers } from '@/lib/schedule';
 import { minutesToTime } from '@/lib/calendarLayout';
 import { distributeGroupTasks } from '@/lib/gemini';
 
@@ -20,10 +21,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   }
 
   // ช่วงเวลา 7 วันข้างหน้า (เริ่มวันนี้ตามเวลาไทย)
-  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
-  const t0 = new Date(`${todayISO}T00:00:00.000Z`);
-  const dates = Array.from({ length: WINDOW_DAYS }, (_, i) => new Date(t0.getTime() + i * 86400000).toISOString().slice(0, 10));
-  const windowEnd = new Date(t0.getTime() + WINDOW_DAYS * 86400000);
+  const dates = buildDateWindow(WINDOW_DAYS);
 
   // สมาชิก + โปรไฟล์ (เวลาว่าง/นิสัย)
   const members = await prisma.groupMember.findMany({
@@ -42,33 +40,11 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ assigned: 0, unassigned: 0, message: 'ไม่มีงานที่ต้องจัด (งานทั้งหมดถูกยืนยันแล้ว)' });
   }
 
-  // event ของสมาชิกทุกคนในช่วงนี้ (รวมงานที่ approve ไปแล้วซึ่งกลายเป็น event ในปฏิทินตัวเอง = ถือว่าไม่ว่าง)
+  // ช่วงว่างต่อคน (คำนวณด้วย lib/schedule.ts ตัวเดียวกับที่หน้า To-do ใช้จัดงานลงปฏิทิน)
+  // รวมทั้ง Event ปกติ + Loop ชีวิต และตัดเวลาที่ผ่านมาแล้วของวันนี้ทิ้งให้เรียบร้อย
+  // (อาร์เรย์ที่ได้ mutate ได้ - placeTask จะตัดเวลาที่ใช้ออกเพื่อกันงานถัดไปวางทับ)
   const memberIds = members.map((m) => m.userId);
-  const events = await prisma.event.findMany({
-    where: { userId: { in: memberIds }, date: { gte: t0, lt: windowEnd } },
-    select: { userId: true, date: true, startTime: true, endTime: true },
-  });
-  const eventsByUser = new Map<string, { date: string; startTime: string | null; endTime: string | null }[]>();
-  for (const ev of events) {
-    const arr = eventsByUser.get(ev.userId) ?? [];
-    arr.push({ date: ev.date.toISOString().slice(0, 10), startTime: ev.startTime, endTime: ev.endTime });
-    eventsByUser.set(ev.userId, arr);
-  }
-
-  // เวลาปัจจุบัน (เวลาไทย) ปัดขึ้นเป็นช่วง 15 นาที - ใช้ตัดช่วงว่าง "วันนี้" ที่ผ่านมาแล้ว
-  const hm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', hour12: false, hour: '2-digit', minute: '2-digit' }).format(new Date());
-  const [hh, mm] = hm.split(':').map(Number);
-  const nowMin = Math.min(Math.ceil((hh * 60 + mm) / 15) * 15, 24 * 60);
-
-  // ช่วงว่างต่อคน (mutable ระหว่างวางงาน)
-  const slotsByUser = new Map<string, FreeSlot[]>();
-  for (const m of members) {
-    const slots = computeFreeSlots(eventsByUser.get(m.userId) ?? [], dates, m.user.dayStart, m.user.dayEnd)
-      // วันนี้: เลื่อนจุดเริ่มของช่วงว่างไม่ให้ก่อนเวลาปัจจุบัน (ไม่เสนอเวลาย้อนหลัง)
-      .map((s) => (s.date === dates[0] && s.startMin < nowMin ? { ...s, startMin: nowMin } : s))
-      .filter((s) => s.endMin - s.startMin > 0);
-    slotsByUser.set(m.userId, slots);
-  }
+  const slotsByUser: Map<string, FreeSlot[]> = await freeSlotsForUsers(memberIds, dates);
 
   // ให้ Gemini เลือก "ใครทำงานไหน" (ล้มเหลว/ไม่มี key ก็ปล่อยว่าง แล้วใช้ local ล้วน)
   const geminiPref = new Map<string, string>();

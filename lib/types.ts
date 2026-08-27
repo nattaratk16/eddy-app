@@ -15,6 +15,16 @@ export interface Task {
   category?: string;
   subtasks?: Subtask[];
   estimatedMinutes?: number; // ใช้คำนวณ Priority Score - ไม่บังคับกรอก
+  /** ช่วงเวลาที่เอ็ดดี้จัดงานนี้ลงปฏิทินให้แล้ว (undefined = ยังไม่ได้ลงปฏิทิน) */
+  scheduled?: TaskSchedule;
+}
+
+/** งานใน To-do ที่ถูกวางลงปฏิทินแล้ว - ชี้ไปที่ event ที่สร้างขึ้น */
+export interface TaskSchedule {
+  eventId: string;
+  date: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
 }
 
 // สีพาสเทลที่เลือกได้สำหรับหมวดหมู่ปฏิทิน
@@ -55,6 +65,19 @@ export interface CalendarEvent {
   categoryId: string; // อ้างอิงไปยัง CalendarCategory.id
   /** มาจาก To-do List (กำหนดส่งงาน) ไม่ใช่กิจกรรมที่สร้างเองในปฏิทิน */
   fromTask?: boolean;
+  /** แหล่งที่มา: 'google' = จาก Google Calendar, 'recurring' = จาก Loop ชีวิต (อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ) */
+  source?: 'google' | 'recurring';
+}
+
+/** Loop ชีวิต - กิจกรรมประจำที่ซ้ำทุกสัปดาห์ */
+export interface RecurringEventInfo {
+  id: string;
+  title: string;
+  days: number[]; // [1,2,3,4,5] วันในสัปดาห์ (0=อาทิตย์)
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  categoryId?: string | null;
+  endDate?: string | null; // YYYY-MM-DD (null = ตลอดไป)
 }
 
 export interface ChatMessagePayload {
