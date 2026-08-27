@@ -1,17 +1,18 @@
 'use client';
 
 /**
- * WorkloadPanel — กราฟแท่งภาระงานของสมาชิก (Workload Score)
+ * WorkloadPanel — กราฟแท่งแนวตั้งแสดงภาระงานของสมาชิก (Workload Score)
  * --------------------------------------------------------------
  * ใช้ทั้งแท็บภาพรวมกลุ่มและแท็บงานกลุ่ม
  * ข้อมูลมาจาก GET /api/groups/[id]/workload หรือรับ rows ที่เพิ่งกระจายงานเสร็จมาแสดงแทน
  *
  * การอ่านกราฟ:
- *   ความยาวแท่ง = % ของเวลาที่มีทั้งหมดที่ถูกงานจองไปแล้ว (0-100% จึงเทียบกันได้ตรงๆ)
- *                 ไม่ได้ใช้ค่า score ตรงๆ เพราะ score = งาน ÷ ว่าง ไม่มีเพดาน
- *                 (คนที่ว่างเหลือน้อยมากจะพุ่งไปหลายสิบ ทำให้แท่งคนอื่นแบนหมด)
- *   สี          = ระดับความแน่น 3 ขั้น เขียว -> ส้ม -> แดง พร้อมป้ายชื่อระดับกำกับ
- *                 (สีอย่างเดียวไม่พอสำหรับคนตาบอดสี จึงมีทั้งความยาวแท่งและตัวหนังสือ)
+ *   รางสีจาง = เวลาที่คนนั้นมีทั้งหมดในกรอบเวลาที่สะดวก (= 100%)
+ *   แท่งทึบ  = ส่วนที่ถูกงานจองไปแล้ว - เต็มรางเมื่อไหร่คือไม่เหลือเวลาว่าง
+ *             ใช้ % แทนค่า score ตรงๆ เพราะ score = งาน ÷ ว่าง ไม่มีเพดาน
+ *             (คนที่ว่างเหลือน้อยมากจะพุ่งไปหลายสิบ แล้วแท่งคนอื่นจะแบนหมด)
+ *   สี       = ระดับความแน่น 3 ขั้น เขียว -> ส้ม -> แดง พร้อมป้ายชื่อระดับกำกับใต้ชื่อ
+ *             (สีอย่างเดียวไม่พอสำหรับคนตาบอดสี จึงมีทั้งความสูงแท่งและตัวหนังสือ)
  *
  * สีทั้งสามผ่าน validator ของ dataviz skill ครบทุกข้อ - ดูหมายเหตุใน tailwind.config.js
  * ก่อนจะเพิ่มเฉดกลาง
@@ -43,9 +44,9 @@ export function formatHours(minutes: number): string {
 
 /** ระดับความแน่นจาก % เวลาที่ถูกจองไปแล้ว */
 const BANDS = [
-  { key: 'free', max: 55, label: 'ยังว่าง', bar: 'bg-load-free', dot: 'bg-load-free' },
-  { key: 'tight', max: 85, label: 'เริ่มแน่น', bar: 'bg-load-tight', dot: 'bg-load-tight' },
-  { key: 'full', max: Infinity, label: 'แน่นมาก', bar: 'bg-load-full', dot: 'bg-load-full' },
+  { key: 'free', max: 55, label: 'ยังว่าง', range: 'ต่ำกว่า 55%', bar: 'bg-load-free' },
+  { key: 'tight', max: 85, label: 'เริ่มแน่น', range: '55-84%', bar: 'bg-load-tight' },
+  { key: 'full', max: Infinity, label: 'แน่นมาก', range: '85% ขึ้นไป', bar: 'bg-load-full' },
 ] as const;
 
 function bandOf(pct: number) {
@@ -78,98 +79,97 @@ export default function WorkloadPanel({ groupId, rows, refreshKey = 0, className
   }, [load, rows, refreshKey]);
 
   const data = rows ?? loaded;
-  // เรียงจากคนที่แน่นสุดลงมา - คนที่ต้องช่วยแบ่งงานให้อยู่บนสุด
+  // เรียงจากคนที่แน่นสุดไปหาคนที่ว่างสุด - อ่านซ้ายไปขวาแล้วเห็นทันทีว่าใครควรได้งานเพิ่ม
   const sorted = [...data].sort((a, b) => (b.score ?? Infinity) - (a.score ?? Infinity));
 
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 font-display text-sm font-bold text-ink">
-          <Gauge size={15} className="text-eddy-500" /> ภาระงานของสมาชิก
-        </h3>
-        <span className="font-body text-[11px] text-ink-muted">7 วันข้างหน้า</span>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div>
+          <h3 className="flex items-center gap-1.5 font-display text-base font-bold text-ink">
+            <Gauge size={17} className="text-eddy-500" /> ภาระงานของสมาชิก
+          </h3>
+          <p className="mt-0.5 font-body text-xs text-ink-muted">
+            ความสูงของแท่ง = เวลาที่มีงานจองไว้แล้ว เทียบกับเวลาที่มีทั้งหมดใน 7 วันข้างหน้า
+          </p>
+        </div>
+        {/* คำอธิบายสี - สีอย่างเดียวไม่ควรเป็นตัวบอกความหมายตัวเดียว */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {BANDS.map((b) => (
+            <span key={b.key} className="flex items-center gap-1.5 font-body text-xs text-ink-soft">
+              <span className={clsx('h-2.5 w-2.5 rounded-sm', b.bar)} />
+              {b.label}
+              <span className="text-ink-muted">{b.range}</span>
+            </span>
+          ))}
+        </div>
       </div>
-      <p className="mt-0.5 font-body text-[11px] text-ink-muted">
-        แท่ง = เวลาที่มีงานจองไว้แล้ว เทียบกับเวลาที่มีทั้งหมด
-      </p>
 
       {loading && !rows ? (
-        <p className="py-6 text-center font-body text-xs text-ink-muted">กำลังคำนวณ...</p>
+        <p className="py-12 text-center font-body text-sm text-ink-muted">กำลังคำนวณ...</p>
       ) : sorted.length === 0 ? (
-        <p className="py-6 text-center font-body text-xs text-ink-muted">ยังไม่มีสมาชิกให้คำนวณ</p>
+        <p className="py-12 text-center font-body text-sm text-ink-muted">ยังไม่มีสมาชิกให้คำนวณ</p>
       ) : (
-        <>
-          <ul className="mt-4 flex flex-col gap-3.5">
+        <div className="mt-5 overflow-x-auto pb-1">
+          <div className="flex min-w-max items-stretch gap-4 sm:min-w-0">
             {sorted.map((m) => {
               const capacity = m.committedMinutes + m.freeMinutes;
               const pct = capacity > 0 ? Math.round((m.committedMinutes / capacity) * 100) : 100;
               const band = bandOf(pct);
               const open = openId === m.userId;
               return (
-                <li
+                <div
                   key={m.userId}
-                  className="relative"
+                  // จำกัดความกว้างแท่งไว้ ไม่งั้นกลุ่มเล็ก 2-3 คนแท่งจะกลายเป็นบล็อกใหญ่เต็มการ์ด
+                  className="relative flex w-[92px] flex-shrink-0 flex-col items-center sm:w-auto sm:max-w-[116px] sm:flex-1"
                   onMouseEnter={() => setOpenId(m.userId)}
                   onMouseLeave={() => setOpenId((cur) => (cur === m.userId ? null : cur))}
                 >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="min-w-0 truncate font-body text-xs font-semibold text-ink">
-                      {m.name}
-                      {m.isMe && <span className="ml-1 font-normal text-ink-muted">(คุณ)</span>}
-                    </span>
-                    <span className="flex flex-shrink-0 items-baseline gap-1.5">
-                      <span className="font-body text-[11px] text-ink-muted">{band.label}</span>
-                      <span className="font-display text-xs font-bold text-ink">{pct}%</span>
-                    </span>
-                  </div>
+                  {/* ตัวเลขเหนือแท่ง */}
+                  <span className="mb-1.5 font-display text-lg font-bold leading-none text-ink">{pct}%</span>
 
-                  {/* แท่ง: รางเต็ม = เวลาที่มีทั้งหมด, ส่วนที่ทึบ = ถูกงานจองไปแล้ว */}
-                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-eddy-50">
+                  {/* ราง = เวลาที่มีทั้งหมด, แท่งทึบ = ที่ถูกจองไปแล้ว */}
+                  <div className="flex h-[190px] w-full items-end justify-center rounded-clay-sm bg-eddy-50/80">
                     <div
-                      className={clsx('h-full rounded-full transition-[width] duration-500 ease-out', band.bar)}
-                      style={{ width: `${Math.max(pct, 2)}%` }}
+                      className={clsx('w-full rounded-clay-sm transition-[height] duration-500 ease-out', band.bar)}
+                      style={{ height: `${Math.max(pct, 3)}%` }}
                     />
                   </div>
 
-                  <p className="mt-1 font-body text-[11px] text-ink-muted">
-                    งาน {formatHours(m.committedMinutes)} · ว่าง {formatHours(m.freeMinutes)} · คะแนน{' '}
-                    {m.score === null ? 'เต็ม' : m.score.toFixed(2)}
-                    {m.assignedMinutes > 0 ? ` · รอบนี้ +${formatHours(m.assignedMinutes)}` : ''}
+                  {/* ชื่อ + ระดับ */}
+                  <p className="mt-2.5 w-full truncate text-center font-body text-sm font-semibold text-ink">
+                    {m.name}
+                  </p>
+                  <p className="w-full truncate text-center font-body text-xs text-ink-muted">
+                    {m.isMe ? 'คุณ · ' : ''}
+                    {band.label}
+                  </p>
+                  <p className="mt-1 w-full truncate text-center font-body text-[11px] text-ink-muted">
+                    ว่าง {formatHours(m.freeMinutes)}
+                    {m.assignedMinutes > 0 ? ` · +${formatHours(m.assignedMinutes)}` : ''}
                   </p>
 
-                  {/* รายละเอียดตอนชี้เมาส์: แยกว่าเป็นเวลาที่ลงปฏิทินแล้วเท่าไร งานที่ยังไม่ได้ลงเท่าไร */}
-                  {open && (m.bookedMinutes !== undefined || m.pendingMinutes !== undefined) && (
-                    <div className="absolute -top-1 right-0 z-10 w-max max-w-[240px] -translate-y-full rounded-clay-sm bg-ink px-3 py-2 shadow-clay-sm">
-                      <p className="font-display text-[11px] font-bold text-white">{m.name}</p>
-                      <p className="mt-0.5 font-body text-[11px] text-white/80">
+                  {/* รายละเอียดตอนชี้เมาส์ */}
+                  {open && (
+                    <div className="absolute -top-2 left-1/2 z-20 w-max max-w-[240px] -translate-x-1/2 -translate-y-full rounded-clay-sm bg-ink px-3 py-2 text-left shadow-clay-sm">
+                      <p className="font-display text-xs font-bold text-white">{m.name}</p>
+                      <p className="mt-1 font-body text-[11px] text-white/80">
                         อยู่ในปฏิทินแล้ว {formatHours(m.bookedMinutes ?? 0)}
                       </p>
                       <p className="font-body text-[11px] text-white/80">
                         งานค้างที่ยังไม่ได้ลงปฏิทิน {formatHours(m.pendingMinutes ?? 0)}
                       </p>
-                      <p className="mt-1 font-body text-[10px] text-white/60">
+                      <p className="font-body text-[11px] text-white/80">เวลาว่างที่เหลือ {formatHours(m.freeMinutes)}</p>
+                      <p className="mt-1.5 border-t border-white/15 pt-1.5 font-body text-[11px] text-white/60">
                         คะแนน = งานที่มี ÷ เวลาว่าง = {m.score === null ? 'ไม่เหลือเวลาว่าง' : m.score.toFixed(2)}
                       </p>
                     </div>
                   )}
-                </li>
+                </div>
               );
             })}
-          </ul>
-
-          {/* คำอธิบายสี - สีอย่างเดียวไม่พอ ต้องมีชื่อระดับกำกับด้วย */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-eddy-100 pt-3">
-            {BANDS.map((b, i) => (
-              <span key={b.key} className="flex items-center gap-1 font-body text-[10px] text-ink-muted">
-                <span className={clsx('h-2 w-2 rounded-full', b.dot)} />
-                {b.label}
-                <span className="text-ink-muted/70">
-                  {i === 0 ? '<55%' : i === 1 ? '55-84%' : '85%+'}
-                </span>
-              </span>
-            ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

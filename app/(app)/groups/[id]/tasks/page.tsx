@@ -160,7 +160,7 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+    <div className="flex flex-col gap-5">
       <div className="min-w-0">
         {/* แถบเครื่องมือ */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -191,6 +191,11 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
             <Sparkles size={15} className="flex-shrink-0 text-eddy-600" /> {result}
           </p>
         )}
+
+        {/* ภาระงานสมาชิก - ดูก่อนกดจัดตาราง แล้วดูอีกทีว่าหลังจัดแล้วเปลี่ยนไปยังไง */}
+        <Card className="mt-4">
+          <WorkloadPanel groupId={params.id} rows={distributedWorkload} refreshKey={workloadKey} />
+        </Card>
 
         {/* รายการงานแยกตามสถานะ */}
         {loading ? (
@@ -231,13 +236,6 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
               ))}
           </div>
         )}
-      </div>
-
-      {/* คอลัมน์ขวา: ภาระงานสมาชิก */}
-      <div>
-        <Card className="lg:sticky lg:top-6">
-          <WorkloadPanel groupId={params.id} rows={distributedWorkload} refreshKey={workloadKey} />
-        </Card>
       </div>
 
       {/* Modal เพิ่มงาน */}

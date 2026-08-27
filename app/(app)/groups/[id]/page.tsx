@@ -166,7 +166,10 @@ export default function GroupOverviewPage({ params }: { params: { id: string } }
             </>
           )}
         </Card>
+      </div>
 
+      {/* ---- กราฟภาระงาน (เต็มความกว้าง - แท่งแนวตั้งต้องการที่กว้างกว่าคอลัมน์ข้าง) ---- */}
+      <div className="lg:col-span-2">
         <Card>
           <WorkloadPanel groupId={params.id} />
         </Card>
