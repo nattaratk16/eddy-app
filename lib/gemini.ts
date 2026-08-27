@@ -323,7 +323,16 @@ const DISTRIBUTE_SCHEMA = {
 
 interface DistributeInput {
   tasks: { id: string; title: string; durationMin: number; dueDate?: string | null }[];
-  members: { id: string; name: string; freeMinutes: number; bio?: string | null }[];
+  members: {
+    id: string;
+    name: string;
+    freeMinutes: number;
+    /** งานที่มีอยู่แล้วในช่วงเวลานั้น (ปฏิทิน + To-do ค้าง + งานกลุ่มอื่นที่รอยืนยัน) */
+    committedMinutes: number;
+    /** Workload Score = committed / free (ยิ่งต่ำยิ่งมีที่ว่าง) - คำนวณ local ใน lib/workload.ts */
+    workloadScore: number;
+    bio?: string | null;
+  }[];
 }
 
 export async function distributeGroupTasks(
@@ -332,8 +341,13 @@ export async function distributeGroupTasks(
   const taskList = input.tasks
     .map((t) => `- id=${t.id} | "${t.title}" | ใช้เวลา ~${t.durationMin} นาที${t.dueDate ? ` | ต้องเสร็จก่อน ${t.dueDate}` : ''}`)
     .join('\n');
+  const fmtScore = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : 'ไม่เหลือเวลาว่าง');
   const memberList = input.members
-    .map((m) => `- id=${m.id} | ${m.name} | เวลาว่างรวม ~${m.freeMinutes} นาที${m.bio ? ` | นิสัย: ${m.bio}` : ''}`)
+    .map(
+      (m) =>
+        `- id=${m.id} | ${m.name} | ว่าง ~${m.freeMinutes} นาที | งานที่มีอยู่แล้ว ~${m.committedMinutes} นาที` +
+        ` | ภาระงาน(workload score) ${fmtScore(m.workloadScore)}${m.bio ? ` | นิสัย: ${m.bio}` : ''}`,
+    )
     .join('\n');
 
   const prompt = `
@@ -347,8 +361,11 @@ ${memberList}
 
 กติกา:
 - มอบหมายให้ครบทุกงาน งานละ 1 คน
-- กระจายให้สมดุล ไม่ให้ใครหนักเกินไป โดยดูจากเวลาว่างรวม (คนว่างมากรับได้มากกว่า)
-- ถ้านิสัยของใครเข้ากับงานไหนเป็นพิเศษ ให้พิจารณาจับคู่ให้เหมาะ
+- ดู "ภาระงาน (workload score)" เป็นหลัก = งานที่มีอยู่แล้ว ÷ เวลาว่าง
+  คะแนนยิ่งต่ำ = ยิ่งมีพื้นที่ว่างเหลือ ควรได้รับงานใหม่ก่อน
+  (อย่าดูแค่ "เวลาว่าง" อย่างเดียว คนที่ว่างเยอะแต่มีงานค้างเยอะกว่าถือว่าแน่นกว่า)
+- ถ้านิสัย/ความถนัดของใครเข้ากับงานไหนเป็นพิเศษ ให้จับคู่ให้เหมาะได้
+  แม้ภาระงานจะสูงกว่าเล็กน้อย แต่ห้ามกองงานหลายชิ้นไว้ที่คนที่ภาระงานสูงสุด
 - ตอบเป็น assignments โดยใช้ id ที่ให้มาเท่านั้น (taskId ต้องมาจากรายการงาน, userId ต้องมาจากรายชื่อสมาชิก)
 `.trim();
 

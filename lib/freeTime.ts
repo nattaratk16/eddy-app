@@ -18,6 +18,21 @@ interface MemberEvent {
   endTime?: string | null;
 }
 
+/**
+ * กรอบเวลาที่สะดวกของคนคนหนึ่งในหนึ่งวัน (นาทีจากเที่ยงคืน)
+ * ไม่ได้ตั้งค่าไว้ = 08:00-22:00 ตามค่าเริ่มต้น
+ * แยกออกมาเพราะทั้งการหาช่วงว่างและการคิด Workload Score ต้องใช้กรอบเดียวกัน
+ */
+export function availabilityWindow(
+  availStart?: string | null,
+  availEnd?: string | null,
+): { startMin: number; endMin: number } {
+  return {
+    startMin: timeToMinutes(availStart) ?? DEFAULT_START,
+    endMin: timeToMinutes(availEnd) ?? DEFAULT_END,
+  };
+}
+
 /** ช่วงว่างของสมาชิกคนหนึ่งในแต่ละวัน (ภายในกรอบเวลาที่สะดวก availStart..availEnd) */
 export function computeFreeSlots(
   events: MemberEvent[],
@@ -25,8 +40,7 @@ export function computeFreeSlots(
   availStart?: string | null,
   availEnd?: string | null,
 ): FreeSlot[] {
-  const winStart = timeToMinutes(availStart) ?? DEFAULT_START;
-  const winEnd = timeToMinutes(availEnd) ?? DEFAULT_END;
+  const { startMin: winStart, endMin: winEnd } = availabilityWindow(availStart, availEnd);
   if (winEnd <= winStart) return [];
 
   // จัดกลุ่มช่วง "ไม่ว่าง" ตามวัน

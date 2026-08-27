@@ -21,6 +21,24 @@ const DURATIONS = [
   { v: '180', label: '3 ชั่วโมง' },
 ];
 
+/** แถวภาระงานที่ได้จาก POST /api/groups/[id]/distribute */
+interface MemberWorkloadRow {
+  userId: string;
+  name: string;
+  committedMinutes: number;
+  freeMinutes: number;
+  assignedMinutes: number;
+  score: number | null; // null = ไม่เหลือเวลาว่างเลย
+}
+
+/** 90 -> "1 ชม. 30 น." */
+function formatHours(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} น.`;
+  return m === 0 ? `${h} ชม.` : `${h} ชม. ${m} น.`;
+}
+
 export default function GroupTasksPage({ params }: { params: { id: string } }) {
   const [tasks, setTasks] = useState<GroupTaskInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +51,8 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
 
   const [distributing, setDistributing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  // ภาระงานของสมาชิกหลังเอ็ดดี้จัดเสร็จ (Workload Score) - โชว์ให้เห็นว่ากระจายเป็นธรรมแค่ไหน
+  const [workload, setWorkload] = useState<MemberWorkloadRow[]>([]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/groups/${params.id}/tasks`);
@@ -89,10 +109,12 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
   async function distribute() {
     setDistributing(true);
     setResult(null);
+    setWorkload([]);
     const res = await fetch(`/api/groups/${params.id}/distribute`, { method: 'POST' });
     const data = await res.json();
     setDistributing(false);
     if (!res.ok) return setResult(data.error ?? 'จัดตารางไม่สำเร็จ');
+    setWorkload(data.workload ?? []);
     if (data.assigned === 0 && data.unassigned === 0) setResult(data.message ?? 'ไม่มีงานที่ต้องจัด');
     else
       setResult(
@@ -135,8 +157,45 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
       </div>
 
       {result && (
-        <div className="mt-4 flex items-center gap-2 rounded-clay border border-eddy-100 bg-pastel-mint/40 px-4 py-3 font-body text-sm text-ink">
-          <Sparkles size={16} className="flex-shrink-0 text-eddy-600" /> {result}
+        <div className="mt-4 rounded-clay border border-eddy-100 bg-pastel-mint/40 px-4 py-3">
+          <p className="flex items-center gap-2 font-body text-sm text-ink">
+            <Sparkles size={16} className="flex-shrink-0 text-eddy-600" /> {result}
+          </p>
+
+          {/* ภาระงานของแต่ละคนหลังจัดเสร็จ - แท่งยาว = สัดส่วนเวลาที่มีงานอยู่แล้วเทียบกับเวลาที่มีทั้งหมด */}
+          {workload.length > 0 && (
+            <div className="mt-3 border-t border-eddy-100/70 pt-3">
+              <p className="mb-2 font-display text-xs font-semibold text-ink-soft">
+                ภาระงานของสมาชิกใน 7 วันข้างหน้า (งานที่มีอยู่แล้ว ÷ เวลาว่าง)
+              </p>
+              <ul className="flex flex-col gap-2">
+                {[...workload]
+                  .sort((a, b) => (a.score ?? Infinity) - (b.score ?? Infinity))
+                  .map((m) => {
+                    const capacity = m.committedMinutes + m.freeMinutes;
+                    const pct = capacity > 0 ? Math.round((m.committedMinutes / capacity) * 100) : 100;
+                    return (
+                      <li key={m.userId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="w-28 flex-shrink-0 truncate font-body text-xs text-ink">{m.name}</span>
+                        <span className="h-2 min-w-[120px] flex-1 overflow-hidden rounded-full bg-white">
+                          <span
+                            className="block h-full rounded-full bg-gradient-to-r from-eddy-400 to-accent-400"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </span>
+                        <span className="font-display text-[11px] font-semibold text-eddy-700">
+                          {m.score === null ? 'เต็ม' : m.score.toFixed(2)}
+                        </span>
+                        <span className="font-body text-[11px] text-ink-muted">
+                          งาน {formatHours(m.committedMinutes)} · ว่าง {formatHours(m.freeMinutes)}
+                          {m.assignedMinutes > 0 ? ` · รอบนี้ได้เพิ่ม ${formatHours(m.assignedMinutes)}` : ''}
+                        </span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
