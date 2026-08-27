@@ -13,33 +13,13 @@
  */
 import { prisma } from './prisma';
 import { computeFreeSlots, type FreeSlot } from './freeTime';
+import { nowMinutesBangkok, todayISOBangkok } from './thaiTime';
 import { expandRecurring, parseDays } from './recurring';
 import type { RecurringEventInfo } from './types';
 
-const TZ = 'Asia/Bangkok';
-
-/** วันที่วันนี้ตามเวลาไทย รูปแบบ "YYYY-MM-DD" (ไม่พึ่ง timezone ของเครื่องที่รันโค้ด) */
-export function todayISOBangkok(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
-}
-
-/** รายการวัน n วันนับจากวันนี้ (เวลาไทย) เช่น ["2026-08-27", "2026-08-28", ...] */
-export function buildDateWindow(days: number): string[] {
-  const t0 = new Date(`${todayISOBangkok()}T00:00:00.000Z`);
-  return Array.from({ length: days }, (_, i) => new Date(t0.getTime() + i * 86400000).toISOString().slice(0, 10));
-}
-
-/**
- * เวลาปัจจุบัน (เวลาไทย) เป็นนาทีจากเที่ยงคืน ปัดขึ้นเป็นช่วง 15 นาที
- * ใช้ตัดช่วงว่างของ "วันนี้" ที่ผ่านมาแล้วทิ้ง จะได้ไม่เสนอเวลาย้อนหลัง
- */
-export function nowMinutesBangkok(): number {
-  const hm = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour12: false, hour: '2-digit', minute: '2-digit' }).format(
-    new Date(),
-  );
-  const [hh, mm] = hm.split(':').map(Number);
-  return Math.min(Math.ceil((hh * 60 + mm) / 15) * 15, 24 * 60);
-}
+// ฟังก์ชันเรื่องเวลาไทยย้ายไป lib/thaiTime.ts แล้ว (ฝั่งที่ไม่ต้องใช้ DB จะได้ไม่ต้องลาก Prisma ติดมา)
+// re-export ไว้เพื่อให้โค้ดเดิมที่ import จากไฟล์นี้ยังใช้ได้เหมือนเดิม
+export { todayISOBangkok, buildDateWindow, nowMinutesBangkok } from './thaiTime';
 
 /**
  * ช่วงเวลาว่างของผู้ใช้หลายคนในช่วงวันที่กำหนด

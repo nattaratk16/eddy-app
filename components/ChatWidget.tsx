@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, X, Sparkles, CalendarPlus, ListPlus, Check } from 'lucide-react';
+import { Send, X, Sparkles, CalendarPlus, ListPlus, Check, AlertTriangle, Clock } from 'lucide-react';
 import EddyMascot from './EddyMascot';
 import type { ParsedMessageIntent } from '@/lib/gemini';
+import type { SlotAdvice, SlotSuggestion } from '@/lib/slotAdvice';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'eddy';
   text: string;
   draft?: ParsedMessageIntent;
+  /** วันที่ขอมาชนของเดิม/แน่นเกินไป -> เอ็ดดี้เสนอเวลาอื่นให้เลือก (เลือกหรือไม่เลือกก็ได้) */
+  slotAdvice?: SlotAdvice;
   added?: boolean; // สำหรับ draft ที่เป็น task และเพิ่มไปแล้ว
 }
 
@@ -58,6 +61,7 @@ export default function ChatWidget() {
           role: 'eddy',
           text: data.reply ?? 'ขออภัย ผมยังตอบไม่ได้ตอนนี้',
           draft: data.draft ?? undefined,
+          slotAdvice: data.slotAdvice ?? undefined,
         },
       ]);
     } catch {
@@ -70,8 +74,13 @@ export default function ChatWidget() {
     }
   }
 
-  function addDraftToCalendar(draft: ParsedMessageIntent) {
-    const payload = encodeURIComponent(JSON.stringify(draft));
+  /** เปิดฟอร์มเพิ่มกิจกรรมในหน้าปฏิทิน - slot = เวลาที่ผู้ใช้เลือกจากตัวเลือกที่เอ็ดดี้เสนอ (ไม่เลือกก็ใช้เวลาเดิม) */
+  function addDraftToCalendar(draft: ParsedMessageIntent, slot?: SlotSuggestion) {
+    const payload = encodeURIComponent(
+      JSON.stringify(
+        slot ? { ...draft, date: slot.date, startTime: slot.startTime, endTime: slot.endTime } : draft,
+      ),
+    );
     router.push(`/calendar?quickAdd=${payload}`);
     setOpen(false);
   }
@@ -132,6 +141,34 @@ export default function ChatWidget() {
                         {m.draft.startTime ? ` • ${m.draft.startTime} น.` : ''}
                       </p>
                     )}
+                    {/* วันนั้นชนของเดิม/แน่นเกินไป - เสนอเวลาอื่นให้เลือก */}
+                    {!m.added && m.draft.intent === 'event' && m.slotAdvice && (
+                      <div className="mt-2 rounded-clay-sm bg-white/80 p-2.5">
+                        <p className="flex items-start gap-1.5 font-body text-[11px] text-ink">
+                          <AlertTriangle size={13} className="mt-px flex-shrink-0 text-amber-500" />
+                          {m.slotAdvice.message}
+                        </p>
+                        {m.slotAdvice.suggestions.length > 0 && (
+                          <>
+                            <p className="mt-1.5 font-body text-[11px] text-ink-muted">
+                              {m.slotAdvice.conflictWith ? 'ลองเวลาพวกนี้แทนไหม?' : 'ช่วงอื่นที่ยังว่างในวันใกล้ๆ'}
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {m.slotAdvice.suggestions.map((sg) => (
+                                <button
+                                  key={`${sg.date}-${sg.startTime}`}
+                                  onClick={() => addDraftToCalendar(m.draft!, sg)}
+                                  className="flex items-center gap-1 rounded-full border border-eddy-200 bg-white px-2.5 py-1 font-display text-[11px] font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
+                                >
+                                  <Clock size={11} /> {sg.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
                     {m.added ? (
                       <p className="mt-2 flex items-center gap-1 font-display text-xs font-semibold text-eddy-700">
                         <Check size={14} /> เพิ่มแล้ว
@@ -141,7 +178,8 @@ export default function ChatWidget() {
                         onClick={() => addDraftToCalendar(m.draft!)}
                         className="mt-2 flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-1.5 font-display text-xs font-semibold text-white"
                       >
-                        <CalendarPlus size={14} /> เพิ่มลงปฏิทิน
+                        <CalendarPlus size={14} />{' '}
+                        {m.slotAdvice ? `ใช้เวลาเดิม${m.draft.startTime ? ` (${m.draft.startTime})` : ''}` : 'เพิ่มลงปฏิทิน'}
                       </button>
                     ) : (
                       <button

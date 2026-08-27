@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { askEddy, parseMessageToEvent } from '@/lib/gemini';
 import { ROLE_AI_CONTEXT, isUserRole } from '@/lib/roles';
 import { parseEventFromText } from '@/lib/aiMock';
+import { buildSlotAdvice, DEFAULT_EVENT_MINUTES, type BusyItem } from '@/lib/slotAdvice';
+import { expandRecurring, parseDays } from '@/lib/recurring';
 import type { CalendarCategory } from '@/lib/types';
 
 const mockReplies = [
@@ -75,5 +77,68 @@ export async function POST(req: NextRequest) {
   }
   if (draft && draft.intent === 'none') draft = null;
 
-  return NextResponse.json({ reply, draft });
+  // ---- ผู้ใช้ระบุวันมาแล้ว: ดูให้หน่อยว่าวันนั้นชนของเดิมหรือแน่นเกินไปไหม ----
+  // ถ้าใช่ ให้เสนอช่วงเวลาอื่นไปด้วย (ผู้ใช้จะเลือกหรือใช้เวลาเดิมก็ได้)
+  let slotAdvice = null;
+  if (draft?.intent === 'event' && draft.date) {
+    slotAdvice = await adviseSlot(userId, draft.date, draft.startTime ?? null);
+  }
+
+  return NextResponse.json({ reply, draft, slotAdvice });
+}
+
+/**
+ * ดึงกิจกรรม + Loop ประจำรอบวันที่ผู้ใช้ขอ แล้วให้ lib/slotAdvice ประเมินว่าควรเสนอเวลาอื่นไหม
+ * (คำนวณ local ล้วน ไม่เรียก Gemini - เรื่องเวลาว่างต้องแม่น)
+ */
+async function adviseSlot(userId: string, date: string, startTime: string | null) {
+  const LOOKAHEAD = 4; // วันที่ขอ + อีก 3 วัน เผื่อวันนั้นเต็ม
+  const from = new Date(`${date}T00:00:00.000Z`);
+  const to = new Date(from.getTime() + LOOKAHEAD * 86400000);
+  const dates = Array.from({ length: LOOKAHEAD }, (_, i) =>
+    new Date(from.getTime() + i * 86400000).toISOString().slice(0, 10),
+  );
+
+  const [dayEvents, recurringRows, profile] = await Promise.all([
+    prisma.event.findMany({
+      where: { userId, date: { gte: from, lt: to } },
+      select: { title: true, date: true, startTime: true, endTime: true },
+    }),
+    prisma.recurringEvent.findMany({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { dayStart: true, dayEnd: true } }),
+  ]);
+
+  const busy: BusyItem[] = dayEvents.map((e) => ({
+    title: e.title,
+    date: e.date.toISOString().slice(0, 10),
+    startTime: e.startTime,
+    endTime: e.endTime,
+  }));
+
+  // Loop ประจำก็คือเวลาไม่ว่างเหมือนกัน
+  const loops = expandRecurring(
+    recurringRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      courseCode: r.courseCode,
+      days: parseDays(r.days),
+      startTime: r.startTime,
+      endTime: r.endTime,
+      categoryId: r.categoryId,
+      endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
+    })),
+    dates,
+  );
+  for (const l of loops) {
+    busy.push({ title: l.title, date: l.date, startTime: l.startTime, endTime: l.endTime });
+  }
+
+  return buildSlotAdvice({
+    date,
+    startTime,
+    durationMin: DEFAULT_EVENT_MINUTES,
+    busy,
+    dayStart: profile?.dayStart,
+    dayEnd: profile?.dayEnd,
+  });
 }
