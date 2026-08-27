@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { analyzeEventSchedule, type ScheduleAnalysis } from '@/lib/gemini';
+import { analyzeEventSchedule, buildUserProfileContext, type ScheduleAnalysis } from '@/lib/gemini';
 import { checkScheduleConflict } from '@/lib/aiMock';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const { title, date, startTime, endTime, categoryId, eventId } = body ?? {};
   if (!title || !date) {
     return NextResponse.json({ error: 'title and date are required' }, { status: 400 });
@@ -21,12 +21,13 @@ export async function POST(req: NextRequest) {
   const dayEnd = new Date(dayStart);
   dayEnd.setDate(dayEnd.getDate() + 1);
 
-  const [sameDayEventsRaw, categoriesRaw] = await Promise.all([
+  const [sameDayEventsRaw, categoriesRaw, user] = await Promise.all([
     prisma.event.findMany({
       // eventId = กิจกรรมที่กำลังแก้ไขอยู่ (ถ้ามี) - ต้องไม่เอามาเทียบกับตัวเอง ไม่งั้นจะโดนมองว่า "ชนกับตัวเอง"
       where: { userId, date: { gte: dayStart, lt: dayEnd }, ...(eventId && { id: { not: eventId } }) },
     }),
     prisma.category.findMany({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { role: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),
   ]);
 
   const categories: CalendarCategory[] = categoriesRaw.map((c) => ({
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       newEvent: { title, date, startTime, endTime, categoryName },
       sameDayEvents,
       categories,
+      userProfile: user ? buildUserProfileContext(user) : undefined,
     });
   } catch {
     analysis = null;

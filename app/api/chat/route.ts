@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { askEddy, parseMessageToEvent } from '@/lib/gemini';
+import { ROLE_AI_CONTEXT, isUserRole } from '@/lib/roles';
 import { parseEventFromText } from '@/lib/aiMock';
 import type { CalendarCategory } from '@/lib/types';
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     prisma.event.findMany({ where: { userId, date: { gte: todayStart } }, orderBy: { date: 'asc' }, take: 5 }),
     prisma.category.findMany({ where: { userId } }),
     // โปรไฟล์ผู้ใช้ - เอานิสัย/ตัวตน + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),
   ]);
   const categories: CalendarCategory[] = categoriesRaw.map((c) => ({
     id: c.id,
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
   // บริบทเกี่ยวกับตัวผู้ใช้ (ถ้ากรอกไว้) เพื่อให้ AI วิเคราะห์/แนะนำได้เข้ากับนิสัยและเวลาของแต่ละคน
   const profileLines = [
     user?.name ? `ชื่อผู้ใช้: ${user.name}` : '',
+    user && isUserRole(user.role) ? ROLE_AI_CONTEXT[user.role] : '',
     user?.bio ? `นิสัย/ตัวตนของผู้ใช้: ${user.bio}` : '',
     user?.dayStart || user?.dayEnd
       ? `ช่วงเวลาที่ผู้ใช้สะดวกทำงาน: ${user?.dayStart || '—'}-${user?.dayEnd || '—'} น. (${user?.timezone || 'Asia/Bangkok'})`

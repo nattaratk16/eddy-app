@@ -9,6 +9,9 @@ export async function POST(req: NextRequest) {
   const password: string = typeof body?.password === 'string' ? body.password : '';
   const name: string | undefined = typeof body?.name === 'string' ? body.name.trim() : undefined;
 
+  if (!name) {
+    return NextResponse.json({ error: 'กรุณากรอกชื่อผู้ใช้' }, { status: 400 });
+  }
   if (!email || !password) {
     return NextResponse.json({ error: 'กรุณากรอกอีเมลและรหัสผ่าน' }, { status: 400 });
   }

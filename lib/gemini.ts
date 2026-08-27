@@ -7,6 +7,7 @@
  * --------------------------------------------------------------
  */
 import type { CalendarCategory, CalendarEvent } from './types';
+import { ROLE_AI_CONTEXT, isUserRole } from './roles';
 
 // ใช้ alias "-latest" แทนเวอร์ชันวันที่ตายตัว เพื่อไม่ให้ค้างรุ่นเก่าที่ถูกเลิกใช้ (เช่น gemini-1.5-flash ที่ถูกปลดระวางไปแล้ว)
 // ใช้รุ่น "flash-lite" เพราะงานในแอปนี้ (แชท/แยกข้อความ/วิเคราะห์ตาราง) ไม่ต้องการ "คิดนาน" แบบรุ่น flash เต็ม
@@ -166,16 +167,38 @@ const ANALYZE_SCHEMA = {
   required: ['hasConflict', 'densityLevel', 'message'],
 };
 
+// สร้างบริบทเกี่ยวกับตัวผู้ใช้ (นิสัย + เวลาที่สะดวก) ให้ AI เอาไปปรับคำแนะนำให้เข้ากับแต่ละคน
+export function buildUserProfileContext(user: {
+  role?: string | null;
+  bio?: string | null;
+  dayStart?: string | null;
+  dayEnd?: string | null;
+  timezone?: string | null;
+}): string {
+  return [
+    isUserRole(user.role) ? ROLE_AI_CONTEXT[user.role] : '',
+    user.bio ? `นิสัย/ตัวตนของผู้ใช้: ${user.bio}` : '',
+    user.dayStart || user.dayEnd
+      ? `ช่วงเวลาที่ผู้ใช้สะดวกทำงาน: ${user.dayStart || '—'}-${user.dayEnd || '—'} น. (${user.timezone || 'Asia/Bangkok'})`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 interface AnalyzeEventParams {
   newEvent: { title: string; date: string; startTime?: string; endTime?: string; categoryName?: string };
   sameDayEvents: CalendarEvent[];
   categories: CalendarCategory[];
+  /** บริบทผู้ใช้ (นิสัย+เวลาว่าง) จาก buildUserProfileContext */
+  userProfile?: string;
 }
 
 export async function analyzeEventSchedule({
   newEvent,
   sameDayEvents,
   categories,
+  userProfile,
 }: AnalyzeEventParams): Promise<ScheduleAnalysis | null> {
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? 'ไม่ระบุหมวดหมู่';
   const existingList =
@@ -193,7 +216,7 @@ export async function analyzeEventSchedule({
 
 กิจกรรมอื่นที่มีอยู่แล้วในวันเดียวกัน:
 ${existingList}
-
+${userProfile ? `\nเกี่ยวกับผู้ใช้ (ใช้ช่วยปรับคำแนะนำและเวลาที่แนะนำให้เข้ากับนิสัย/ช่วงเวลาที่เขาสะดวก):\n${userProfile}\n` : ''}
 วิเคราะห์และตอบเป็น:
 - hasConflict: ช่วงเวลาของกิจกรรมใหม่ชนกับกิจกรรมอื่นในวันเดียวกันหรือไม่ (ประมาณเวลาให้สมเหตุสมผลถ้าไม่ระบุเวลาจบ ให้ถือว่ายาว 1 ชั่วโมง)
 - densityLevel: ประเมินความหนาแน่นของวันนี้โดยรวม (นับกิจกรรมทั้งหมดรวมกิจกรรมใหม่) เลือกจาก "ว่าง" "ปกติ" "ค่อนข้างแน่น" "แน่นมาก"
@@ -210,9 +233,11 @@ ${existingList}
 interface WeeklySummaryParams {
   weekEvents: CalendarEvent[];
   categories: CalendarCategory[];
+  /** บริบทผู้ใช้ (นิสัย+เวลาว่าง) จาก buildUserProfileContext */
+  userProfile?: string;
 }
 
-export async function generateWeeklySummary({ weekEvents, categories }: WeeklySummaryParams): Promise<string | null> {
+export async function generateWeeklySummary({ weekEvents, categories, userProfile }: WeeklySummaryParams): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
@@ -226,9 +251,9 @@ export async function generateWeeklySummary({ weekEvents, categories }: WeeklySu
 
 นี่คือรายการกิจกรรมทั้งหมดของผู้ใช้ในสัปดาห์นี้:
 ${list}
-
+${userProfile ? `\nเกี่ยวกับผู้ใช้ (ใช้ช่วยให้คำแนะนำเข้ากับเขา):\n${userProfile}\n` : ''}
 เขียนสรุปภาพรวมสัปดาห์นี้แบบสั้นๆ 1-2 ประโยค เป็นภาษาไทย เป็นกันเอง พูดถึงว่าสัปดาห์นี้มีกิจกรรมมากน้อยแค่ไหน
-วันไหนแน่นที่สุด หรือหมวดหมู่ไหนเยอะที่สุด แล้วให้คำแนะนำหรือให้กำลังใจสั้นๆ ท้ายประโยค`;
+วันไหนแน่นที่สุด หรือหมวดหมู่ไหนเยอะที่สุด แล้วให้คำแนะนำหรือให้กำลังใจสั้นๆ (ปรับให้เข้ากับนิสัย/เวลาที่เขาสะดวกถ้ามีข้อมูล) ท้ายประโยค`;
 
   const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: 'POST',

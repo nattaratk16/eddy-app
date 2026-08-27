@@ -38,8 +38,8 @@ export default async function ProfilePage() {
 
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
-          <h2 className="font-display text-lg font-bold text-ink">โปรไฟล์ของฉัน</h2>
-          <p className="mt-1 font-body text-sm text-ink-muted">
+          <h2 className="font-display text-h3 text-ink">โปรไฟล์ของฉัน</h2>
+          <p className="mt-1 font-body text-body text-ink-muted">
             ข้อมูลนี้ใช้แสดงตัวตนให้เพื่อนเห็นในกลุ่ม และช่วยให้เอ็ดดี้จัดตารางได้ดีขึ้น
           </p>
           <div className="mt-5">
@@ -61,7 +61,7 @@ export default async function ProfilePage() {
         <div className="flex flex-col gap-6">
           {/* ตัวอย่างที่เพื่อนเห็น */}
           <Card>
-            <h2 className="font-display text-base font-bold text-ink">ตัวอย่างที่เพื่อนเห็น</h2>
+            <h2 className="font-display text-h3 text-ink">ตัวอย่างที่เพื่อนเห็น</h2>
             <div className="mt-4 flex flex-col items-center text-center">
               {user.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -84,8 +84,8 @@ export default async function ProfilePage() {
 
           {/* สถิติ */}
           <Card>
-            <h2 className="font-display text-base font-bold text-ink">ประวัติสังเขป</h2>
-            <div className="mt-4 flex flex-col gap-3 font-body text-sm text-ink">
+            <h2 className="font-display text-h3 text-ink">ประวัติสังเขป</h2>
+            <div className="mt-4 flex flex-col gap-3 font-body text-body text-ink">
               <div className="flex items-center justify-between">
                 <span className="text-ink-muted">เป็นสมาชิกตั้งแต่</span>
                 <span className="font-semibold">

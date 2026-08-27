@@ -124,7 +124,7 @@ export default function ProfileForm(p: ProfileFormProps) {
 
       {/* ---------- ตัวตน ---------- */}
       <div>
-        <h3 className="mb-3 font-display text-sm font-bold text-ink">ตัวตน</h3>
+        <h3 className="mb-3 font-display text-h3 text-ink">ตัวตน</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass} htmlFor="pf-name">ชื่อที่แสดง</label>
@@ -166,8 +166,8 @@ export default function ProfileForm(p: ProfileFormProps) {
 
       {/* ---------- เวลาที่สะดวก ---------- */}
       <div>
-        <h3 className="font-display text-sm font-bold text-ink">เวลาที่สะดวก</h3>
-        <p className="mt-0.5 font-body text-xs text-ink-muted">ช่วงเวลาที่คุณสะดวกทำงานในแต่ละวัน — เอ็ดดี้ใช้ช่วยหาเวลาว่างตอนจัดตารางกลุ่ม</p>
+        <h3 className="font-display text-h3 text-ink">เวลาที่สะดวก</h3>
+        <p className="mt-0.5 font-body text-caption text-ink-muted">ช่วงเวลาที่คุณสะดวกทำงานในแต่ละวัน — เอ็ดดี้ใช้ช่วยหาเวลาว่างตอนจัดตารางกลุ่ม</p>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelClass}>เริ่ม</label>
@@ -191,7 +191,7 @@ export default function ProfileForm(p: ProfileFormProps) {
       {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 hover:!brightness-110">
           <span className="flex items-center gap-1.5">
             <Check size={16} /> {saving ? 'กำลังบันทึก...' : 'บันทึกโปรไฟล์'}
           </span>
