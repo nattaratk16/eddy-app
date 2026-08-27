@@ -19,6 +19,29 @@ import authConfig from './auth.config';
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
+  callbacks: {
+    ...authConfig.callbacks,
+    // อัปเดต token + scope ล่าสุดลงตาราง Account ทุกครั้งที่ล็อกอิน Google
+    // จำเป็นเพราะ PrismaAdapter จะไม่เขียนทับ token ถ้าบัญชีถูกผูกไว้แล้ว (เก็บแค่ครั้งแรก)
+    // ทำให้ตอนขอสิทธิ์ปฏิทินเพิ่มทีหลัง refresh_token + calendar scope จะไม่ถูกบันทึกถ้าไม่มี callback นี้
+    async signIn({ account }) {
+      if (account?.provider === 'google' && account.providerAccountId) {
+        await prisma.account.updateMany({
+          where: { provider: 'google', providerAccountId: account.providerAccountId },
+          data: {
+            access_token: account.access_token,
+            // อย่าเขียนทับด้วย null ถ้ารอบนี้ Google ไม่ได้ส่ง refresh_token กลับมา
+            refresh_token: account.refresh_token ?? undefined,
+            expires_at: typeof account.expires_at === 'number' ? account.expires_at : undefined,
+            scope: account.scope,
+            token_type: account.token_type,
+            id_token: account.id_token,
+          },
+        });
+      }
+      return true;
+    },
+  },
   providers: [
     Credentials({
       credentials: {
@@ -40,6 +63,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return { id: user.id, email: user.email, name: user.name };
       },
     }),
-    Google,
+    // ขอสิทธิ์อ่าน Google Calendar (read-only) + offline เพื่อได้ refresh_token
+    // ทำให้ผู้ใช้ที่ล็อกอินด้วย Google เชื่อมปฏิทิน Google มาแสดงใน Eddy ได้
+    Google({
+      authorization: {
+        params: {
+          scope: 'openid email profile https://www.googleapis.com/auth/calendar.readonly',
+          // access_type=offline: ขอ refresh_token (Google คืนให้ตอน consent ครั้งแรก)
+          // ไม่ใส่ prompt=consent แล้ว เพื่อไม่ให้ต้องกดยืนยันทุกครั้ง - ผู้ใช้เดิมที่เคยอนุญาตแล้วจะล็อกอินผ่านเลย
+          access_type: 'offline',
+        },
+      },
+    }),
   ],
 });
