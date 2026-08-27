@@ -58,6 +58,7 @@ model RecurringEvent {
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title      String
+  courseCode String? // รหัสวิชา เช่น "01076021" (ใส่เฉพาะ Loop ที่เป็นคาบเรียน)
   days       String // วันในสัปดาห์แบบ "1,2,3,4,5" (0=อาทิตย์ .. 6=เสาร์)
   startTime  String // "HH:mm"
   endTime    String // "HH:mm"

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { serializeDays } from '@/lib/recurring';
+import { describeLoopConflict, findLoopConflict, parseDays, serializeDays, todayISOForLoops } from '@/lib/recurring';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -34,11 +34,49 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data[key] = body[key];
     }
   }
+  if (typeof body?.courseCode === 'string') {
+    const code = body.courseCode.trim();
+    if (code.length > 20) return NextResponse.json({ error: 'รหัสวิชายาวเกินไป' }, { status: 400 });
+    data.courseCode = code || null;
+  }
   if (typeof body?.categoryId === 'string') data.categoryId = body.categoryId || null;
   if (body?.endDate === null) data.endDate = null;
   else if (typeof body?.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.endDate)) {
     data.endDate = new Date(`${body.endDate}T00:00:00.000Z`);
   }
+
+  // เช็คเวลาทับซ้อนจากค่าหลังแก้ไข (ไม่นับตัวเอง)
+  const next = {
+    days: parseDays((data.days as string) ?? existing.days),
+    startTime: (data.startTime as string) ?? existing.startTime,
+    endTime: (data.endTime as string) ?? existing.endTime,
+    endDate:
+      data.endDate === undefined
+        ? existing.endDate
+          ? existing.endDate.toISOString().slice(0, 10)
+          : null
+        : data.endDate
+        ? (data.endDate as Date).toISOString().slice(0, 10)
+        : null,
+  };
+  if (next.endTime <= next.startTime) {
+    return NextResponse.json({ error: 'เวลาจบต้องหลังเวลาเริ่ม' }, { status: 400 });
+  }
+
+  const others = await prisma.recurringEvent.findMany({ where: { userId: session.user.id, id: { not: params.id } } });
+  const conflict = findLoopConflict(
+    next,
+    others.map((r) => ({
+      id: r.id,
+      title: r.courseCode ? `${r.courseCode} ${r.title}` : r.title,
+      days: parseDays(r.days),
+      startTime: r.startTime,
+      endTime: r.endTime,
+      endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
+    })),
+    todayISOForLoops(),
+  );
+  if (conflict) return NextResponse.json({ error: describeLoopConflict(conflict) }, { status: 409 });
 
   await prisma.recurringEvent.update({ where: { id: params.id }, data });
   return NextResponse.json({ ok: true });

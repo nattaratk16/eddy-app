@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { analyzeEventSchedule, buildUserProfileContext, type ScheduleAnalysis } from '@/lib/gemini';
 import { checkScheduleConflict } from '@/lib/aiMock';
+import { expandRecurring, parseDays } from '@/lib/recurring';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
@@ -21,13 +22,16 @@ export async function POST(req: NextRequest) {
   const dayEnd = new Date(dayStart);
   dayEnd.setDate(dayEnd.getDate() + 1);
 
-  const [sameDayEventsRaw, categoriesRaw, user] = await Promise.all([
+  const [sameDayEventsRaw, categoriesRaw, user, recurringRaw] = await Promise.all([
     prisma.event.findMany({
       // eventId = กิจกรรมที่กำลังแก้ไขอยู่ (ถ้ามี) - ต้องไม่เอามาเทียบกับตัวเอง ไม่งั้นจะโดนมองว่า "ชนกับตัวเอง"
       where: { userId, date: { gte: dayStart, lt: dayEnd }, ...(eventId && { id: { not: eventId } }) },
     }),
     prisma.category.findMany({ where: { userId } }),
     prisma.user.findUnique({ where: { id: userId }, select: { role: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),
+    // Loop ประจำ (คาบเรียน/เวลาทำงาน) - เป็นเวลาไม่ว่างจริงเหมือนกัน ต้องเอามาเทียบด้วย
+    // ไม่งั้นเพิ่มกิจกรรมทับคาบเรียนแล้วระบบจะบอกว่า "ไม่ชน"
+    prisma.recurringEvent.findMany({ where: { userId } }),
   ]);
 
   const categories: CalendarCategory[] = categoriesRaw.map((c) => ({
@@ -43,13 +47,30 @@ export async function POST(req: NextRequest) {
     endTime: e.endTime ?? undefined,
     categoryId: e.categoryId,
   }));
+  // กาง Loop ของวันนั้นออกมาเป็นกิจกรรมจริง แล้วรวมเข้ากับกิจกรรมในวันเดียวกัน
+  const dateISO = typeof date === 'string' ? date.slice(0, 10) : new Date(date).toISOString().slice(0, 10);
+  const loopEvents = expandRecurring(
+    recurringRaw.map((r) => ({
+      id: r.id,
+      title: r.title,
+      courseCode: r.courseCode,
+      days: parseDays(r.days),
+      startTime: r.startTime,
+      endTime: r.endTime,
+      categoryId: r.categoryId,
+      endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
+    })),
+    [dateISO],
+  );
+  const dayEvents: CalendarEvent[] = [...sameDayEvents, ...loopEvents];
+
   const categoryName = categories.find((c) => c.id === categoryId)?.name;
 
   let analysis: ScheduleAnalysis | null = null;
   try {
     analysis = await analyzeEventSchedule({
       newEvent: { title, date, startTime, endTime, categoryName },
-      sameDayEvents,
+      sameDayEvents: dayEvents,
       categories,
       userProfile: user ? buildUserProfileContext(user) : undefined,
     });

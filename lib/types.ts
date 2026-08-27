@@ -73,6 +73,8 @@ export interface CalendarEvent {
 export interface RecurringEventInfo {
   id: string;
   title: string;
+  /** รหัสวิชา (ถ้า Loop นี้เป็นคาบเรียน) */
+  courseCode?: string | null;
   days: number[]; // [1,2,3,4,5] วันในสัปดาห์ (0=อาทิตย์)
   startTime: string; // HH:mm
   endTime: string; // HH:mm

@@ -214,11 +214,13 @@ function CalendarPageContent() {
   const weekEvents = useMemo(() => {
     const weekStart = startOfWeek(anchor);
     const weekEnd = endOfWeek(anchor);
-    return events.filter((ev) => {
+    const inWeek = (ev: CalendarEvent) => {
       const d = new Date(ev.date);
-      return d >= weekStart && d <= weekEnd && visibleIds.has(ev.categoryId);
-    });
-  }, [events, visibleIds, anchor]);
+      return d >= weekStart && d <= weekEnd;
+    };
+    // รวม Loop ประจำเข้าไปด้วย - คาบเรียนก็กินเวลาในสัปดาห์จริงๆ ถ้าไม่นับ สรุปจะบอกว่าว่างเกินจริง
+    return [...events.filter((ev) => inWeek(ev) && visibleIds.has(ev.categoryId)), ...recurringEvents.filter(inWeek)];
+  }, [events, visibleIds, anchor, recurringEvents]);
 
   const localWeeklySummary = useMemo(() => buildWeeklySummary(weekEvents, categories), [weekEvents, categories]);
   const [aiWeeklySummary, setAiWeeklySummary] = useState<string | null>(null);
