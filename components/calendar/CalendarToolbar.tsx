@@ -34,7 +34,7 @@ export default function CalendarToolbar({
       <div className="flex items-center gap-2">
         <button
           onClick={onToday}
-          className="rounded-clay-sm border border-eddy-100 bg-white px-3.5 py-2 font-display text-xs font-semibold text-eddy-700 transition-all hover:bg-eddy-50 active:scale-95"
+          className="rounded-full border border-eddy-200 bg-white px-4 py-2 font-display text-caption font-semibold text-eddy-700 transition-all hover:bg-eddy-50 active:scale-95"
         >
           วันนี้
         </button>
@@ -54,7 +54,7 @@ export default function CalendarToolbar({
             <ChevronRight size={20} />
           </button>
         </div>
-        <h2 className="ml-1 font-display text-lg font-bold text-ink">{title}</h2>
+        <h2 className="ml-1 font-display text-h3 text-ink">{title}</h2>
       </div>
 
       <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function CalendarToolbar({
               <button
                 key={v}
                 onClick={() => onViewChange(v)}
-                className={`relative rounded-[8px] px-3 py-1.5 font-display text-xs font-semibold transition-colors ${
+                className={`relative rounded-[8px] px-3.5 py-1.5 font-display text-caption font-semibold transition-colors ${
                   activeV ? 'text-ink' : 'text-ink-muted hover:text-ink-soft'
                 }`}
               >
@@ -84,9 +84,9 @@ export default function CalendarToolbar({
         </div>
         <button
           onClick={onAdd}
-          className="flex items-center gap-1 rounded-full bg-ink px-4 py-2 font-display text-xs font-semibold text-white transition-all hover:scale-[1.03] hover:bg-black active:scale-95"
+          className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-5 py-2 font-display text-caption font-semibold text-white shadow-clay-sm transition-all hover:brightness-110 active:scale-95"
         >
-          <Plus size={14} /> เพิ่มกิจกรรม
+          <Plus size={15} /> เพิ่มกิจกรรม
         </button>
       </div>
     </div>

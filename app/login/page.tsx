@@ -4,10 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
-import LoginIntro from '@/components/LoginIntro';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 
@@ -16,7 +14,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showIntro, setShowIntro] = useState(true); // splash intro เด้งก่อนเข้าฟอร์ม login
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,12 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <AnimatePresence>
-        {showIntro && <LoginIntro key="login-intro" onEnter={() => setShowIntro(false)} />}
-      </AnimatePresence>
-
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-10">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-6">
       <SkyBackground />
 
       {/* โลโก้กลับหน้าแรก */}
@@ -57,10 +49,10 @@ export default function LoginPage() {
       </Link>
 
       <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
-        <div className="rounded-[28px] border border-white/80 bg-white/90 p-8 shadow-clay backdrop-blur-md">
-          <div className="mb-6 text-center">
-            <h2 className="font-display text-2xl font-bold tracking-tight text-ink">ยินดีต้อนรับกลับมา 👋</h2>
-            <p className="mt-1 font-body text-sm text-ink-soft">เข้าสู่ระบบเพื่อจัดตารางวันนี้กันต่อ</p>
+        <div className="rounded-[24px] border border-white/80 bg-white/90 p-6 shadow-clay backdrop-blur-md">
+          <div className="mb-4 text-center">
+            <h2 className="font-display text-h2 text-ink">ยินดีต้อนรับกลับมา 👋</h2>
+            <p className="mt-1 font-body text-body text-ink-soft">เข้าสู่ระบบเพื่อจัดตารางวันนี้กันต่อ</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -98,12 +90,12 @@ export default function LoginPage() {
               <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 text-sm text-eddy-700">{error}</p>
             )}
 
-            <Button type="submit" fullWidth disabled={loading} className="!rounded-full !bg-ink hover:!bg-black">
+            <Button type="submit" fullWidth disabled={loading} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 hover:!brightness-110">
               {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
             </Button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
+          <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-eddy-100" />
             <span className="font-body text-xs text-ink-muted">หรือ</span>
             <span className="h-px flex-1 bg-eddy-100" />
@@ -119,7 +111,7 @@ export default function LoginPage() {
             เข้าสู่ระบบด้วย Google
           </Button>
 
-          <p className="mt-6 text-center font-body text-sm text-ink-muted">
+          <p className="mt-4 text-center font-body text-sm text-ink-muted">
             ยังไม่มีบัญชี?{' '}
             <Link href="/register" className="font-semibold text-eddy-600 hover:text-eddy-700">
               สมัครสมาชิก
@@ -127,7 +119,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-      </main>
-    </>
+    </main>
   );
 }

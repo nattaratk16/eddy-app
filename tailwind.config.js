@@ -86,6 +86,18 @@ module.exports = {
         display: ['var(--font-display)'],
         body: ['var(--font-body)'],
       },
+      // สเกลตัวอักษรมาตรฐาน (role-based) — ใช้ text-h1/h2/h3/body/caption แทนการสุ่ม text-xs/sm/lg
+      // ผูก line-height + น้ำหนัก + letter-spacing มาให้ในตัว เพื่อให้ทุกหน้าสมดุลเป็นชุดเดียวกัน
+      fontSize: {
+        display: ['2.75rem', { lineHeight: '1.08', fontWeight: '700', letterSpacing: '-0.025em' }],
+        h1: ['2rem', { lineHeight: '1.15', fontWeight: '700', letterSpacing: '-0.02em' }],
+        h2: ['1.5rem', { lineHeight: '1.25', fontWeight: '700', letterSpacing: '-0.01em' }],
+        h3: ['1.1875rem', { lineHeight: '1.35', fontWeight: '600' }],
+        'body-lg': ['1.0625rem', { lineHeight: '1.65' }],
+        body: ['0.9375rem', { lineHeight: '1.6' }],
+        caption: ['0.8125rem', { lineHeight: '1.5' }],
+        micro: ['0.6875rem', { lineHeight: '1.45', letterSpacing: '0.01em' }],
+      },
       borderRadius: {
         clay: '18px',
         'clay-sm': '12px',
@@ -133,6 +145,10 @@ module.exports = {
           '0%, 100%': { transform: 'scale(1)', opacity: '1' },
           '50%': { transform: 'scale(1.35)', opacity: '0.7' },
         },
+        // พื้นหลังแสงเรืองพาสเทลลอยไหว (glow blobs) - นุ่ม สว่าง โปร่ง
+        blobA: { '0%,100%': { transform: 'translate(0,0) scale(1)' }, '50%': { transform: 'translate(6%,4%) scale(1.18)' } },
+        blobB: { '0%,100%': { transform: 'translate(0,0) scale(1.1)' }, '50%': { transform: 'translate(-7%,3%) scale(0.92)' } },
+        blobC: { '0%,100%': { transform: 'translate(0,0) scale(1.05)' }, '50%': { transform: 'translate(5%,-4%) scale(1.22)' } },
       },
       animation: {
         float: 'float 4s ease-in-out infinite',
@@ -143,6 +159,9 @@ module.exports = {
         'fade-in': 'fadeIn 0.4s ease-out both',
         'scale-in': 'scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
         'pulse-dot': 'pulseDot 2s ease-in-out infinite',
+        'blob-a': 'blobA 22s ease-in-out infinite',
+        'blob-b': 'blobB 28s ease-in-out infinite',
+        'blob-c': 'blobC 25s ease-in-out infinite',
       },
     },
   },

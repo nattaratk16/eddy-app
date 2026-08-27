@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Plus, Crown, Check, X, ChevronRight } from 'lucide-react';
-import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -67,14 +66,12 @@ export default function GroupsPage() {
 
   return (
     <div className="px-4 md:px-10">
-      <Topbar />
-
-      <div className="mt-6 flex items-center justify-between">
+      <div className="flex items-center justify-between pt-8">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">กลุ่ม</h1>
-          <p className="font-body text-sm text-ink-muted">สร้างกลุ่มเพื่อแชร์ตารางและวางแผนงานร่วมกัน</p>
+          <h1 className="font-display text-h1 text-ink">กลุ่ม</h1>
+          <p className="mt-0.5 font-body text-body text-ink-muted">สร้างกลุ่มเพื่อแชร์ตารางและวางแผนงานร่วมกัน</p>
         </div>
-        <Button onClick={() => setCreating(true)} className="!px-4 !py-2.5 text-sm">
+        <Button onClick={() => setCreating(true)} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 !px-5 !py-2.5 hover:!brightness-110">
           <span className="flex items-center gap-1.5">
             <Plus size={16} /> สร้างกลุ่ม
           </span>
@@ -84,7 +81,7 @@ export default function GroupsPage() {
       {/* คำเชิญที่รอตอบรับ */}
       {invitations.length > 0 && (
         <section className="mt-6">
-          <h2 className="mb-3 font-display text-sm font-bold text-ink">คำเชิญเข้ากลุ่ม ({invitations.length})</h2>
+          <h2 className="mb-3 font-display text-h3 text-ink">คำเชิญเข้ากลุ่ม ({invitations.length})</h2>
           <div className="flex flex-col gap-3">
             {invitations.map((inv) => {
               const c = getColorOption(inv.groupColor);
@@ -130,11 +127,11 @@ export default function GroupsPage() {
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-pastel-blue text-eddy-700">
               <Users size={26} />
             </span>
-            <p className="font-display text-base font-bold text-ink">ยังไม่มีกลุ่ม</p>
+            <p className="font-display text-h3 text-ink">ยังไม่มีกลุ่ม</p>
             <p className="max-w-xs font-body text-sm text-ink-muted">
               สร้างกลุ่มแรกของคุณ แล้วชวนเพื่อนมาแชร์ตารางและให้เอ็ดดี้ช่วยจัดเวลาว่างร่วมกัน
             </p>
-            <Button onClick={() => setCreating(true)} className="!px-4 !py-2.5 text-sm">
+            <Button onClick={() => setCreating(true)} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 !px-5 !py-2.5 hover:!brightness-110">
               <span className="flex items-center gap-1.5">
                 <Plus size={16} /> สร้างกลุ่ม
               </span>
@@ -153,7 +150,7 @@ export default function GroupsPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="truncate font-display text-base font-bold text-ink">{g.name}</p>
+                          <p className="truncate font-display text-h3 text-ink">{g.name}</p>
                           {g.isOwner && <Crown size={14} className="flex-shrink-0 text-amber-500" />}
                         </div>
                         {g.description && <p className="mt-0.5 truncate font-body text-xs text-ink-muted">{g.description}</p>}
@@ -208,7 +205,7 @@ export default function GroupsPage() {
           {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>}
           <div className="mt-1 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setCreating(false)}>ยกเลิก</Button>
-            <Button onClick={createGroup} disabled={saving}>{saving ? 'กำลังสร้าง...' : 'สร้างกลุ่ม'}</Button>
+            <Button onClick={createGroup} disabled={saving} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 hover:!brightness-110">{saving ? 'กำลังสร้าง...' : 'สร้างกลุ่ม'}</Button>
           </div>
         </div>
       </Modal>

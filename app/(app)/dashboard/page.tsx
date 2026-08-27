@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
 import FaceBubble from '@/components/FaceBubble';
+import EddyMascot from '@/components/EddyMascot';
 import Reveal from '@/components/motion/Reveal';
 import { getColorOption } from '@/lib/colors';
 import type { CalendarCategory } from '@/lib/types';
@@ -83,27 +84,27 @@ export default async function DashboardPage() {
 
       {/* ---------- Bento: การ์ดฮีโร่ + สถิติ ---------- */}
       <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* การ์ดโฟกัสวันนี้ (มืด เด่น) */}
+        {/* การ์ดโฟกัสวันนี้ (เด่น) */}
         <Reveal className="sm:col-span-2">
-          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-white/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-6 text-ink">
+          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-white/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-7 text-ink shadow-clay">
             <div className="relative z-10 flex-1">
-              <p className="font-body text-sm text-ink-soft">โฟกัสวันนี้</p>
-              <p className="mt-1 font-display text-2xl font-bold leading-snug text-ink">
+              <p className="font-body text-caption font-semibold uppercase tracking-[0.06em] text-eddy-600">โฟกัสวันนี้</p>
+              <p className="mt-1.5 font-display text-h2 text-ink">
                 {highPriorityUndone > 0
                   ? `มีงานสำคัญ ${highPriorityUndone} อย่างรออยู่`
                   : 'ไม่มีงานสำคัญค้าง เยี่ยมมาก!'}
               </p>
-              <p className="mt-1 font-body text-sm text-ink-soft">
+              <p className="mt-1.5 font-body text-body text-ink-soft">
                 {todayTasks.length} งาน · {upcomingEvents.length} กิจกรรมที่จะถึง
               </p>
               <Link
                 href="/todo"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 font-display text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.03] hover:bg-black active:scale-95"
+                className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-6 font-display text-body font-semibold text-white shadow-clay-sm transition-all duration-150 hover:brightness-110 active:scale-[0.97]"
               >
-                <Sparkles size={14} /> จัดการงาน <ArrowRight size={14} />
+                <Sparkles size={16} /> จัดการงาน <ArrowRight size={16} />
               </Link>
             </div>
-            {/* แทนมาสคอต: กลุ่มหน้ายิ้มสไตล์ Genie */}
+            {/* กลุ่มหน้ายิ้มสไตล์ Genie */}
             <div className="relative z-10 hidden shrink-0 -space-x-3 sm:flex">
               <FaceBubble bg="bg-pastel-peach" className="h-14 w-14" />
               <FaceBubble bg="bg-white" className="h-16 w-16" />
@@ -117,11 +118,11 @@ export default async function DashboardPage() {
         <Reveal delay={0.08} hover>
           <Card className="flex h-full items-center gap-4 transition-colors duration-200 hover:border-eddy-300">
             <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-eddy-700">
-              <ListTodo size={24} />
+              <ListTodo size={26} />
             </span>
             <div>
-              <p className="font-body text-sm text-ink-muted">งานวันนี้</p>
-              <p className="font-display text-3xl font-bold leading-tight text-ink">{todayTasks.length}</p>
+              <p className="font-body text-caption font-medium text-ink-muted">งานวันนี้</p>
+              <p className="font-display text-h1 leading-none text-ink">{todayTasks.length}</p>
             </div>
           </Card>
         </Reveal>
@@ -144,11 +145,11 @@ export default async function DashboardPage() {
                   strokeDashoffset={ringOffset}
                 />
               </svg>
-              <span className="absolute font-display text-xs font-bold text-ink">{donePct}%</span>
+              <span className="absolute font-display text-caption font-bold text-ink">{donePct}%</span>
             </div>
             <div>
-              <p className="font-body text-sm text-ink-muted">เสร็จแล้ว</p>
-              <p className="font-display text-2xl font-bold leading-tight text-ink">
+              <p className="font-body text-caption font-medium text-ink-muted">เสร็จแล้ว</p>
+              <p className="font-display text-h1 leading-none text-ink">
                 {doneCount}/{todayTasks.length}
               </p>
             </div>
@@ -157,40 +158,55 @@ export default async function DashboardPage() {
       </section>
 
       {/* ---------- งานวันนี้ + มินิปฏิทิน ---------- */}
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
         <Reveal className="lg:col-span-2" delay={0.22}>
           <Card>
-            <h2 className="font-display text-lg font-bold text-ink">งานวันนี้</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-h3 text-ink">งานวันนี้</h2>
+              <Link href="/todo" className="font-body text-caption font-semibold text-eddy-600 hover:text-eddy-700">
+                ดูทั้งหมด
+              </Link>
+            </div>
             <div className="mt-4 flex flex-col gap-2.5">
-              {todayTasks.length === 0 && (
-                <p className="py-6 text-center font-body text-sm text-ink-muted">ยังไม่มีงานเลย</p>
-              )}
-              {todayTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 rounded-clay-sm bg-eddy-50 px-4 py-3 transition-colors hover:bg-eddy-100"
-                >
-                  <span
-                    className={`h-5 w-5 flex-shrink-0 rounded-full border-2 ${
-                      task.done ? 'border-eddy-500 bg-eddy-500' : 'border-eddy-300 bg-white'
-                    }`}
-                  />
-                  <p className={`flex-1 font-body text-sm ${task.done ? 'text-ink-muted line-through' : 'text-ink'}`}>
-                    {task.title}
-                  </p>
-                  <span className={`rounded-full px-3 py-1 font-body text-xs font-semibold ${priorityTone[task.priority]}`}>
-                    {priorityLabel[task.priority]}
-                  </span>
+              {todayTasks.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-8 text-center">
+                  <EddyMascot mood="happy" size={64} float={false} />
+                  <p className="font-body text-body text-ink-soft">ยังไม่มีงานวันนี้ — เพิ่มงานแรกกันเลย!</p>
+                  <Link
+                    href="/todo"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink px-5 font-display text-caption font-semibold text-white transition-all hover:bg-black active:scale-[0.97]"
+                  >
+                    <Sparkles size={15} /> เพิ่มงานแรก
+                  </Link>
                 </div>
-              ))}
+              ) : (
+                todayTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-3 rounded-clay-sm bg-eddy-50 px-4 py-3 transition-colors hover:bg-eddy-100"
+                  >
+                    <span
+                      className={`h-5 w-5 flex-shrink-0 rounded-full border-2 ${
+                        task.done ? 'border-eddy-500 bg-eddy-500' : 'border-eddy-300 bg-white'
+                      }`}
+                    />
+                    <p className={`flex-1 font-body text-body ${task.done ? 'text-ink-muted line-through' : 'text-ink'}`}>
+                      {task.title}
+                    </p>
+                    <span className={`rounded-full px-3 py-1 font-body text-caption font-semibold ${priorityTone[task.priority]}`}>
+                      {priorityLabel[task.priority]}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </Reveal>
 
         <Reveal delay={0.28}>
           <Card>
-            <h2 className="font-display text-base font-bold text-ink">{format(today, 'MMMM yyyy')}</h2>
-            <div className="mt-3 grid grid-cols-7 gap-1 text-center font-body text-[10px] font-semibold text-ink-muted">
+            <h2 className="font-display text-h3 text-ink">{format(today, 'MMMM yyyy')}</h2>
+            <div className="mt-3 grid grid-cols-7 gap-1 text-center font-body text-micro font-semibold text-ink-muted">
               {weekDayLabels.map((d) => (
                 <div key={d} className="py-1">
                   {d}
@@ -229,10 +245,10 @@ export default async function DashboardPage() {
       </section>
 
       {/* ---------- ตารางสัปดาห์ + กิจกรรมที่จะถึง ---------- */}
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
         <Reveal className="lg:col-span-2" delay={0.34}>
           <Card>
-            <h2 className="font-display text-lg font-bold text-ink">ตารางสัปดาห์นี้</h2>
+            <h2 className="font-display text-h3 text-ink">ตารางสัปดาห์นี้</h2>
             <div className="mt-4 flex flex-col divide-y divide-eddy-100">
               {weekDays.map((day) => {
                 const dayEvents = eventsByDate.get(toISODate(day)) ?? [];
@@ -277,7 +293,7 @@ export default async function DashboardPage() {
 
         <Reveal delay={0.4}>
           <Card>
-            <h2 className="font-display text-base font-bold text-ink">กิจกรรมที่จะถึง</h2>
+            <h2 className="font-display text-h3 text-ink">กิจกรรมที่จะถึง</h2>
             <div className="mt-3 flex flex-col gap-2.5">
               {upcomingEvents.length === 0 && (
                 <p className="py-4 font-body text-sm text-ink-muted">ไม่มีกิจกรรมที่จะถึงเร็วๆ นี้</p>

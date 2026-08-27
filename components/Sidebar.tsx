@@ -27,7 +27,7 @@ export default function Sidebar() {
       {/* โลโก้ */}
       <Link
         href="/dashboard"
-        className="mb-2 flex h-11 w-11 items-center justify-center rounded-clay-sm bg-ink transition-transform duration-200 hover:scale-105 active:scale-95"
+        className="mb-2 flex h-11 w-11 items-center justify-center rounded-clay-sm bg-gradient-to-br from-eddy-600 to-accent-500 shadow-clay-sm transition-transform duration-200 hover:scale-105 active:scale-95"
         aria-label="EDDY"
       >
         <Sparkles size={22} className="text-white" fill="currentColor" />
@@ -54,18 +54,18 @@ export default function Sidebar() {
               )}
               <span
                 className={clsx(
-                  'flex h-10 w-10 items-center justify-center rounded-clay-sm transition-all duration-200 group-hover:scale-105 group-active:scale-95',
+                  'flex h-11 w-11 items-center justify-center rounded-clay-sm transition-all duration-200 group-hover:scale-105 group-active:scale-95',
                   active
-                    ? 'bg-ink text-white shadow-clay-sm'
+                    ? 'bg-gradient-to-br from-eddy-500 to-accent-500 text-white shadow-clay-sm'
                     : 'text-ink-muted group-hover:bg-eddy-100 group-hover:text-ink'
                 )}
               >
-                <Icon size={20} />
+                <Icon size={21} />
               </span>
               <span
                 className={clsx(
-                  'font-display text-[10px] transition-colors',
-                  active ? 'font-semibold text-ink' : 'font-medium text-ink-muted group-hover:text-ink-soft'
+                  'font-display text-[11px] transition-colors',
+                  active ? 'font-bold text-ink' : 'font-medium text-ink-muted group-hover:text-ink-soft'
                 )}
               >
                 {item.label}
@@ -92,7 +92,7 @@ export default function Sidebar() {
           )}
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           aria-label="ออกจากระบบ"
           className="flex h-9 w-9 items-center justify-center rounded-clay-sm text-ink-muted transition-colors duration-150 hover:bg-pastel-pink/40 hover:text-eddy-700"
         >

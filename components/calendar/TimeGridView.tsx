@@ -93,7 +93,7 @@ export default function TimeGridView({
                 </p>
                 <p
                   className={`mx-auto mt-0.5 flex h-8 w-8 items-center justify-center rounded-full font-display text-sm font-bold ${
-                    today ? 'bg-eddy-500 text-white' : 'text-ink'
+                    today ? 'bg-gradient-to-br from-eddy-500 to-accent-500 text-white shadow-clay-sm' : 'text-ink'
                   }`}
                 >
                   {format(day, 'd')}

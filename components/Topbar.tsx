@@ -15,9 +15,9 @@ export default function Topbar({ userName = 'เพื่อน' }: TopbarProps)
   const dateLabel = `วัน${dayNames[now.getDay()]}ที่ ${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear() + 543}`;
 
   return (
-    <header className="flex animate-fade-in-up flex-col gap-1.5 pt-8">
-      <p className="font-body text-xs font-medium uppercase tracking-wide text-ink-muted">{dateLabel}</p>
-      <h1 className="font-display text-2xl font-bold tracking-tight text-ink md:text-[28px]">
+    <header className="flex animate-fade-in-up flex-col gap-1 pt-8">
+      <p className="font-body text-caption font-semibold uppercase tracking-[0.08em] text-ink-soft">{dateLabel}</p>
+      <h1 className="font-display text-h1 text-ink">
         สวัสดี, {userName} <span className="text-eddy-500">👋</span>
       </h1>
     </header>

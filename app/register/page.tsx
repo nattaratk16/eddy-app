@@ -21,15 +21,28 @@ export default function RegisterPage() {
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
-    const name = String(form.get('name') ?? '');
+    const username = String(form.get('username') ?? '').trim();
     const email = String(form.get('email') ?? '');
     const password = String(form.get('password') ?? '');
+    const confirmPassword = String(form.get('confirmPassword') ?? '');
+
+    if (!username) {
+      setError('กรุณากรอกชื่อผู้ใช้');
+      setLoading(false);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('รหัสผ่านยืนยันไม่ตรงกัน');
+      setLoading(false);
+      return;
+    }
 
     try {
+      // ใช้ username เป็นชื่อที่แสดงใน Eddy (แก้ไขได้ภายหลังในหน้าโปรไฟล์)
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name: username, email, password }),
       });
       const data = await res.json();
 
@@ -47,7 +60,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-10">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-6">
       <SkyBackground />
 
       {/* โลโก้กลับหน้าแรก */}
@@ -59,21 +72,25 @@ export default function RegisterPage() {
       </Link>
 
       <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
-        <div className="rounded-[28px] border border-white/80 bg-white/90 p-8 shadow-clay backdrop-blur-md">
-          <div className="mb-6 text-center">
-            <h2 className="font-display text-2xl font-bold tracking-tight text-ink">เริ่มต้นกับเอ็ดดี้ ✨</h2>
-            <p className="mt-1 font-body text-sm text-ink-soft">สร้างบัญชีฟรี แล้วจัดตารางชีวิตให้ลงตัว</p>
+        <div className="rounded-[24px] border border-white/80 bg-white/90 p-6 shadow-clay backdrop-blur-md">
+          <div className="mb-4 text-center">
+            <h2 className="font-display text-h2 text-ink">เริ่มต้นกับเอ็ดดี้ ✨</h2>
+            <p className="mt-1 font-body text-body text-ink-soft">สร้างบัญชีฟรี แล้วจัดตารางชีวิตให้ลงตัว</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              label="ชื่อ (ไม่บังคับ)"
-              placeholder="ชื่อของคุณ"
-              icon={<User size={18} />}
-            />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <div>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                label="ชื่อผู้ใช้"
+                placeholder="ชื่อที่จะแสดงใน Eddy"
+                icon={<User size={18} />}
+                required
+              />
+              <p className="mt-1 font-body text-xs text-ink-muted">แก้ไขได้ภายหลังในหน้าโปรไฟล์</p>
+            </div>
 
             <Input
               id="email"
@@ -106,16 +123,27 @@ export default function RegisterPage() {
               </button>
             </div>
 
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showPassword ? 'text' : 'password'}
+              label="ยืนยันรหัสผ่าน"
+              placeholder="กรอกรหัสผ่านอีกครั้ง"
+              icon={<Lock size={18} />}
+              minLength={8}
+              required
+            />
+
             {error && (
               <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 text-sm text-eddy-700">{error}</p>
             )}
 
-            <Button type="submit" fullWidth disabled={loading} className="!rounded-full !bg-ink hover:!bg-black">
+            <Button type="submit" fullWidth disabled={loading} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 hover:!brightness-110">
               {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
             </Button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
+          <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-eddy-100" />
             <span className="font-body text-xs text-ink-muted">หรือ</span>
             <span className="h-px flex-1 bg-eddy-100" />
@@ -131,7 +159,7 @@ export default function RegisterPage() {
             สมัครสมาชิกด้วย Google
           </Button>
 
-          <p className="mt-6 text-center font-body text-sm text-ink-muted">
+          <p className="mt-4 text-center font-body text-sm text-ink-muted">
             มีบัญชีอยู่แล้ว?{' '}
             <Link href="/login" className="font-semibold text-eddy-600 hover:text-eddy-700">
               เข้าสู่ระบบ

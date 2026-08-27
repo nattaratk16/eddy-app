@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Sans_Thai } from 'next/font/google';
 import Providers from './providers';
+import GlowBackground from '@/components/backgrounds/GlowBackground';
 import './globals.css';
 
 // IBM Plex Sans Thai: ฟอนต์โมเดิร์นทันสมัย อ่านง่าย รองรับภาษาไทยครบทุกวรรณยุกต์
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body className={`${plexDisplay.variable} ${plexBody.variable} font-body`}>
+        <GlowBackground />
         <Providers>{children}</Providers>
       </body>
     </html>
