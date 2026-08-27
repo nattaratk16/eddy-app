@@ -149,6 +149,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         userId: m.userId,
         name: m.user.name || m.user.email.split('@')[0],
         committedMinutes: w.committedMinutes,
+        bookedMinutes: w.bookedMinutes,
+        pendingMinutes: w.pendingMinutes,
         freeMinutes: w.freeMinutes,
         assignedMinutes: assignedMinutesByUser.get(m.userId) ?? 0,
         score: Number.isFinite(w.score) ? Number(w.score.toFixed(2)) : null,

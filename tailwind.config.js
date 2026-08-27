@@ -70,6 +70,14 @@ module.exports = {
           600: '#4F46E5',
           700: '#4338CA',
         },
+        // ระดับภาระงาน (Workload Score) - เขียว = ยังว่าง, ส้ม = เริ่มแน่น, แดง = แน่นมาก
+        // ผ่าน validator ของ dataviz skill ครบทุกข้อ (lightness band / chroma / CVD / contrast >= 3:1)
+        // อย่าเพิ่มเฉดกลางเองโดยไม่รันเช็คใหม่ - เขียว->เหลือง->ส้ม->แดง 4 ขั้นตกเช็ค CVD ทุกชุดที่ลอง
+        load: {
+          free: '#22A45D',
+          tight: '#F0682B',
+          full: '#C81E24',
+        },
         // Sparing premium accent (mascot sparkle, small badges) - navy+gold reads elegant
         gold: {
           DEFAULT: '#C9A15A',

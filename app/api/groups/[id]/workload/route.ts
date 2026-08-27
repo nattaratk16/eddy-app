@@ -46,6 +46,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         name: m.user.name || m.user.email.split('@')[0],
         isMe: m.userId === session.user!.id,
         committedMinutes: w.committedMinutes,
+        bookedMinutes: w.bookedMinutes,
+        pendingMinutes: w.pendingMinutes,
         freeMinutes: w.freeMinutes,
         assignedMinutes: 0,
         score: Number.isFinite(w.score) ? Number(w.score.toFixed(2)) : null,
