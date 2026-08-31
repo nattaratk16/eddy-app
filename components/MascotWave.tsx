@@ -3,14 +3,14 @@
 /**
  * MascotWave — คลิปมาสคอตโบกมือบนหน้าแรก (พื้นหลังโปร่งใส)
  * --------------------------------------------------------------
- * ต้นฉบับเป็น .mp4 ซึ่ง H.264 ไม่รองรับพื้นหลังโปร่งใส วางทับพื้นฟ้าแล้วจะเป็นกล่องขาว
- * เลยแปลงเป็น animated WebP ที่มี alpha (คีย์พื้นขาวออกด้วย flood fill จากขอบภาพ
- * ไม่ใช่วิธี "ขาว = โปร่งใส" ที่จะกินตาขาว/สมุด/ตัวโนวาสีครีมไปด้วย)
+ * ต้นฉบับเป็น .mp4 ซึ่ง H.264 ใส่พื้นหลังโปร่งใสไม่ได้ วางทับพื้นฟ้าแล้วเป็นกล่องขาว
+ * เลยคีย์พื้นขาวออก (flood fill จากขอบภาพ) แล้วทำเป็น 2 ไฟล์:
  *
- * ใช้เป็น <img> ธรรมดา เบราว์เซอร์เล่นลูปให้เอง ไม่ต้องมี <video>
- * ไม่ต้องกังวลเรื่อง autoplay ถูกบล็อกบนมือถือ และไม่มีแทร็กเสียงติดมา
+ *   .webm (VP9 + alpha)  = คลิปเต็ม 10 วิ 24 fps ขนาด 675 KB  <- ใช้กับเบราว์เซอร์ส่วนใหญ่
+ *   .webp (animated)     = ลูปสั้น 1.8 วิ ขนาด 871 KB          <- สำรองสำหรับ Safari
  *
- * ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว (prefers-reduced-motion) จะได้ภาพนิ่งแทน
+ * ทำไมต้องมีสำรอง: Safari เล่น VP9 ได้ก็จริง แต่ "ไม่รองรับ alpha ใน WebM"
+ * จะเห็นเป็นกล่องทึบแทนที่จะโปร่งใส ส่วน animated WebP นั้น Safari 14+ รองรับ alpha ครบ
  * --------------------------------------------------------------
  */
 import { useEffect, useState } from 'react';
@@ -19,26 +19,47 @@ interface MascotWaveProps {
   className?: string;
 }
 
+type Mode = 'video' | 'image' | 'still';
+
 export default function MascotWave({ className = '' }: MascotWaveProps) {
-  const [reduceMotion, setReduceMotion] = useState(false);
+  // เริ่มที่ image ไว้ก่อน (ปลอดภัยกับทุกเบราว์เซอร์) แล้วค่อยสลับเป็นวิดีโอถ้ารองรับ
+  const [mode, setMode] = useState<Mode>('image');
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReduceMotion(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setMode('still');
+      return;
+    }
+    const ua = navigator.userAgent;
+    const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua);
+    setMode(isSafari ? 'image' : 'video');
   }, []);
 
+  if (mode === 'video') {
+    return (
+      <video
+        src="/mascot/eddy-duo-wave.webm"
+        poster="/mascot/eddy-duo-wave-still.png"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        aria-label="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
+        width={560}
+        height={340}
+        className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${className}`}
+      />
+    );
+  }
+
   return (
-    // ใช้ <img> ตรงๆ ไม่ผ่าน next/image เพราะตัว optimizer จะแปลง animated webp
-    // เป็นภาพนิ่งเฟรมแรก (ต้องใส่ unoptimized อยู่ดี เลยใช้ img ให้ตรงไปตรงมากว่า)
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={reduceMotion ? '/mascot/eddy-duo-wave-still.png' : '/mascot/eddy-duo-wave.webp'}
+      src={mode === 'still' ? '/mascot/eddy-duo-wave-still.png' : '/mascot/eddy-duo-wave.webp'}
       alt="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
-      width={420}
-      height={272}
+      width={560}
+      height={340}
       className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${className}`}
     />
   );
