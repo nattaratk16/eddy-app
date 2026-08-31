@@ -30,6 +30,14 @@ const dots = [
   { c: 'left-[8%] top-[54%]', size: 'h-3 w-3', color: 'bg-brand-coral', d: 1.8 },
 ];
 
+/** ตัวอักษรโลโก้ + สีประจำตัว (จากพาเลตมาสคอต) */
+const LOGO_LETTERS = [
+  { char: 'E', color: 'text-eddy-500' },
+  { char: 'D', color: 'text-accent-500' },
+  { char: 'D', color: 'text-brand-orange' },
+  { char: 'Y', color: 'text-brand-yellow' },
+];
+
 export default function LandingHero() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-10">
@@ -67,12 +75,38 @@ export default function LandingHero() {
         animate="show"
         className="relative z-10 flex max-w-3xl flex-col items-center text-center"
       >
-        {/* โลโก้ตัวอักษร - เล่นสีทีละตัวตามพาเลตมาสคอต */}
-        <motion.div variants={item} className="mb-4 flex items-baseline gap-0.5 font-brand text-4xl font-semibold tracking-tight sm:text-5xl">
-          <span className="text-eddy-500">E</span>
-          <span className="text-accent-500">D</span>
-          <span className="text-brand-orange">D</span>
-          <span className="text-brand-yellow drop-shadow-[0_1px_0_rgba(10,93,235,0.25)]">Y</span>
+        {/* โลโก้ตัวอักษร - ตัวใหญ่ เล่นสีทีละตัว เด้งเข้าทีละตัวแล้วลอยไหวต่อเนื่อง */}
+        <motion.div variants={item} className="mb-5">
+          <div className="flex items-baseline justify-center gap-1 font-brand text-6xl font-semibold leading-none tracking-tight sm:text-7xl md:text-8xl">
+            {LOGO_LETTERS.map((l, i) => (
+              <motion.span
+                key={l.char}
+                className={l.color}
+                style={{
+                  // ขอบขาวบางๆ + เงา ทำให้ตัวอักษรอ่านชัดบนพื้นฟ้าอ่อน
+                  WebkitTextStroke: '1px rgba(255,255,255,0.9)',
+                  textShadow: '0 6px 14px rgba(10, 93, 235, 0.22)',
+                }}
+                initial={{ y: -60, opacity: 0, rotate: -12, scale: 0.6 }}
+                animate={{
+                  y: [0, -10, 0],
+                  opacity: 1,
+                  rotate: [0, i % 2 === 0 ? 2 : -2, 0],
+                  scale: 1,
+                }}
+                transition={{
+                  // ตอนเข้า: เด้งทีละตัว
+                  opacity: { duration: 0.3, delay: 0.25 + i * 0.09 },
+                  scale: { type: 'spring', stiffness: 420, damping: 12, delay: 0.25 + i * 0.09 },
+                  // หลังเข้าแล้ว: ลอยไหวช้าๆ ไม่รบกวนสายตา
+                  y: { duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.8 + i * 0.16 },
+                  rotate: { duration: 3.4, repeat: Infinity, ease: 'easeInOut', delay: 0.8 + i * 0.16 },
+                }}
+              >
+                {l.char}
+              </motion.span>
+            ))}
+          </div>
         </motion.div>
 
         {/* badge */}
