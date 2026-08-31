@@ -30,12 +30,19 @@ const dots = [
   { c: 'left-[8%] top-[54%]', size: 'h-3 w-3', color: 'bg-brand-coral', d: 1.8 },
 ];
 
-/** ตัวอักษรโลโก้ + สีประจำตัว (จากพาเลตมาสคอต) */
-const LOGO_LETTERS = [
-  { char: 'E', color: 'text-eddy-500' },
-  { char: 'D', color: 'text-accent-500' },
-  { char: 'D', color: 'text-brand-orange' },
-  { char: 'Y', color: 'text-brand-yellow' },
+/**
+ * โลโก้แบบสติกเกอร์ - ตัวอักษรอยู่ในแผ่นสีทึบ
+ *
+ * ทำไมต้องเป็นแผ่นสี: ถ้าระบายสีที่ตัวอักษรตรงๆ บนพื้นฟ้าอ่อนของหน้าแรก
+ * จะใช้ได้แค่น้ำเงินกับส้มแดง (สีอื่นคอนทราสต์ต่ำกว่า 2:1 อ่านไม่ออก)
+ * พอย้ายสีไปไว้ที่พื้นแผ่นแล้วใส่ตัวอักษรทับ จะใช้สีจัดๆ ได้ครบทั้งพาเลต
+ * และคุมให้ทุกตัวอ่านชัดเท่ากัน (ตรวจคอนทราสต์ทุกคู่แล้ว ผ่าน 4.5:1 ทั้งหมด)
+ */
+const LOGO_TILES = [
+  { char: 'E', bg: 'bg-eddy-500', text: 'text-white', tilt: -6 },      // ตัวขาวบนน้ำเงิน 5.56:1
+  { char: 'D', bg: 'bg-brand-yellow', text: 'text-ink', tilt: 4 },     // ตัวเข้มบนเหลือง 10.86:1
+  { char: 'D', bg: 'bg-brand-pink', text: 'text-ink', tilt: -3 },      // ตัวเข้มบนชมพู 7.06:1
+  { char: 'Y', bg: 'bg-accent-300', text: 'text-ink', tilt: 6 },       // ตัวเข้มบนฟ้าสว่าง 9.1:1
 ];
 
 export default function LandingHero() {
@@ -75,35 +82,24 @@ export default function LandingHero() {
         animate="show"
         className="relative z-10 flex max-w-3xl flex-col items-center text-center"
       >
-        {/* โลโก้ตัวอักษร - ตัวใหญ่ เล่นสีทีละตัว เด้งเข้าทีละตัวแล้วลอยไหวต่อเนื่อง */}
-        <motion.div variants={item} className="mb-5">
-          <div className="flex items-baseline justify-center gap-1 font-brand text-6xl font-semibold leading-none tracking-tight sm:text-7xl md:text-8xl">
-            {LOGO_LETTERS.map((l, i) => (
+        {/* โลโก้สติกเกอร์ - เด้งเข้าทีละแผ่นแล้วโยกไหวต่อเนื่อง */}
+        <motion.div variants={item} className="mb-6">
+          <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+            {LOGO_TILES.map((t, i) => (
               <motion.span
-                key={l.char}
-                className={l.color}
-                style={{
-                  // ขอบขาวบางๆ + เงา ทำให้ตัวอักษรอ่านชัดบนพื้นฟ้าอ่อน
-                  WebkitTextStroke: '1px rgba(255,255,255,0.9)',
-                  textShadow: '0 6px 14px rgba(10, 93, 235, 0.22)',
-                }}
-                initial={{ y: -60, opacity: 0, rotate: -12, scale: 0.6 }}
-                animate={{
-                  y: [0, -10, 0],
-                  opacity: 1,
-                  rotate: [0, i % 2 === 0 ? 2 : -2, 0],
-                  scale: 1,
-                }}
+                key={i}
+                className={`flex h-16 w-16 items-center justify-center rounded-clay font-brand text-4xl font-semibold leading-none shadow-clay sm:h-20 sm:w-20 sm:text-5xl ${t.bg} ${t.text}`}
+                initial={{ y: -70, opacity: 0, rotate: t.tilt - 20, scale: 0.5 }}
+                animate={{ y: [0, -7, 0], opacity: 1, rotate: [t.tilt, t.tilt + 3, t.tilt], scale: 1 }}
                 transition={{
-                  // ตอนเข้า: เด้งทีละตัว
-                  opacity: { duration: 0.3, delay: 0.25 + i * 0.09 },
-                  scale: { type: 'spring', stiffness: 420, damping: 12, delay: 0.25 + i * 0.09 },
-                  // หลังเข้าแล้ว: ลอยไหวช้าๆ ไม่รบกวนสายตา
-                  y: { duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.8 + i * 0.16 },
-                  rotate: { duration: 3.4, repeat: Infinity, ease: 'easeInOut', delay: 0.8 + i * 0.16 },
+                  opacity: { duration: 0.25, delay: 0.2 + i * 0.1 },
+                  scale: { type: 'spring', stiffness: 460, damping: 13, delay: 0.2 + i * 0.1 },
+                  y: { duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.9 + i * 0.18 },
+                  rotate: { duration: 3.6, repeat: Infinity, ease: 'easeInOut', delay: 0.9 + i * 0.18 },
                 }}
+                whileHover={{ scale: 1.12, rotate: 0, transition: { type: 'spring', stiffness: 400, damping: 12 } }}
               >
-                {l.char}
+                {t.char}
               </motion.span>
             ))}
           </div>

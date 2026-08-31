@@ -21,11 +21,20 @@ export default function LoginIntro({ onEnter }: { onEnter: () => void }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.05 }}
       >
-        <div className="mb-7 flex items-baseline gap-0.5 font-brand text-3xl font-semibold tracking-tight">
-          <span className="text-eddy-500">E</span>
-          <span className="text-accent-500">D</span>
-          <span className="text-brand-orange">D</span>
-          <span className="text-brand-yellow">Y</span>
+        <div className="mb-7 flex items-center gap-1.5">
+          {[
+            { c: 'E', bg: 'bg-eddy-500', t: 'text-white' },
+            { c: 'D', bg: 'bg-brand-yellow', t: 'text-ink' },
+            { c: 'D', bg: 'bg-brand-pink', t: 'text-ink' },
+            { c: 'Y', bg: 'bg-accent-300', t: 'text-ink' },
+          ].map((l, i) => (
+            <span
+              key={i}
+              className={`flex h-11 w-11 items-center justify-center rounded-clay-sm font-brand text-2xl font-semibold shadow-clay-sm ${l.bg} ${l.t}`}
+            >
+              {l.c}
+            </span>
+          ))}
         </div>
 
         {/* มาสคอตเด้งเข้ามาทักทาย */}
