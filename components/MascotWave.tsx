@@ -37,8 +37,8 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
     <img
       src={reduceMotion ? '/mascot/eddy-duo-wave-still.png' : '/mascot/eddy-duo-wave.webp'}
       alt="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
-      width={440}
-      height={284}
+      width={420}
+      height={272}
       className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${className}`}
     />
   );
