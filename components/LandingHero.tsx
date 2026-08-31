@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
-import MascotVideo from '@/components/MascotVideo';
+import MascotWave from '@/components/MascotWave';
 
 // เข้าฉากแบบไล่ทีละชิ้น (stagger)
 const container = {
@@ -120,7 +120,7 @@ export default function LandingHero() {
 
         {/* มาสคอตคู่ - คลิปโบกมือทักทาย */}
         <motion.div variants={item} className="mb-7 w-[min(92vw,440px)]">
-          <MascotVideo />
+          <MascotWave />
         </motion.div>
 
         {/* แคปชั่นหลัก - เล่นสีทีละวลีให้อ่านสนุก */}
