@@ -119,36 +119,48 @@ export default function LandingHero() {
           <MascotWave />
         </motion.div>
 
-        {/* แคปชั่นหลัก - เล่นสีน้ำเงิน/ขาว/ส้ม/เหลือง/ฟ้าอ่อน
-            สีอ่อน (เหลือง ฟ้าอ่อน) ใช้เป็นแถบไฮไลต์ ไม่ใช่สีตัวอักษร
-            เพราะบนพื้นฟ้าอ่อนคอนทราสต์แค่ 1.1-1.4:1 อ่านไม่ออก */}
-        <motion.h1
-          variants={item}
-          className="font-brand text-[2.1rem] font-semibold leading-[1.5] tracking-tight text-ink sm:text-5xl sm:leading-[1.45] md:text-[3.4rem]"
-        >
-          <span className="relative inline-block">
-            <span className="relative z-10 text-eddy-500">Plan the date,</span>
-            {/* ไฮไลต์เหลืองแบบปากกาเน้นข้อความ */}
-            <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-[38%] -rotate-1 rounded bg-brand-yellow/80" />
-          </span>{' '}
-          <span className="relative inline-block">
-            <span className="relative z-10 text-brand-orange-ink">clear the list,</span>
-            <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-[38%] rotate-1 rounded bg-accent-200/90" />
-          </span>
-          <br />
-          {/* วลีปิด - ตัวขาวบนแถบน้ำเงิน ให้เป็นจุดพักสายตาและอ่านชัดที่สุด */}
-          <span className="mt-2 inline-block rounded-clay bg-eddy-500 px-4 py-1 text-white shadow-clay sm:mt-3 sm:px-5">
-            your perfect assist.
-          </span>
-        </motion.h1>
+        {/* แคปชั่นหลัก - แนวโน้ตกระดาษอุ่นๆ ติดเทป
+            เลิกใช้แถบไฮไลต์สีจัดแบบเดิมที่ดูเหมือนปากกาเน้นข้อความในชีทเรียน
+            เปลี่ยนเป็นการ์ดกระดาษครีม + ขีดเส้นใต้ลายมือ ให้ดูอบอุ่นและเป็นเอกลักษณ์ */}
+        <motion.div variants={item} className="relative w-full max-w-xl">
+          {/* เทปกาวติดมุมบน */}
+          <span
+            aria-hidden
+            className="absolute -top-3 left-1/2 z-10 h-7 w-28 -translate-x-1/2 -rotate-2 rounded-[3px] bg-brand-yellow/70 shadow-[0_1px_3px_rgba(31,39,51,0.12)] backdrop-blur-[1px]"
+          />
+          <div className="-rotate-[0.6deg] rounded-clay-lg border border-white/90 bg-[#FFFBF3] px-7 py-8 shadow-clay-pop sm:px-10 sm:py-10">
+            <h1 className="text-left font-brand text-[1.85rem] font-semibold leading-[1.35] tracking-tight text-ink sm:text-[2.6rem] sm:leading-[1.3]">
+              <span className="block">
+                Plan the <span className="text-eddy-500">date</span>,
+              </span>
+              <span className="block">
+                clear the <span className="text-brand-orange-ink">list</span>,
+              </span>
+              <span className="relative inline-block">
+                your perfect assist.
+                {/* ขีดเส้นใต้ลายมือ - วาดเป็นเส้นโค้งไม่เท่ากันให้ดูเหมือนขีดด้วยมือ */}
+                <svg
+                  aria-hidden
+                  viewBox="0 0 300 14"
+                  preserveAspectRatio="none"
+                  className="absolute -bottom-2 left-0 h-3 w-full text-brand-yellow"
+                >
+                  <path
+                    d="M2 9 C 48 2, 96 12, 148 6 S 250 2, 298 8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+            </h1>
 
-        {/* คำแปลไทย */}
-        <motion.p
-          variants={item}
-          className="mt-7 max-w-xl font-body text-base text-ink-soft sm:text-lg"
-        >
-          วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
-        </motion.p>
+            <p className="mt-7 text-left font-body text-sm text-ink-soft sm:text-base">
+              วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
+            </p>
+          </div>
+        </motion.div>
 
         {/* ปุ่มเดียว - Get Started */}
         <motion.div variants={item} className="mt-9">
