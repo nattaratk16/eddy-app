@@ -17,6 +17,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import Reveal from '@/components/motion/Reveal';
+import EddyMascot from '@/components/EddyMascot';
 import WorkloadPanel, { type WorkloadRow } from '@/components/groups/WorkloadPanel';
 import { notifyGroupUpdated } from '@/lib/groupEvents';
 import type { GroupTaskInfo } from '@/lib/types';
@@ -187,9 +188,10 @@ export default function GroupTasksPage({ params }: { params: { id: string } }) {
         </div>
 
         {result && (
-          <p className="mt-3 flex items-center gap-2 rounded-clay-sm bg-pastel-mint/50 px-4 py-2.5 font-body text-sm text-ink">
-            <Sparkles size={15} className="flex-shrink-0 text-eddy-600" /> {result}
-          </p>
+          <div className="mt-3 flex items-center gap-2.5 rounded-clay-sm bg-pastel-mint/50 px-4 py-2.5">
+            <EddyMascot character="nova" mood="happy" size={32} float={false} />
+            <p className="font-body text-sm text-ink">{result}</p>
+          </div>
         )}
 
         {/* ภาระงานสมาชิก - ดูก่อนกดจัดตาราง แล้วดูอีกทีว่าหลังจัดแล้วเปลี่ยนไปยังไง */}

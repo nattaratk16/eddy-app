@@ -5,7 +5,6 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
-import FaceBubble from '@/components/FaceBubble';
 import EddyMascot from '@/components/EddyMascot';
 import Reveal from '@/components/motion/Reveal';
 import DashboardCalendar from '@/components/dashboard/DashboardCalendar';
@@ -80,11 +79,9 @@ export default async function DashboardPage() {
                 <Sparkles size={16} /> จัดการงาน <ArrowRight size={16} />
               </Link>
             </div>
-            {/* กลุ่มหน้ายิ้มสไตล์ Genie */}
-            <div className="relative z-10 hidden shrink-0 -space-x-3 sm:flex">
-              <FaceBubble bg="bg-pastel-peach" className="h-14 w-14" />
-              <FaceBubble bg="bg-white" className="h-16 w-16" />
-              <FaceBubble bg="bg-pastel-mint" className="h-14 w-14" />
+            {/* มาสคอตประจำแอป (แทนหน้ายิ้มกลมๆ เดิม ให้เป็นตัวละครเดียวกันทั้งแอป) */}
+            <div className="relative z-10 hidden shrink-0 sm:block">
+              <EddyMascot size={104} />
             </div>
             <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/40 blur-2xl" />
           </div>

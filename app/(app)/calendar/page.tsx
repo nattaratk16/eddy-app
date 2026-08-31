@@ -394,7 +394,7 @@ function CalendarPageContent() {
             {/* สรุปสัปดาห์ด้วย AI */}
             <Popover label="สรุปสัปดาห์" icon={<Sparkles size={14} />} width="w-80">
               <div className="flex items-start gap-3">
-                <EddyMascot mood="think" size={44} float={false} />
+                <EddyMascot character="nova" mood="think" size={44} float={false} />
                 <div>
                   <p className="font-display text-sm font-bold text-ink">เอ็ดดี้สรุปสัปดาห์นี้</p>
                   <p className="mt-1 font-body text-xs text-ink-muted">{weeklySummary}</p>

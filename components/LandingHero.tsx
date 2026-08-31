@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
+import Image from 'next/image';
 
 // เข้าฉากแบบไล่ทีละชิ้น (stagger)
 const container = {
@@ -78,6 +79,18 @@ export default function LandingHero() {
         >
           <Sparkles size={14} className="text-eddy-500" /> ขับเคลื่อนด้วย Gemini AI
         </motion.span>
+
+        {/* มาสคอตคู่ - หน้าแรกคือที่แรกที่คนเห็น เลยให้ตัวจริงขึ้นเต็มตัวแทนไอคอน */}
+        <motion.div variants={item} className="mb-6">
+          <Image
+            src="/mascot/eddy-duo-512.png"
+            alt="เอ็ดดี้และผู้ช่วย"
+            width={512}
+            height={351}
+            priority
+            className="h-auto w-[260px] drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] sm:w-[320px]"
+          />
+        </motion.div>
 
         {/* headline (concept) */}
         <motion.h1

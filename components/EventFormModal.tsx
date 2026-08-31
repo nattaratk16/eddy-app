@@ -246,7 +246,7 @@ export default function EventFormModal({
 
       {(aiLoading || aiAnalysis) && date && startTime && (
         <div className="flex items-start gap-3 rounded-clay-sm bg-pastel-lilac/50 p-3">
-          <EddyMascot mood={aiLoading ? 'think' : 'happy'} size={36} float={false} />
+          <EddyMascot character="nova" mood={aiLoading ? 'think' : 'happy'} size={36} float={false} />
           <div className="flex-1">
             <p className="flex items-center gap-1 font-display text-xs font-semibold text-eddy-700">
               <Sparkles size={12} /> เอ็ดดี้วิเคราะห์ตารางให้

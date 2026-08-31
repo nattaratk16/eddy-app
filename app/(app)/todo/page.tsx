@@ -425,7 +425,7 @@ export default function TodoPage() {
           {plan && (
             <div className="mt-4 rounded-clay-sm border border-eddy-200 bg-white p-4">
               <div className="flex items-start gap-2">
-                <EddyMascot mood="think" size={32} float={false} />
+                <EddyMascot character="nova" mood="think" size={32} float={false} />
                 <div className="flex-1">
                   <p className="font-display text-body font-semibold text-ink">เอ็ดดี้หาช่องว่างในปฏิทินให้แล้ว</p>
                   <p className="font-body text-xs text-ink-muted">

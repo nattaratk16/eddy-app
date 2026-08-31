@@ -8,19 +8,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary navy/blue scale - the "EDDY" brand color (elegant, modern)
-        // ธีม Genie: eddy 50–300 = ฟ้าอ่อน (พื้นผิว/เส้นขอบ/hover), 400–900 = น้ำเงินแบรนด์ (accent)
+        // สีแบรนด์หลัก - ไล่จาก #0A5DEB ในพาเลตของมาสคอต
+        // 50–300 = ฟ้าอ่อน (พื้นผิว/เส้นขอบ/hover), 400–900 = น้ำเงินแบรนด์ (ปุ่ม/ตัวอักษรเน้น)
         eddy: {
-          50: '#EEF5FC',
-          100: '#E1ECF8',
-          200: '#CBDFF2',
-          300: '#A9C8E8',
-          400: '#6B98CE',
-          500: '#3D72B4',
-          600: '#2C5690',
-          700: '#204170',
-          800: '#172E52',
-          900: '#0D1C33',
+          50: '#EFF5FF',
+          100: '#DCE8FE',
+          200: '#BDD5FD',
+          300: '#8FBAFB',
+          400: '#5A97F6',
+          500: '#0A5DEB', // สีหลักจากพาเลต
+          600: '#0A4CC4',
+          700: '#0C3F9E',
+          800: '#0F357E',
+          900: '#0F2A5F',
         },
         // Pastel accent palette - functional (user-chosen category colors).
         // First 6 are original values, kept byte-for-byte so existing categories never recolor.
@@ -59,16 +59,19 @@ module.exports = {
           rose: '#FFDED4',
           'rose-dark': '#F89177',
         },
-        // Accent (indigo/violet) - จับคู่กับ eddy blue สำหรับไล่เฉด gradient แบบพรีเมียม
+        // สีรอง - ฟ้าสว่าง #64D7FF จากพาเลต ใช้คู่กับ eddy blue ทำ gradient (น้ำเงิน -> ฟ้า)
         accent: {
-          50: '#EEF0FE',
-          100: '#E0E3FD',
-          200: '#C7CCFB',
-          300: '#A5ADF7',
-          400: '#818CF8',
-          500: '#6366F1',
-          600: '#4F46E5',
-          700: '#4338CA',
+          50: '#ECFBFF',
+          100: '#D5F5FF',
+          200: '#AEECFF',
+          300: '#64D7FF', // สีฟ้าสว่างจากพาเลต
+          400: '#2FC2F2',
+          // 500 ถูกใช้เป็นปลาย gradient ของปุ่มที่มีตัวอักษรสีขาว (from-eddy-500 to-accent-500)
+          // จึงต้องเข้มพอให้ตัวอักษรขาวอ่านออก - #0E7FA8 ให้คอนทราสต์ 4.55:1 ผ่านเกณฑ์ WCAG AA
+          // (ฟ้าสว่าง #64D7FF จากพาเลตอยู่ที่ระดับ 300 ใช้เป็นพื้น/ไฮไลต์แทน)
+          500: '#0E7FA8',
+          600: '#0B7099',
+          700: '#0D6B8E',
         },
         // ระดับภาระงาน (Workload Score) - เขียว = ยังว่าง, ส้ม = เริ่มแน่น, แดง = แน่นมาก
         // ผ่าน validator ของ dataviz skill ครบทุกข้อ (lightness band / chroma / CVD / contrast >= 3:1)
@@ -78,10 +81,18 @@ module.exports = {
           tight: '#F0682B',
           full: '#C81E24',
         },
-        // Sparing premium accent (mascot sparkle, small badges) - navy+gold reads elegant
+        // สีเสริมจากพาเลตมาสคอต - ใช้เป็นจุดเน้นเล็กๆ (ป้าย, ไฮไลต์, ประกายมาสคอต)
+        // ชื่อ gold คงไว้เพราะมีที่เรียกใช้อยู่ แต่ค่าจริงเป็นเหลืองของมาสคอตแล้ว
         gold: {
-          DEFAULT: '#C9A15A',
-          light: '#E0BE7C',
+          DEFAULT: '#FED926',
+          light: '#FFE875',
+        },
+        // สีแบรนด์รองจากพาเลตเดียวกัน (เหลือง/ส้ม/ส้มแดง/ชมพู)
+        brand: {
+          yellow: '#FED926',
+          orange: '#FD823F',
+          coral: '#F04017',
+          pink: '#FF8FB6',
         },
         // ธีม Genie: ตัวอักษรดำอมฟ้าเย็น (cool near-black) เข้ากับพื้นฟ้า
         ink: {
@@ -113,10 +124,10 @@ module.exports = {
       },
       boxShadow: {
         // ธีม Genie: การ์ดลอยนุ่มๆ เงาอมฟ้าเบาๆ (ไม่แบนแบบ Notion)
-        clay: '0 6px 20px -8px rgba(59, 110, 180, 0.18), 0 1px 3px rgba(31, 39, 51, 0.04)',
-        'clay-sm': '0 2px 8px -3px rgba(59, 110, 180, 0.14), 0 1px 2px rgba(31, 39, 51, 0.04)',
+        clay: '0 6px 20px -8px rgba(10, 93, 235, 0.16), 0 1px 3px rgba(31, 39, 51, 0.04)',
+        'clay-sm': '0 2px 8px -3px rgba(10, 93, 235, 0.12), 0 1px 2px rgba(31, 39, 51, 0.04)',
         'clay-inset': 'inset 0 1px 2px rgba(31, 39, 51, 0.04)',
-        'clay-pop': '0 20px 48px -12px rgba(31, 39, 51, 0.24), 0 4px 12px -6px rgba(59, 110, 180, 0.18)',
+        'clay-pop': '0 20px 48px -12px rgba(31, 39, 51, 0.24), 0 4px 12px -6px rgba(10, 93, 235, 0.16)',
       },
       keyframes: {
         float: {
@@ -134,6 +145,11 @@ module.exports = {
         pop: {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        // มาสคอตตอนดีใจ - เด้งช้ากว่า animate-bounce ของ tailwind ที่เร็วเกินไปสำหรับภาพใหญ่
+        bounceSlow: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-12%)' },
         },
         // เอนทรานซ์: เลื่อนขึ้น + จางเข้า (ใช้ทำ stagger ตอนหน้าโหลด)
         fadeInUp: {
@@ -163,6 +179,7 @@ module.exports = {
         floatSlow: 'floatSlow 6s ease-in-out infinite',
         blink: 'blink 4s ease-in-out infinite',
         pop: 'pop 0.25s ease-out',
+        'bounce-slow': 'bounceSlow 1.6s ease-in-out infinite',
         'fade-in-up': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-in': 'fadeIn 0.4s ease-out both',
         'scale-in': 'scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
