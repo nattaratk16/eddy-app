@@ -30,21 +30,6 @@ const dots = [
   { c: 'left-[8%] top-[54%]', size: 'h-3 w-3', color: 'bg-brand-coral', d: 1.8 },
 ];
 
-/**
- * โลโก้แบบสติกเกอร์ - ตัวอักษรอยู่ในแผ่นสีทึบ
- *
- * ทำไมต้องเป็นแผ่นสี: ถ้าระบายสีที่ตัวอักษรตรงๆ บนพื้นฟ้าอ่อนของหน้าแรก
- * จะใช้ได้แค่น้ำเงินกับส้มแดง (สีอื่นคอนทราสต์ต่ำกว่า 2:1 อ่านไม่ออก)
- * พอย้ายสีไปไว้ที่พื้นแผ่นแล้วใส่ตัวอักษรทับ จะใช้สีจัดๆ ได้ครบทั้งพาเลต
- * และคุมให้ทุกตัวอ่านชัดเท่ากัน (ตรวจคอนทราสต์ทุกคู่แล้ว ผ่าน 4.5:1 ทั้งหมด)
- */
-const LOGO_TILES = [
-  { char: 'E', bg: 'bg-eddy-500', text: 'text-white', tilt: -6 },      // ตัวขาวบนน้ำเงิน 5.56:1
-  { char: 'D', bg: 'bg-brand-yellow', text: 'text-ink', tilt: 4 },     // ตัวเข้มบนเหลือง 10.86:1
-  { char: 'D', bg: 'bg-brand-red', text: 'text-white', tilt: -3 },     // ตัวขาวบนแดง 4.83:1
-  { char: 'Y', bg: 'bg-brand-green', text: 'text-ink', tilt: 6 },      // ตัวเข้มบนเขียว 5.48:1
-];
-
 export default function LandingHero() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-10">
@@ -82,85 +67,53 @@ export default function LandingHero() {
         animate="show"
         className="relative z-10 flex max-w-3xl flex-col items-center text-center"
       >
-        {/* โลโก้สติกเกอร์ - เด้งเข้าทีละแผ่นแล้วโยกไหวต่อเนื่อง */}
-        <motion.div variants={item} className="mb-6">
-          <div className="flex items-center justify-center gap-2 sm:gap-2.5">
-            {LOGO_TILES.map((t, i) => (
-              <motion.span
-                key={i}
-                className={`flex h-16 w-16 items-center justify-center rounded-clay font-brand text-4xl font-semibold leading-none shadow-clay sm:h-20 sm:w-20 sm:text-5xl ${t.bg} ${t.text}`}
-                initial={{ y: -70, opacity: 0, rotate: t.tilt - 20, scale: 0.5 }}
-                animate={{ y: [0, -7, 0], opacity: 1, rotate: [t.tilt, t.tilt + 3, t.tilt], scale: 1 }}
-                transition={{
-                  opacity: { duration: 0.25, delay: 0.2 + i * 0.1 },
-                  scale: { type: 'spring', stiffness: 460, damping: 13, delay: 0.2 + i * 0.1 },
-                  y: { duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.9 + i * 0.18 },
-                  rotate: { duration: 3.6, repeat: Infinity, ease: 'easeInOut', delay: 0.9 + i * 0.18 },
-                }}
-                whileHover={{ scale: 1.12, rotate: 0, transition: { type: 'spring', stiffness: 400, damping: 12 } }}
-              >
-                {t.char}
-              </motion.span>
-            ))}
-          </div>
+        {/* โลโก้ - กรอบขาวใบเดียว ตัวอักษรน้ำเงินติดกัน (อ้างอิงแถบขาวด้านบนของ referance.png) */}
+        <motion.div variants={item} className="mb-7">
+          <span className="inline-flex items-center rounded-full border border-white bg-white px-7 py-3 font-brand text-3xl font-semibold tracking-tight text-eddy-500 shadow-clay sm:px-9 sm:py-3.5 sm:text-4xl">
+            EDDY
+          </span>
         </motion.div>
-
-        {/* badge */}
-        <motion.span
-          variants={item}
-          className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/75 px-4 py-1.5 font-body text-sm text-ink-soft shadow-clay-sm backdrop-blur"
-        >
-          <span className="h-2 w-2 rounded-full bg-brand-yellow" />
-          ขับเคลื่อนด้วย Gemini AI
-        </motion.span>
 
         {/* มาสคอตคู่ - คลิปโบกมือทักทาย */}
         <motion.div variants={item} className="mb-7 w-[min(92vw,440px)]">
           <MascotWave />
         </motion.div>
 
-        {/* แคปชั่นหลัก - แนวโน้ตกระดาษอุ่นๆ ติดเทป
-            เลิกใช้แถบไฮไลต์สีจัดแบบเดิมที่ดูเหมือนปากกาเน้นข้อความในชีทเรียน
-            เปลี่ยนเป็นการ์ดกระดาษครีม + ขีดเส้นใต้ลายมือ ให้ดูอบอุ่นและเป็นเอกลักษณ์ */}
-        <motion.div variants={item} className="relative w-full max-w-xl">
-          {/* เทปกาวติดมุมบน */}
-          <span
-            aria-hidden
-            className="absolute -top-3 left-1/2 z-10 h-7 w-28 -translate-x-1/2 -rotate-2 rounded-[3px] bg-brand-yellow/70 shadow-[0_1px_3px_rgba(31,39,51,0.12)] backdrop-blur-[1px]"
-          />
-          <div className="-rotate-[0.6deg] rounded-clay-lg border border-white/90 bg-[#FFFBF3] px-7 py-8 shadow-clay-pop sm:px-10 sm:py-10">
-            <h1 className="text-left font-brand text-[1.85rem] font-semibold leading-[1.35] tracking-tight text-ink sm:text-[2.6rem] sm:leading-[1.3]">
-              <span className="block">
-                Plan the <span className="text-eddy-500">date</span>,
-              </span>
-              <span className="block">
-                clear the <span className="text-brand-orange-ink">list</span>,
-              </span>
-              <span className="relative inline-block">
-                your perfect assist.
-                {/* ขีดเส้นใต้ลายมือ - วาดเป็นเส้นโค้งไม่เท่ากันให้ดูเหมือนขีดด้วยมือ */}
-                <svg
-                  aria-hidden
-                  viewBox="0 0 300 14"
-                  preserveAspectRatio="none"
-                  className="absolute -bottom-2 left-0 h-3 w-full text-brand-yellow"
-                >
-                  <path
-                    d="M2 9 C 48 2, 96 12, 148 6 S 250 2, 298 8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-            </h1>
+        {/* แคปชั่นหลัก - จัดกลาง ตัวใหญ่ สะอาด ตามแนว referance.png
+            เน้นสีเฉพาะคำสำคัญ ที่เหลือเป็นสีหมึก จะได้มีจังหวะหนัก-เบา */}
+        <motion.h1
+          variants={item}
+          className="font-brand text-[2.15rem] font-semibold leading-[1.28] tracking-tight text-ink sm:text-5xl md:text-[3.5rem]"
+        >
+          Plan the <span className="text-eddy-500">date</span>,{' '}
+          <span className="whitespace-nowrap">
+            clear the <span className="text-brand-orange-ink">list</span>,
+          </span>
+          <br />
+          <span className="relative inline-block">
+            your perfect assist.
+            {/* ขีดเส้นใต้ลายมือ */}
+            <svg
+              aria-hidden
+              viewBox="0 0 300 14"
+              preserveAspectRatio="none"
+              className="absolute -bottom-1.5 left-0 h-3 w-full text-brand-yellow sm:-bottom-2"
+            >
+              <path
+                d="M2 9 C 48 2, 96 12, 148 6 S 250 2, 298 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+        </motion.h1>
 
-            <p className="mt-7 text-left font-body text-sm text-ink-soft sm:text-base">
-              วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
-            </p>
-          </div>
-        </motion.div>
+        {/* คำแปลไทย */}
+        <motion.p variants={item} className="mt-8 max-w-lg font-body text-base text-ink-soft sm:text-lg">
+          วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
+        </motion.p>
 
         {/* ปุ่มเดียว - Get Started */}
         <motion.div variants={item} className="mt-9">
