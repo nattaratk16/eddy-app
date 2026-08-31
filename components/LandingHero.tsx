@@ -7,60 +7,57 @@ import { ArrowRight } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
 import MascotWave from '@/components/MascotWave';
 
-// เข้าฉากแบบไล่ทีละชิ้น (stagger)
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
 };
 const item = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
 };
 
-/**
- * จุดสีลอยรอบหน้าจอ - เหลือ 3 จุดพอเป็นบรรยากาศ
- * (เดิมมี 7 จุดกระจายทั่วหน้า ซึ่งแย่งสายตากับโลโก้และมาสคอต)
- */
-const dots = [
-  { c: 'left-[8%] top-[18%]', size: 'h-4 w-4', color: 'bg-brand-yellow', d: 0 },
-  { c: 'right-[10%] top-[26%]', size: 'h-3 w-3', color: 'bg-brand-pink', d: 0.9 },
-  { c: 'left-[12%] bottom-[20%]', size: 'h-3.5 w-3.5', color: 'bg-accent-300', d: 1.6 },
-];
-
 export default function LandingHero() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-5 py-10 sm:px-10">
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white">
       <SkyBackground />
 
-      {/* แสงเรืองไล่สีอันเดียว วางเยื้องไปทางขวา ไม่ให้ความสนใจไปกองกลางหน้า */}
+      {/* แสงเรืองก้อนเดียว วางหลังมาสคอตทางขวา */}
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute right-[8%] top-1/4 h-80 w-80 rounded-full bg-accent-300/30 blur-3xl"
-        animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute right-[6%] top-[28%] h-[26rem] w-[26rem] rounded-full bg-accent-300/25 blur-3xl"
+        animate={{ scale: [1, 1.12, 1], opacity: [0.25, 0.45, 0.25] }}
+        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {dots.map((s, i) => (
-        <motion.span
-          key={i}
-          aria-hidden
-          className={`pointer-events-none absolute ${s.c} ${s.size} ${s.color} rounded-full opacity-60`}
-          animate={{ scale: [0.9, 1.2, 0.9], y: [0, -12, 0], opacity: [0.35, 0.7, 0.35] }}
-          transition={{ duration: 5, repeat: Infinity, delay: s.d, ease: 'easeInOut' }}
-        />
-      ))}
+      {/* ---------- แถบบน ---------- */}
+      <motion.header
+        initial={{ opacity: 0, y: -14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        className="relative z-20 mx-auto mt-5 flex w-[min(92vw,72rem)] items-center justify-between rounded-full border border-white/80 bg-white/85 px-4 py-2.5 shadow-clay backdrop-blur sm:px-6"
+      >
+        <span className="flex items-center gap-2">
+          <Image src="/mascot/eddy-a-128.png" alt="" width={36} height={40} className="h-9 w-auto" />
+          <span className="font-brand text-xl font-semibold tracking-tight text-eddy-600 sm:text-2xl">EDDY</span>
+        </span>
 
-      {/* เนื้อหา: 2 คอลัมน์บนจอกว้าง - ข้อความซ้าย มาสคอตขวา
-          เดิมวางซ้อนกันเป็นแถวเดียวกลางหน้า เลยดูกระจุกและเหลือที่ว่างสองข้างเยอะ */}
-      <motion.div
+        <Link
+          href="/login"
+          className="rounded-full bg-eddy-600 px-5 py-2 font-brand text-sm font-semibold text-white transition-all hover:bg-eddy-700 active:scale-95 sm:px-6"
+        >
+          เข้าสู่ระบบ
+        </Link>
+      </motion.header>
+
+      {/* ---------- เนื้อหาหลัก ---------- */}
+      <motion.section
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col items-center justify-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16"
+        className="relative z-10 mx-auto flex w-[min(92vw,72rem)] flex-1 flex-col items-center gap-8 py-10 lg:flex-row lg:items-end lg:justify-between lg:gap-10 lg:py-0"
       >
-        {/* ---- ซ้าย: โลโก้ + ปุ่ม ---- */}
-        <div className="flex max-w-md flex-col items-center text-center lg:items-start lg:text-left">
-          {/* โลโก้ทำหน้าที่เป็นทั้งชื่อแบรนด์และสโลแกนในตัว จึงไม่ต้องมีข้อความซ้ำอีก */}
+        {/* ซ้าย: โลโก้ (มีสโลแกนในภาพ) + ปุ่ม */}
+        <div className="flex max-w-lg flex-col items-center text-center lg:mb-24 lg:items-start lg:text-left">
           <motion.div variants={item}>
             <Image
               src="/mascot/eddy-logo-640.png"
@@ -68,15 +65,15 @@ export default function LandingHero() {
               width={640}
               height={678}
               priority
-              className="h-auto w-[260px] drop-shadow-[0_12px_24px_rgba(10,76,196,0.18)] sm:w-[320px]"
+              className="h-auto w-[248px] drop-shadow-[0_14px_26px_rgba(10,76,196,0.16)] sm:w-[300px] lg:w-[330px]"
             />
           </motion.div>
 
-          <motion.p variants={item} className="mt-6 font-body text-sm text-ink-soft sm:text-base">
+          <motion.p variants={item} className="mt-5 max-w-sm font-body text-sm text-ink-soft sm:text-base">
             วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
           </motion.p>
 
-          <motion.div variants={item} className="mt-8">
+          <motion.div variants={item} className="mt-7">
             <Link
               href="/login"
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-8 py-3.5 font-brand text-base font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.03] hover:brightness-110 active:scale-95"
@@ -87,11 +84,24 @@ export default function LandingHero() {
           </motion.div>
         </div>
 
-        {/* ---- ขวา: มาสคอต ---- */}
-        <motion.div variants={item} className="w-[min(88vw,460px)] lg:w-[46%] lg:max-w-[520px]">
+        {/* ขวา: มาสคอตยืนอยู่บนขอบล่างของหน้า */}
+        <motion.div variants={item} className="w-[min(86vw,440px)] lg:w-[48%] lg:max-w-[560px] lg:self-end">
           <MascotWave />
         </motion.div>
-      </motion.div>
+      </motion.section>
+
+      {/* ---------- เมฆขาวรับขอบล่าง ---------- */}
+      <svg
+        aria-hidden
+        viewBox="0 0 1440 120"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-16 w-full text-white sm:h-24"
+      >
+        <path
+          fill="currentColor"
+          d="M0 60 C 160 100, 260 20, 420 44 S 700 110, 880 68 S 1180 10, 1440 62 L1440 120 L0 120 Z"
+        />
+      </svg>
     </main>
   );
 }
