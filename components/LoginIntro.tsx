@@ -21,8 +21,11 @@ export default function LoginIntro({ onEnter }: { onEnter: () => void }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.05 }}
       >
-        <div className="mb-7 flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-ink">
-          <Sparkles size={26} className="text-eddy-500" fill="currentColor" /> EDDY
+        <div className="mb-7 flex items-baseline gap-0.5 font-brand text-3xl font-semibold tracking-tight">
+          <span className="text-eddy-500">E</span>
+          <span className="text-accent-500">D</span>
+          <span className="text-brand-orange">D</span>
+          <span className="text-brand-yellow">Y</span>
         </div>
 
         {/* มาสคอตเด้งเข้ามาทักทาย */}

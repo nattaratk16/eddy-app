@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight } from 'lucide-react';
-import SkyBackground from '@/components/SkyBackground';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
+import SkyBackground from '@/components/SkyBackground';
 
 // เข้าฉากแบบไล่ทีละชิ้น (stagger)
 const container = {
@@ -16,13 +16,18 @@ const item = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
 };
 
-// ตำแหน่ง+ดีเลย์ของประกายวิบวับ
-const sparkles = [
-  { c: 'left-[16%] top-[22%]', size: 22, d: 0 },
-  { c: 'right-[18%] top-[28%]', size: 16, d: 0.6 },
-  { c: 'left-[24%] bottom-[24%]', size: 18, d: 1.2 },
-  { c: 'right-[22%] bottom-[30%]', size: 24, d: 0.35 },
-  { c: 'left-[46%] top-[12%]', size: 14, d: 0.9 },
+/**
+ * จุดสีลอยรอบหน้าจอ - ใช้แทนไอคอนประกาย (sparkle) เดิม
+ * สีมาจากพาเลตของมาสคอต ให้หน้าแรกดูสนุกและเป็นชุดเดียวกับตัวละคร
+ */
+const dots = [
+  { c: 'left-[14%] top-[20%]', size: 'h-5 w-5', color: 'bg-brand-yellow', d: 0 },
+  { c: 'right-[16%] top-[26%]', size: 'h-3.5 w-3.5', color: 'bg-brand-pink', d: 0.6 },
+  { c: 'left-[22%] bottom-[22%]', size: 'h-4 w-4', color: 'bg-accent-300', d: 1.2 },
+  { c: 'right-[20%] bottom-[28%]', size: 'h-6 w-6', color: 'bg-brand-orange', d: 0.35 },
+  { c: 'left-[44%] top-[9%]', size: 'h-3 w-3', color: 'bg-eddy-400', d: 0.9 },
+  { c: 'right-[30%] top-[62%]', size: 'h-3.5 w-3.5', color: 'bg-brand-yellow', d: 1.5 },
+  { c: 'left-[8%] top-[54%]', size: 'h-3 w-3', color: 'bg-brand-coral', d: 1.8 },
 ];
 
 export default function LandingHero() {
@@ -44,17 +49,15 @@ export default function LandingHero() {
         transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* ประกายวิบวับ */}
-      {sparkles.map((s, i) => (
-        <motion.div
+      {/* จุดสีลอยไหว (แทนไอคอนประกายเดิม) */}
+      {dots.map((s, i) => (
+        <motion.span
           key={i}
           aria-hidden
-          className={`pointer-events-none absolute ${s.c} text-eddy-400`}
-          animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.25, 1, 0.25], rotate: [0, 90, 0] }}
-          transition={{ duration: 3, repeat: Infinity, delay: s.d, ease: 'easeInOut' }}
-        >
-          <Sparkles size={s.size} fill="currentColor" />
-        </motion.div>
+          className={`pointer-events-none absolute ${s.c} ${s.size} ${s.color} rounded-full opacity-70`}
+          animate={{ scale: [0.85, 1.25, 0.85], y: [0, -14, 0], opacity: [0.4, 0.85, 0.4] }}
+          transition={{ duration: 4.5, repeat: Infinity, delay: s.d, ease: 'easeInOut' }}
+        />
       ))}
 
       {/* เนื้อหา */}
@@ -62,62 +65,72 @@ export default function LandingHero() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 flex max-w-2xl flex-col items-center text-center"
+        className="relative z-10 flex max-w-3xl flex-col items-center text-center"
       >
-        {/* โลโก้ */}
-        <motion.div variants={item} className="mb-5 flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-clay-sm bg-ink shadow-clay">
-            <Sparkles size={20} className="text-white" fill="currentColor" />
-          </span>
-          <span className="font-display text-2xl font-bold tracking-tight text-ink">EDDY</span>
+        {/* โลโก้ตัวอักษร - เล่นสีทีละตัวตามพาเลตมาสคอต */}
+        <motion.div variants={item} className="mb-4 flex items-baseline gap-0.5 font-brand text-4xl font-semibold tracking-tight sm:text-5xl">
+          <span className="text-eddy-500">E</span>
+          <span className="text-accent-500">D</span>
+          <span className="text-brand-orange">D</span>
+          <span className="text-brand-yellow drop-shadow-[0_1px_0_rgba(10,93,235,0.25)]">Y</span>
         </motion.div>
 
         {/* badge */}
         <motion.span
           variants={item}
-          className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/70 px-4 py-1.5 font-body text-sm text-ink-soft shadow-clay-sm backdrop-blur"
+          className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/75 px-4 py-1.5 font-body text-sm text-ink-soft shadow-clay-sm backdrop-blur"
         >
-          <Sparkles size={14} className="text-eddy-500" /> ขับเคลื่อนด้วย Gemini AI
+          <span className="h-2 w-2 rounded-full bg-brand-yellow" />
+          ขับเคลื่อนด้วย Gemini AI
         </motion.span>
 
-        {/* มาสคอตคู่ - หน้าแรกคือที่แรกที่คนเห็น เลยให้ตัวจริงขึ้นเต็มตัวแทนไอคอน */}
-        <motion.div variants={item} className="mb-6">
+        {/* มาสคอตคู่ */}
+        <motion.div variants={item} className="mb-7">
           <Image
             src="/mascot/eddy-duo-512.png"
             alt="เอ็ดดี้และผู้ช่วย"
             width={512}
             height={351}
             priority
-            className="h-auto w-[260px] drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] sm:w-[320px]"
+            className="h-auto w-[270px] drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] sm:w-[340px]"
           />
         </motion.div>
 
-        {/* headline (concept) */}
+        {/* แคปชั่นหลัก - เล่นสีทีละวลีให้อ่านสนุก */}
         <motion.h1
           variants={item}
-          className="font-display text-4xl font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl md:text-6xl"
+          className="font-brand text-[2.1rem] font-semibold leading-[1.18] tracking-tight text-ink sm:text-5xl md:text-[3.4rem]"
         >
-          จัดตารางชีวิต งาน
+          <span className="text-eddy-500">Plan the date,</span>{' '}
+          <span className="text-brand-orange">clear the list,</span>
           <br />
-          และทำงานเป็นทีม
-          <br />
-          <span className="bg-gradient-to-r from-eddy-500 via-accent-500 to-eddy-400 bg-clip-text text-transparent">
-            ให้ลงตัวในที่เดียว
+          <span className="relative inline-block">
+            <span className="bg-gradient-to-r from-eddy-500 via-accent-500 to-eddy-400 bg-clip-text text-transparent">
+              your perfect assist.
+            </span>
+            {/* ขีดเน้นสีเหลืองใต้วลีปิด */}
+            <span
+              aria-hidden
+              className="absolute -bottom-1 left-0 h-2.5 w-full rounded-full bg-brand-yellow/70 sm:-bottom-2 sm:h-3"
+            />
           </span>
         </motion.h1>
 
-        {/* subtitle */}
-        <motion.p variants={item} className="mt-6 max-w-lg font-body text-base text-ink-soft sm:text-lg">
-          ผู้ช่วย AI ที่ช่วยจัดปฏิทิน วางแผนงาน หาเวลาว่างของกลุ่ม และเตือนสิ่งที่ต้องทำ — เริ่มต้นฟรีวันนี้
+        {/* คำแปลไทย */}
+        <motion.p
+          variants={item}
+          className="mt-7 max-w-xl font-body text-base text-ink-soft sm:text-lg"
+        >
+          วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
         </motion.p>
 
-        {/* ปุ่มเดียว - Get Started (เรืองแสง) */}
-        <motion.div variants={item} className="mt-10">
+        {/* ปุ่มเดียว - Get Started */}
+        <motion.div variants={item} className="mt-9">
           <Link
             href="/login"
-            className="group relative inline-flex items-center gap-2 rounded-full bg-ink px-9 py-4 font-display text-lg font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.04] hover:bg-black active:scale-95"
+            className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-9 py-4 font-brand text-lg font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.04] hover:brightness-110 active:scale-95"
           >
-            <span className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-ink opacity-40 blur-md transition-opacity duration-300 group-hover:opacity-70" />
+            <span className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-eddy-500 opacity-40 blur-md transition-opacity duration-300 group-hover:opacity-70" />
             Get Started
             <ArrowRight size={20} className="transition-transform duration-200 group-hover:translate-x-1" />
           </Link>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Sans_Thai } from 'next/font/google';
+import { IBM_Plex_Sans_Thai, Mitr } from 'next/font/google';
 import Providers from './providers';
 import GlowBackground from '@/components/backgrounds/GlowBackground';
 import './globals.css';
@@ -20,6 +20,16 @@ const plexBody = IBM_Plex_Sans_Thai({
   display: 'swap',
 });
 
+// ฟอนต์แบรนด์: กลมมนสนุก เข้ากับมาสคอต 3D ใช้เฉพาะโลโก้/หัวเรื่องใหญ่บนหน้าแรก
+// (เนื้อหาทั่วไปยังเป็น IBM Plex Sans Thai เพราะอ่านยาวๆ สบายตากว่า)
+const brandFont = Mitr({
+  subsets: ['latin', 'thai'],
+  weight: ['400', '500', '600'], // Mitr มีหนักสุดที่ 600
+
+  variable: '--font-brand',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'EDDY — ผู้ช่วยจัดตารางชีวิตของคุณ',
   description: 'AI assistant ที่ช่วยจัดตารางชีวิตประจำวัน งาน และสิ่งที่ต้องทำ',
@@ -32,7 +42,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th">
-      <body className={`${plexDisplay.variable} ${plexBody.variable} font-body`}>
+      <body className={`${plexDisplay.variable} ${plexBody.variable} ${brandFont.variable} font-body`}>
         <GlowBackground />
         <Providers>{children}</Providers>
       </body>

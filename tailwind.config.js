@@ -104,6 +104,8 @@ module.exports = {
       fontFamily: {
         display: ['var(--font-display)'],
         body: ['var(--font-body)'],
+        // ฟอนต์กลมมนสำหรับโลโก้/หัวเรื่องหน้าแรก
+        brand: ['var(--font-brand)', 'var(--font-display)'],
       },
       // สเกลตัวอักษรมาตรฐาน (role-based) — ใช้ text-h1/h2/h3/body/caption แทนการสุ่ม text-xs/sm/lg
       // ผูก line-height + น้ำหนัก + letter-spacing มาให้ในตัว เพื่อให้ทุกหน้าสมดุลเป็นชุดเดียวกัน
