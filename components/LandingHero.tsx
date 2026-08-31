@@ -32,7 +32,7 @@ const dots = [
 
 export default function LandingHero() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-10">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-6">
       <SkyBackground />
 
       {/* แสงเรืองไล่สี (aurora glow) เคลื่อนไหวช้าๆ */}
@@ -72,7 +72,7 @@ export default function LandingHero() {
             ทำด้วยการซ้อน 2 ชั้น: ชั้นหลังเป็นตัวอักษรที่ตีเส้นขาวหนา
             ชั้นหน้าเป็นตัวอักษรสีน้ำเงินทับลงไป - วิธีนี้เส้นขอบจะไม่กินเนื้อตัวอักษร
             (ถ้าใช้ -webkit-text-stroke ชั้นเดียว เส้นจะกินเข้าไปข้างในจนตัวอักษรผอมลง) */}
-        <motion.div variants={item} className="mb-7">
+        <motion.div variants={item} className="mb-4">
           <span className="relative inline-block font-brand text-6xl font-semibold leading-none tracking-tight sm:text-7xl md:text-8xl">
             <span
               aria-hidden
@@ -93,7 +93,7 @@ export default function LandingHero() {
         </motion.div>
 
         {/* มาสคอตคู่ - คลิปโบกมือทักทาย */}
-        <motion.div variants={item} className="mb-7 w-[min(92vw,440px)]">
+        <motion.div variants={item} className="mb-4 w-[min(92vw,440px)]">
           <MascotWave />
         </motion.div>
 
@@ -101,7 +101,7 @@ export default function LandingHero() {
             เน้นสีเฉพาะคำสำคัญ ที่เหลือเป็นสีหมึก จะได้มีจังหวะหนัก-เบา */}
         <motion.h1
           variants={item}
-          className="font-brand text-[1.6rem] font-normal leading-[1.35] tracking-tight text-ink sm:text-[2.1rem] md:text-[2.6rem]"
+          className="font-brand text-[1.35rem] font-normal leading-[1.32] tracking-tight text-ink sm:text-[1.75rem] md:text-[2.1rem]"
         >
           Plan the <span className="text-eddy-500">date</span>,{' '}
           <span className="whitespace-nowrap">
@@ -129,12 +129,12 @@ export default function LandingHero() {
         </motion.h1>
 
         {/* คำแปลไทย */}
-        <motion.p variants={item} className="mt-8 max-w-lg font-body text-base text-ink-soft sm:text-lg">
+        <motion.p variants={item} className="mt-4 max-w-lg font-body text-sm text-ink-soft sm:text-base">
           วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
         </motion.p>
 
         {/* ปุ่มเดียว - Get Started */}
-        <motion.div variants={item} className="mt-9">
+        <motion.div variants={item} className="mt-6">
           <Link
             href="/login"
             className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-9 py-4 font-brand text-lg font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.04] hover:brightness-110 active:scale-95"
