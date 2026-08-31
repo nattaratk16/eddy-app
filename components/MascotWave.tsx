@@ -25,6 +25,11 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
   // เริ่มที่ image ไว้ก่อน (ปลอดภัยกับทุกเบราว์เซอร์) แล้วค่อยสลับเป็นวิดีโอถ้ารองรับ
   const [mode, setMode] = useState<Mode>('image');
 
+  // คลิปต้นฉบับถ่ายใกล้ ขาของตัวละครถูกขอบล่างของเฟรมตัดไปแล้วตั้งแต่ต้นทาง
+  // ไล่จางขอบล่างเล็กน้อยให้ดูเหมือนตั้งใจเฟดหาย ไม่ใช่ถูกตัดกลางคัน
+  const fade =
+    '[-webkit-mask-image:linear-gradient(to_bottom,black_86%,transparent_100%)] [mask-image:linear-gradient(to_bottom,black_86%,transparent_100%)]';
+
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setMode('still');
@@ -47,8 +52,8 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
         preload="auto"
         aria-label="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
         width={560}
-        height={340}
-        className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${className}`}
+        height={342}
+        className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${fade} ${className}`}
       />
     );
   }
@@ -59,8 +64,8 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
       src={mode === 'still' ? '/mascot/eddy-duo-wave-still.png' : '/mascot/eddy-duo-wave.webp'}
       alt="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
       width={560}
-      height={340}
-      className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${className}`}
+      height={342}
+      className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${fade} ${className}`}
     />
   );
 }
