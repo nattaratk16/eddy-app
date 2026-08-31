@@ -98,7 +98,7 @@ export default function LandingHero() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
-        className="relative z-10 mx-auto w-[min(96vw,780px)]"
+        className="relative z-10 mx-auto w-[min(88vw,520px)]"
       >
         <MascotWave />
       </motion.div>
