@@ -21,31 +21,16 @@ export default function LoginIntro({ onEnter }: { onEnter: () => void }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.05 }}
       >
-        <div className="mb-7 flex items-center gap-1.5">
-          {[
-            { c: 'E', bg: 'bg-eddy-500', t: 'text-white' },
-            { c: 'D', bg: 'bg-brand-yellow', t: 'text-ink' },
-            { c: 'D', bg: 'bg-brand-red', t: 'text-white' },
-            { c: 'Y', bg: 'bg-brand-green', t: 'text-ink' },
-          ].map((l, i) => (
-            <span
-              key={i}
-              className={`flex h-11 w-11 items-center justify-center rounded-clay-sm font-brand text-2xl font-semibold shadow-clay-sm ${l.bg} ${l.t}`}
-            >
-              {l.c}
-            </span>
-          ))}
-        </div>
-
-        {/* มาสคอตเด้งเข้ามาทักทาย */}
-        <motion.div
-          className="mb-7"
-          initial={{ scale: 0.6, y: -16, opacity: 0 }}
-          animate={{ scale: 1, y: 0, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 16, delay: 0.3 }}
-        >
-          <EddyMascot size={132} />
-        </motion.div>
+        <span className="relative mb-7 inline-block font-brand text-5xl font-semibold leading-none tracking-tight">
+          <span
+            aria-hidden
+            className="absolute inset-0 text-white"
+            style={{ WebkitTextStroke: '10px #FFFFFF', paintOrder: 'stroke fill' }}
+          >
+            EDDY
+          </span>
+          <span className="relative text-eddy-600">EDDY</span>
+        </span>
 
         <motion.h1
           className="font-display text-3xl font-bold leading-snug tracking-tight text-ink sm:text-4xl"

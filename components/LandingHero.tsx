@@ -67,10 +67,21 @@ export default function LandingHero() {
         animate="show"
         className="relative z-10 flex max-w-3xl flex-col items-center text-center"
       >
-        {/* โลโก้ - กรอบขาวใบเดียว ตัวอักษรน้ำเงินติดกัน (อ้างอิงแถบขาวด้านบนของ referance.png) */}
+        {/* โลโก้ - ตัวอักษรใหญ่ น้ำเงินเข้ม มีเส้นขอบขาวหุ้มรอบตัวอักษรเอง
+            (ไม่ใช่กรอบสี่เหลี่ยมครอบข้างนอกแล้ว)
+            ทำด้วยการซ้อน 2 ชั้น: ชั้นหลังเป็นตัวอักษรที่ตีเส้นขาวหนา
+            ชั้นหน้าเป็นตัวอักษรสีน้ำเงินทับลงไป - วิธีนี้เส้นขอบจะไม่กินเนื้อตัวอักษร
+            (ถ้าใช้ -webkit-text-stroke ชั้นเดียว เส้นจะกินเข้าไปข้างในจนตัวอักษรผอมลง) */}
         <motion.div variants={item} className="mb-7">
-          <span className="inline-flex items-center rounded-full border border-white bg-white px-7 py-3 font-brand text-3xl font-semibold tracking-tight text-eddy-500 shadow-clay sm:px-9 sm:py-3.5 sm:text-4xl">
-            EDDY
+          <span className="relative inline-block font-brand text-6xl font-semibold leading-none tracking-tight sm:text-7xl md:text-8xl">
+            <span
+              aria-hidden
+              className="absolute inset-0 text-white"
+              style={{ WebkitTextStroke: '12px #FFFFFF', paintOrder: 'stroke fill' }}
+            >
+              EDDY
+            </span>
+            <span className="relative text-eddy-600 drop-shadow-[0_8px_16px_rgba(10,76,196,0.25)]">EDDY</span>
           </span>
         </motion.div>
 
