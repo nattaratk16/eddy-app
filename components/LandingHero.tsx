@@ -66,7 +66,7 @@ export default function LandingHero() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pt-8 text-center"
+        className="relative z-10 flex flex-col items-center justify-center px-5 pt-6 text-center"
       >
         <motion.div variants={item}>
           <Image
@@ -75,15 +75,15 @@ export default function LandingHero() {
             width={640}
             height={678}
             priority
-            className="h-auto w-[260px] drop-shadow-[0_14px_28px_rgba(10,76,196,0.16)] sm:w-[330px] lg:w-[380px]"
+            className="h-auto w-[190px] drop-shadow-[0_12px_24px_rgba(10,76,196,0.16)] sm:w-[230px] lg:w-[260px]"
           />
         </motion.div>
 
-        <motion.p variants={item} className="mt-6 max-w-md font-body text-sm text-ink-soft sm:text-base">
+        <motion.p variants={item} className="mt-4 max-w-md font-body text-sm text-ink-soft sm:text-base">
           วางแผนวัน เคลียร์ลิสต์งาน ผู้ช่วยที่สมบูรณ์แบบของคุณ
         </motion.p>
 
-        <motion.div variants={item} className="mt-7">
+        <motion.div variants={item} className="mt-5">
           <Link
             href="/login"
             className="inline-flex items-center rounded-full bg-ink px-10 py-3.5 font-brand text-base font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.03] hover:bg-black active:scale-95"
@@ -98,7 +98,7 @@ export default function LandingHero() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
-        className="relative z-10 mx-auto -mb-6 w-[min(88vw,520px)] sm:-mb-10"
+        className="relative z-10 mx-auto w-[min(96vw,780px)]"
       >
         <MascotWave />
       </motion.div>
