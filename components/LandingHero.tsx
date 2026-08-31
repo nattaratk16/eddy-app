@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
+import MascotVideo from '@/components/MascotVideo';
 
 // เข้าฉากแบบไล่ทีละชิ้น (stagger)
 const container = {
@@ -118,16 +118,9 @@ export default function LandingHero() {
           ขับเคลื่อนด้วย Gemini AI
         </motion.span>
 
-        {/* มาสคอตคู่ */}
-        <motion.div variants={item} className="mb-7">
-          <Image
-            src="/mascot/eddy-duo-512.png"
-            alt="เอ็ดดี้และผู้ช่วย"
-            width={512}
-            height={351}
-            priority
-            className="h-auto w-[270px] drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] sm:w-[340px]"
-          />
+        {/* มาสคอตคู่ - คลิปโบกมือทักทาย */}
+        <motion.div variants={item} className="mb-7 w-[min(92vw,440px)]">
+          <MascotVideo />
         </motion.div>
 
         {/* แคปชั่นหลัก - เล่นสีทีละวลีให้อ่านสนุก */}
