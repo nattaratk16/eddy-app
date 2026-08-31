@@ -25,8 +25,8 @@ export default function LoginIntro({ onEnter }: { onEnter: () => void }) {
           {[
             { c: 'E', bg: 'bg-eddy-500', t: 'text-white' },
             { c: 'D', bg: 'bg-brand-yellow', t: 'text-ink' },
-            { c: 'D', bg: 'bg-brand-pink', t: 'text-ink' },
-            { c: 'Y', bg: 'bg-accent-300', t: 'text-ink' },
+            { c: 'D', bg: 'bg-brand-red', t: 'text-white' },
+            { c: 'Y', bg: 'bg-brand-green', t: 'text-ink' },
           ].map((l, i) => (
             <span
               key={i}

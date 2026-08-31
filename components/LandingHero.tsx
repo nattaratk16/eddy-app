@@ -41,8 +41,8 @@ const dots = [
 const LOGO_TILES = [
   { char: 'E', bg: 'bg-eddy-500', text: 'text-white', tilt: -6 },      // ตัวขาวบนน้ำเงิน 5.56:1
   { char: 'D', bg: 'bg-brand-yellow', text: 'text-ink', tilt: 4 },     // ตัวเข้มบนเหลือง 10.86:1
-  { char: 'D', bg: 'bg-brand-pink', text: 'text-ink', tilt: -3 },      // ตัวเข้มบนชมพู 7.06:1
-  { char: 'Y', bg: 'bg-accent-300', text: 'text-ink', tilt: 6 },       // ตัวเข้มบนฟ้าสว่าง 9.1:1
+  { char: 'D', bg: 'bg-brand-red', text: 'text-white', tilt: -3 },     // ตัวขาวบนแดง 4.83:1
+  { char: 'Y', bg: 'bg-brand-green', text: 'text-ink', tilt: 6 },      // ตัวเข้มบนเขียว 5.48:1
 ];
 
 export default function LandingHero() {
@@ -119,23 +119,26 @@ export default function LandingHero() {
           <MascotWave />
         </motion.div>
 
-        {/* แคปชั่นหลัก - เล่นสีทีละวลีให้อ่านสนุก */}
+        {/* แคปชั่นหลัก - เล่นสีน้ำเงิน/ขาว/ส้ม/เหลือง/ฟ้าอ่อน
+            สีอ่อน (เหลือง ฟ้าอ่อน) ใช้เป็นแถบไฮไลต์ ไม่ใช่สีตัวอักษร
+            เพราะบนพื้นฟ้าอ่อนคอนทราสต์แค่ 1.1-1.4:1 อ่านไม่ออก */}
         <motion.h1
           variants={item}
-          className="font-brand text-[2.1rem] font-semibold leading-[1.18] tracking-tight text-ink sm:text-5xl md:text-[3.4rem]"
+          className="font-brand text-[2.1rem] font-semibold leading-[1.5] tracking-tight text-ink sm:text-5xl sm:leading-[1.45] md:text-[3.4rem]"
         >
-          <span className="text-eddy-500">Plan the date,</span>{' '}
-          <span className="text-brand-orange">clear the list,</span>
-          <br />
           <span className="relative inline-block">
-            <span className="bg-gradient-to-r from-eddy-500 via-accent-500 to-eddy-400 bg-clip-text text-transparent">
-              your perfect assist.
-            </span>
-            {/* ขีดเน้นสีเหลืองใต้วลีปิด */}
-            <span
-              aria-hidden
-              className="absolute -bottom-1 left-0 h-2.5 w-full rounded-full bg-brand-yellow/70 sm:-bottom-2 sm:h-3"
-            />
+            <span className="relative z-10 text-eddy-500">Plan the date,</span>
+            {/* ไฮไลต์เหลืองแบบปากกาเน้นข้อความ */}
+            <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-[38%] -rotate-1 rounded bg-brand-yellow/80" />
+          </span>{' '}
+          <span className="relative inline-block">
+            <span className="relative z-10 text-brand-orange-ink">clear the list,</span>
+            <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-[38%] rotate-1 rounded bg-accent-200/90" />
+          </span>
+          <br />
+          {/* วลีปิด - ตัวขาวบนแถบน้ำเงิน ให้เป็นจุดพักสายตาและอ่านชัดที่สุด */}
+          <span className="mt-2 inline-block rounded-clay bg-eddy-500 px-4 py-1 text-white shadow-clay sm:mt-3 sm:px-5">
+            your perfect assist.
           </span>
         </motion.h1>
 
