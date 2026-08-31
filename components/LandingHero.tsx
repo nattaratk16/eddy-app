@@ -101,7 +101,7 @@ export default function LandingHero() {
             เน้นสีเฉพาะคำสำคัญ ที่เหลือเป็นสีหมึก จะได้มีจังหวะหนัก-เบา */}
         <motion.h1
           variants={item}
-          className="font-brand text-[2.15rem] font-semibold leading-[1.28] tracking-tight text-ink sm:text-5xl md:text-[3.5rem]"
+          className="font-brand text-[1.6rem] font-normal leading-[1.35] tracking-tight text-ink sm:text-[2.1rem] md:text-[2.6rem]"
         >
           Plan the <span className="text-eddy-500">date</span>,{' '}
           <span className="whitespace-nowrap">
@@ -115,13 +115,13 @@ export default function LandingHero() {
               aria-hidden
               viewBox="0 0 300 14"
               preserveAspectRatio="none"
-              className="absolute -bottom-1.5 left-0 h-3 w-full text-brand-yellow sm:-bottom-2"
+              className="absolute -bottom-1 left-0 h-2 w-full text-brand-yellow sm:-bottom-1.5 sm:h-2.5"
             >
               <path
                 d="M2 9 C 48 2, 96 12, 148 6 S 250 2, 298 8"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="6"
+                strokeWidth="4"
                 strokeLinecap="round"
               />
             </svg>
