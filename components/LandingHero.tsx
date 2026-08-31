@@ -81,7 +81,14 @@ export default function LandingHero() {
             >
               EDDY
             </span>
-            <span className="relative text-eddy-600 drop-shadow-[0_8px_16px_rgba(10,76,196,0.25)]">EDDY</span>
+            {/* ตัว D ตัวที่ 3 เป็นสีเหลืองของมาสคอต ที่เหลือน้ำเงินเข้ม
+                เหลืองบนพื้นสว่างคอนทราสต์ต่ำมาก (1.1:1) เลยต้องพึ่งเส้นขอบขาวหนา
+                บวกเงาน้ำเงินใต้ตัวอักษร ไม่งั้นตัวจะจมหายไปกับพื้น */}
+            <span className="relative drop-shadow-[0_8px_16px_rgba(10,76,196,0.25)]">
+              <span className="text-eddy-600">ED</span>
+              <span className="text-brand-yellow [text-shadow:0_3px_0_rgba(10,76,196,0.35)]">D</span>
+              <span className="text-eddy-600">Y</span>
+            </span>
           </span>
         </motion.div>
 
