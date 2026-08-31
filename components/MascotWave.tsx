@@ -17,11 +17,16 @@ import { useEffect, useState } from 'react';
 
 interface MascotWaveProps {
   className?: string;
+  /**
+   * 'width'  = กว้างเต็มกล่อง สูงตามสัดส่วน (ค่าเริ่มต้น)
+   * 'height' = สูงเต็มกล่อง กว้างตามสัดส่วน - ใช้ตอนต้องคุมไม่ให้หน้าล้นจอ
+   */
+  fit?: 'width' | 'height';
 }
 
 type Mode = 'video' | 'image' | 'still';
 
-export default function MascotWave({ className = '' }: MascotWaveProps) {
+export default function MascotWave({ className = '', fit = 'width' }: MascotWaveProps) {
   // เริ่มที่ image ไว้ก่อน (ปลอดภัยกับทุกเบราว์เซอร์) แล้วค่อยสลับเป็นวิดีโอถ้ารองรับ
   const [mode, setMode] = useState<Mode>('image');
 
@@ -29,6 +34,7 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
   // ไล่จางขอบล่างเล็กน้อยให้ดูเหมือนตั้งใจเฟดหาย ไม่ใช่ถูกตัดกลางคัน
   const fade =
     '[-webkit-mask-image:linear-gradient(to_bottom,black_93%,transparent_100%)] [mask-image:linear-gradient(to_bottom,black_93%,transparent_100%)]';
+  const size = fit === 'height' ? 'h-full w-auto max-w-full object-contain' : 'h-auto w-full';
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -53,7 +59,7 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
         aria-label="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
         width={560}
         height={342}
-        className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${fade} ${className}`}
+        className={`${size} drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${fade} ${className}`}
       />
     );
   }
@@ -65,7 +71,7 @@ export default function MascotWave({ className = '' }: MascotWaveProps) {
       alt="เอ็ดดี้และผู้ช่วยโบกมือทักทาย"
       width={560}
       height={342}
-      className={`h-auto w-full drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${fade} ${className}`}
+      className={`${size} drop-shadow-[0_18px_28px_rgba(10,93,235,0.18)] ${fade} ${className}`}
     />
   );
 }

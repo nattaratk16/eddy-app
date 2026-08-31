@@ -27,8 +27,10 @@ const decor = [
 ];
 
 export default function LandingHero() {
+  // h-[100dvh] + overflow-hidden = สูงเท่าหน้าจอพอดี ไม่มีแถบเลื่อน
+  // ใช้ dvh ไม่ใช่ vh เพราะบนมือถือ vh ไม่นับแถบที่อยู่ของเบราว์เซอร์ ทำให้เนื้อหาล้นจอ
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white">
+    <main className="relative flex h-screen h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white">
       <SkyBackground />
 
       {decor.map((s, i) => (
@@ -66,7 +68,7 @@ export default function LandingHero() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 flex flex-col items-center justify-center px-5 pt-6 text-center"
+        className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-5 pt-4 text-center"
       >
         <motion.div variants={item}>
           <Image
@@ -75,7 +77,7 @@ export default function LandingHero() {
             width={640}
             height={678}
             priority
-            className="h-auto w-[190px] drop-shadow-[0_12px_24px_rgba(10,76,196,0.16)] sm:w-[230px] lg:w-[260px]"
+            className="h-auto max-h-[24vh] w-[170px] object-contain drop-shadow-[0_12px_24px_rgba(10,76,196,0.16)] sm:w-[210px] lg:w-[240px]"
           />
         </motion.div>
 
@@ -98,9 +100,9 @@ export default function LandingHero() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
-        className="relative z-10 mx-auto w-[min(88vw,520px)]"
+        className="relative z-10 mx-auto flex h-[30vh] w-full max-w-[520px] items-end justify-center pb-1 sm:h-[34vh]"
       >
-        <MascotWave />
+        <MascotWave fit="height" />
       </motion.div>
     </main>
   );
