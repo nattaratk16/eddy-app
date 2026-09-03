@@ -14,8 +14,9 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 // reject  = ปฏิเสธ → ลบ event ที่เคยสร้าง (ถ้ามี) แล้วตั้งสถานะ rejected
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string; assignmentId: string } },
+  props: { params: Promise<{ id: string; assignmentId: string }> }
 ) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;

@@ -10,7 +10,7 @@
  * และปุ่ม "เชิญสมาชิก" ใช้ได้จากทุกหน้า (เดิมอยู่แค่หน้าภาพรวม)
  * --------------------------------------------------------------
  */
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useRef, useState, use } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, UserPlus, Users } from 'lucide-react';
@@ -28,7 +28,13 @@ const TABS = [
   { key: 'tasks', label: 'งานกลุ่ม', icon: ListChecks },
 ] as const;
 
-export default function GroupLayout({ children, params }: { children: ReactNode; params: { id: string } }) {
+export default function GroupLayout(props: { children: ReactNode; params: Promise<{ id: string }> }) {
+  const params = use(props.params);
+
+  const {
+    children
+  } = props;
+
   const pathname = usePathname();
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [taskCount, setTaskCount] = useState<number | null>(null);

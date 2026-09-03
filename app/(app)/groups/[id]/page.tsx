@@ -8,7 +8,7 @@
  *   ล่าง  = โซนอันตราย (ออกจากกลุ่ม / ลบกลุ่ม) - ย้ายลงมาจากมุมขวาบนเดิม
  *           เพราะเป็นปุ่มที่กดผิดแล้วเสียหาย ไม่ควรเด่นกว่าเนื้อหา
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Clock, Crown, ListChecks, LogOut, Sparkles, Trash2, UserCheck } from 'lucide-react';
@@ -19,7 +19,8 @@ import WorkloadTrendChart from '@/components/groups/WorkloadTrendChart';
 import { GROUP_UPDATED_EVENT, notifyGroupUpdated } from '@/lib/groupEvents';
 import type { GroupInfo, GroupTaskInfo } from '@/lib/types';
 
-export default function GroupOverviewPage({ params }: { params: { id: string } }) {
+export default function GroupOverviewPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const router = useRouter();
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [tasks, setTasks] = useState<GroupTaskInfo[]>([]);

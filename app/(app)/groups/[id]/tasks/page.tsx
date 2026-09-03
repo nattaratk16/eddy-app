@@ -14,7 +14,7 @@
  *   - ตอนยืนยันงาน เลือก "เวลาอื่น" แทนเวลาที่เอ็ดดี้เสนอได้ ถ้าเวลานั้นไม่ชนปฏิทินตัวเอง
  *   - เจ้าของงาน (คนที่ถูกมอบหมายและ approve แล้ว) ติ๊กว่าเสร็จได้ คนอื่นเห็นแต่ติ๊กแทนไม่ได้
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, use } from 'react';
 import { CalendarClock, Check, Clock, Plus, Sparkles, Trash2, UserCheck, X } from 'lucide-react';
 import clsx from 'clsx';
 import Card from '@/components/Card';
@@ -59,7 +59,8 @@ interface StepRow {
   assigneeUserId: string | null;
 }
 
-export default function GroupTasksPage({ params }: { params: { id: string } }) {
+export default function GroupTasksPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const [tasks, setTasks] = useState<GroupTaskInfo[]>([]);
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [loading, setLoading] = useState(true);

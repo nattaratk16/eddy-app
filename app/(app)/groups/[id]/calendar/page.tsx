@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, use } from 'react';
 import { addDays, addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import Card from '@/components/Card';
@@ -27,7 +27,8 @@ function weekTitle(start: Date) {
   return `${start.getDate()} ${thMonthsShort[start.getMonth()]} – ${end.getDate()} ${thMonthsShort[end.getMonth()]} ${be}`;
 }
 
-export default function GroupCalendarPage({ params }: { params: { id: string } }) {
+export default function GroupCalendarPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [members, setMembers] = useState<MemberInfo[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);

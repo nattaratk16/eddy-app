@@ -12,7 +12,8 @@ import { distributeGroupTasks } from '@/lib/gemini';
 const WINDOW_DAYS = 7;
 
 // POST /api/groups/[id]/distribute - ให้ AI หาเวลาว่างร่วม + กระจายงานกลุ่มให้สมาชิก
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;

@@ -5,7 +5,11 @@ import { getMembership } from '@/lib/groups';
 
 // PATCH /api/groups/[id]/tasks/[taskId] - ติ๊กว่าเสร็จงานแล้วหรือยัง
 // เฉพาะ "เจ้าของงาน" (คนที่ถูกมอบหมายและ approve แล้ว) เท่านั้นที่ติ๊กได้ - สมาชิกคนอื่นดูได้อย่างเดียว
-export async function PATCH(req: NextRequest, { params }: { params: { id: string; taskId: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string; taskId: string }> }
+) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;
@@ -48,7 +52,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE /api/groups/[id]/tasks/[taskId] - ลบงานกลุ่ม (ผู้สร้างงาน หรือเจ้าของกลุ่ม ที่ยังเป็นสมาชิก)
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string; taskId: string } }) {
+export async function DELETE(
+  _req: NextRequest,
+  props: { params: Promise<{ id: string; taskId: string }> }
+) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;

@@ -16,7 +16,8 @@ import { computeDailyAverageLoad } from '@/lib/workload';
 
 const WINDOW_DAYS = 7;
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
 
 // PATCH /api/groups/[id]/me { showEventTitles } - ตั้งค่าความเป็นส่วนตัวของฉันในกลุ่มนี้
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;

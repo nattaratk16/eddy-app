@@ -6,7 +6,8 @@ import { PASTEL_COLORS } from '@/lib/colors';
 
 // GET /api/groups/[id]/calendar?start=YYYY-MM-DD
 // คืน event ของสมาชิกทุกคน (accepted) ในสัปดาห์นั้น แยกสีต่อคน + mask ชื่อตามความเป็นส่วนตัว
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;

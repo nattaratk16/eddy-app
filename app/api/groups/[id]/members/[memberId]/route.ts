@@ -5,8 +5,9 @@ import { prisma } from '@/lib/prisma';
 // DELETE /api/groups/[id]/members/[memberId] - ออกจากกลุ่ม (ตัวเอง) หรือเจ้าของเอาสมาชิกออก
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string; memberId: string } },
+  props: { params: Promise<{ id: string; memberId: string }> }
 ) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;

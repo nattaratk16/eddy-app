@@ -15,7 +15,8 @@ async function ownedTask(taskId: string, userId: string) {
   return task && task.userId === userId ? task : null;
 }
 
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!(await ownedTask(params.id, session.user.id))) {
@@ -37,7 +38,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!(await ownedTask(params.id, session.user.id))) {
