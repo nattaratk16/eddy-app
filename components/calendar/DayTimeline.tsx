@@ -10,10 +10,10 @@
  * (อยากดูว่าวันนั้นมีอะไรบ้างก่อน ไม่ได้อยากเพิ่มทุกครั้ง)
  * --------------------------------------------------------------
  */
-import { CalendarPlus, CalendarRange, Clock, MapPin, Pencil, Lock } from 'lucide-react';
+import { CalendarPlus, CalendarRange, Clock, Flag, MapPin, Pencil, Lock } from 'lucide-react';
 import clsx from 'clsx';
 import EddyMascot from '@/components/EddyMascot';
-import { getColorOption } from '@/lib/colors';
+import { getEventColor } from '@/lib/colors';
 import { timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
@@ -33,6 +33,9 @@ interface DayTimelineProps {
 function readOnlyLabel(ev: CalendarEvent): string | null {
   if (ev.source === 'google') return 'Google Calendar';
   if (ev.source === 'recurring') return 'Loop ประจำ';
+  // แก้ที่หน้า To-do เท่านั้น - แก้ตรงนี้จะไม่ย้อนกลับไปอัปเดต Task.dueDate/dueTime
+  // แล้วรอบซิงก์ถัดไปจะเขียนทับกลับเป็นค่าเดิม ผู้ใช้จะงงว่าทำไมแก้ไม่ติด
+  if (ev.isDeadline) return 'กำหนดส่ง (แก้ที่ To-do)';
   return null;
 }
 
@@ -77,7 +80,7 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
 
         {sorted.map((ev) => {
           const cat = categoryOf(ev);
-          const color = cat ? getColorOption(cat.color) : null;
+          const color = getEventColor(ev.color, cat?.color);
           const locked = readOnlyLabel(ev);
           const fromTodo = ev.description === 'จากสิ่งที่ต้องทำ';
 
@@ -88,14 +91,20 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
                 {ev.startTime ?? 'ทั้งวัน'}
               </div>
 
-              {/* จุดบนเส้นไทม์ไลน์ */}
-              <span
-                className={clsx(
-                  'relative z-10 mt-3 h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white',
-                  color ? color.dotClass : 'bg-eddy-300',
-                )}
-                aria-hidden
-              />
+              {/* จุดบนเส้นไทม์ไลน์ - หมุดกำหนดส่งใช้ไอคอนธงแทนจุดกลม ให้แยกออกจาก event/งานจริงตั้งแต่แรกเห็น */}
+              {ev.isDeadline ? (
+                <span className="relative z-10 mt-2.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-pastel-pink ring-2 ring-white">
+                  <Flag size={9} className="text-eddy-700" />
+                </span>
+              ) : (
+                <span
+                  className={clsx(
+                    'relative z-10 mt-3 h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white',
+                    color ? color.dotClass : 'bg-eddy-300',
+                  )}
+                  aria-hidden
+                />
+              )}
 
               {/* การ์ดรายการ - คลิกเพื่อแก้ไข (ถ้าแก้ได้) */}
               <button
@@ -131,10 +140,16 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
                       <span className="truncate">{ev.location}</span>
                     </span>
                   )}
-                  {fromTodo && (
-                    <span className="rounded-full bg-pastel-lilac px-2 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
-                      จากสิ่งที่ต้องทำ
+                  {ev.isDeadline ? (
+                    <span className="flex items-center gap-1 rounded-full bg-pastel-pink px-2 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
+                      <Flag size={9} /> กำหนดส่ง
                     </span>
+                  ) : (
+                    fromTodo && (
+                      <span className="rounded-full bg-pastel-lilac px-2 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
+                        จากสิ่งที่ต้องทำ
+                      </span>
+                    )
                   )}
                 </div>
               </button>

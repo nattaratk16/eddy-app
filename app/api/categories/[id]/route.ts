@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { isCategoryKind } from '@/lib/categoryKind';
 import type { CalendarCategory } from '@/lib/types';
 
-function serialize(cat: { id: string; name: string; color: string; shared: boolean }): CalendarCategory {
-  return { id: cat.id, name: cat.name, color: cat.color as CalendarCategory['color'], shared: cat.shared };
+function serialize(cat: { id: string; name: string; color: string; shared: boolean; kind: string }): CalendarCategory {
+  return {
+    id: cat.id,
+    name: cat.name,
+    color: cat.color as CalendarCategory['color'],
+    shared: cat.shared,
+    kind: isCategoryKind(cat.kind) ? cat.kind : 'non_academic',
+  };
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -23,6 +30,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(body.name !== undefined && { name: body.name }),
       ...(body.color !== undefined && { color: body.color }),
       ...(body.shared !== undefined && { shared: body.shared }),
+      // แก้ทับคำเดาอัตโนมัติได้เสมอ (ต้องเป็นค่าที่รู้จักเท่านั้น กันข้อมูลเพี้ยน)
+      ...(isCategoryKind(body.kind) && { kind: body.kind }),
     },
   });
 

@@ -21,7 +21,7 @@
  * และใช้จัดลำดับผู้สมัครฝั่งโค้ดด้วย
  * --------------------------------------------------------------
  */
-import { availabilityWindow } from './freeTime';
+import { availabilityWindow, type FreeSlot } from './freeTime';
 
 /** ถือว่าคนที่ไม่เหลือเวลาว่างเลย = แน่นสุด (กันหารด้วยศูนย์) */
 const NO_FREE_TIME_SCORE = Number.POSITIVE_INFINITY;
@@ -99,6 +99,82 @@ export function computeMemberWorkload(
     freeMinutes: member.freeMinutes,
     score: workloadScore(committedMinutes, member.freeMinutes),
   };
+}
+
+export interface DailyLoadPoint {
+  date: string; // "YYYY-MM-DD"
+  /** ภาระงานเฉลี่ยของสมาชิกในวันนี้ (0-100) */
+  avgPct: number;
+}
+
+export interface DailyLoadMember {
+  userId: string;
+  dayStart?: string | null;
+  dayEnd?: string | null;
+}
+
+/**
+ * แนวโน้มภาระงานเฉลี่ยของกลุ่มรายวัน - ใช้วาดกราฟเส้น (แยกจากกราฟแท่งรายคนใน WorkloadPanel)
+ * ดูว่าวันไหนในสัปดาห์ที่กลุ่มนี้มักจะแน่นที่สุดโดยเฉลี่ย
+ *
+ * นับเฉพาะเวลาที่ถูกจองในปฏิทินแล้ว (ไม่รวมงานค้างที่ยังไม่ได้ลงปฏิทิน) เพราะงานค้างไม่มี
+ * "วันที่" ที่แน่นอนให้จัดเข้าวันไหนวันหนึ่งได้อย่างสมเหตุสมผล ต่างจาก committedMinutes ใน
+ * MemberWorkload ที่รวมงานค้างเข้าไปด้วย (ใช้ตอนจัดลำดับว่าใครควรได้งานใหม่ก่อน ไม่ใช่ตอนดูรายวัน)
+ */
+export function computeDailyAverageLoad(
+  slotsByUser: Map<string, FreeSlot[]>,
+  members: DailyLoadMember[],
+  dates: string[],
+  today?: { date: string; nowMin: number },
+): DailyLoadPoint[] {
+  if (members.length === 0) return dates.map((date) => ({ date, avgPct: 0 }));
+
+  return dates.map((date) => {
+    const pcts = members.map((m) => {
+      const capacity = windowMinutes([date], m.dayStart, m.dayEnd, today);
+      if (capacity <= 0) return 100;
+      const free = (slotsByUser.get(m.userId) ?? [])
+        .filter((s) => s.date === date)
+        .reduce((sum, s) => sum + (s.endMin - s.startMin), 0);
+      const committed = Math.max(0, capacity - free);
+      return (committed / capacity) * 100;
+    });
+    const avgPct = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+    return { date, avgPct: Math.round(avgPct) };
+  });
+}
+
+export interface DailyRequiredPoint {
+  date: string; // "YYYY-MM-DD"
+  /** เวลาที่ถูกจองแล้วในวันนี้ (นาที) */
+  requiredMin: number;
+  /** กรอบเวลาที่ใช้ได้ทั้งหมดของวันนี้ (นาที) - วันนี้จะถูกตัดให้เหลือ "เวลาที่เหลือจากตอนนี้" เหมือนที่อื่นในแอป */
+  capacityMin: number;
+  /** requiredMin/capacityMin เป็น % (capacityMin<=0 ถือว่าเต็ม 100%) */
+  pct: number;
+}
+
+/**
+ * ภาระงานรายวันของคนคนเดียว (required vs capacity) - ใช้วาดกราฟ Workload Distribution
+ * ในแดชบอร์ดส่วนตัว (คนละอันกับ computeDailyAverageLoad ที่เฉลี่ยข้ามสมาชิกทั้งกลุ่ม)
+ *
+ * นับเฉพาะเวลาที่ถูกจองในปฏิทินแล้ว (เหมือน computeDailyAverageLoad) - งานค้างที่ยังไม่ได้
+ * ลงปฏิทินไม่มี "วันที่" ที่แน่นอนให้จัดเข้าวันไหนวันหนึ่งของกราฟนี้ได้อย่างสมเหตุสมผล
+ */
+export function computeDailyRequiredLoad(
+  slots: FreeSlot[],
+  dates: string[],
+  dayStart?: string | null,
+  dayEnd?: string | null,
+  today?: { date: string; nowMin: number },
+): DailyRequiredPoint[] {
+  return dates.map((date) => {
+    const capacityMin = windowMinutes([date], dayStart, dayEnd, today);
+    if (capacityMin <= 0) return { date, requiredMin: 0, capacityMin: 0, pct: 100 };
+    const freeMin = slots.filter((s) => s.date === date).reduce((sum, s) => sum + (s.endMin - s.startMin), 0);
+    const requiredMin = Math.max(0, capacityMin - freeMin);
+    return { date, requiredMin, capacityMin, pct: Math.round((requiredMin / capacityMin) * 100) };
+  });
 }
 
 /**

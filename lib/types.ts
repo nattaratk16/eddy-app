@@ -1,9 +1,18 @@
+import type { CategoryKind } from './categoryKind';
+
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface Subtask {
   id: string;
   title: string;
   done: boolean;
+  /** วัน/เวลาที่เอ็ดดี้เสนอให้ทำงานย่อยนี้ (ผู้ใช้แก้เองได้) - undefined = ยังไม่ได้วางแผน */
+  plannedDate?: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
+  estimatedMinutes?: number;
+  /** ขั้นตอนนี้ถูกวางลงปฏิทินแล้วหรือยัง (มี event ของตัวเอง) */
+  onCalendar?: boolean;
 }
 
 export interface Task {
@@ -12,11 +21,17 @@ export interface Task {
   done: boolean;
   priority: TaskPriority;
   dueDate?: string; // ISO date string
+  /** เวลาส่งของวันกำหนดส่ง "HH:mm" (ไม่บังคับ) - ไม่ใส่ = หมุดกำหนดส่งเป็นกิจกรรมทั้งวัน */
+  dueTime?: string;
+  /** วันที่เริ่มลงมือ (ค่าเริ่มต้น = วันที่เพิ่มงาน) - ขอบล่างของช่วงที่ใช้กระจายงานย่อย */
+  startDate?: string; // YYYY-MM-DD
   category?: string;
   subtasks?: Subtask[];
   estimatedMinutes?: number; // ใช้คำนวณ Priority Score - ไม่บังคับกรอก
   /** ช่วงเวลาที่เอ็ดดี้จัดงานนี้ลงปฏิทินให้แล้ว (undefined = ยังไม่ได้ลงปฏิทิน) */
   scheduled?: TaskSchedule;
+  /** หมุด "วันต้องส่ง" ในปฏิทิน (คนละใบกับ scheduled ที่เป็นช่วงลงมือทำ) */
+  deadlineOnCalendar?: boolean;
 }
 
 /** งานใน To-do ที่ถูกวางลงปฏิทินแล้ว - ชี้ไปที่ event ที่สร้างขึ้น */
@@ -52,6 +67,8 @@ export interface CalendarCategory {
   color: PastelColor;
   /** อนาคต: ใช้ตอนทำระบบแชร์ - หมวดหมู่นี้แชร์ให้คนอื่นเห็นอยู่หรือไม่ */
   shared?: boolean;
+  /** "academic" | "non_academic" - เดาจากชื่อตอนสร้าง แก้เองได้ ใช้แยกภาระงานในกราฟภาระงานกลุ่ม */
+  kind?: CategoryKind;
 }
 
 export interface CalendarEvent {
@@ -63,8 +80,15 @@ export interface CalendarEvent {
   location?: string;
   description?: string;
   categoryId: string; // อ้างอิงไปยัง CalendarCategory.id
+  /** สีเฉพาะของ event นี้ (ทับสีหมวดหมู่) - ใช้กับงานจาก To-do ให้แต่ละงานมีสีของตัวเอง */
+  color?: PastelColor;
   /** มาจาก To-do List (กำหนดส่งงาน) ไม่ใช่กิจกรรมที่สร้างเองในปฏิทิน */
   fromTask?: boolean;
+  /**
+   * true = หมุดวันต้องส่ง ไม่ใช่ช่วงเวลาที่ต้องลงมือทำจริง (ระยะเวลา 0 นาที)
+   * ต้องเรนเดอร์ต่างจาก event/งานจริงเสมอ (ไอคอนธง ไม่ใช่กล่องทึบ) และไม่นับเป็นเวลาไม่ว่าง
+   */
+  isDeadline?: boolean;
   /** แหล่งที่มา: 'google' = จาก Google Calendar, 'recurring' = จาก Loop ชีวิต (อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ) */
   source?: 'google' | 'recurring';
 }
@@ -140,6 +164,9 @@ export interface GroupTaskInfo {
   dueDate?: string | null; // YYYY-MM-DD
   createdById: string;
   assignment?: GroupAssignmentInfo | null;
+  /** เจ้าของงาน (assignment.assignedToUserId) ติ๊กว่าเสร็จแล้ว - คนอื่นดูได้อย่างเดียว */
+  done: boolean;
+  completedAt?: string | null;
 }
 
 /** คำเชิญเข้ากลุ่มที่รอเราตอบรับ */

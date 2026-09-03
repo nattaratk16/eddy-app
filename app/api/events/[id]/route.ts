@@ -14,6 +14,8 @@ function serialize(ev: PrismaEvent): CalendarEvent {
     location: ev.location ?? undefined,
     description: ev.description ?? undefined,
     categoryId: ev.categoryId,
+    color: (ev.color ?? undefined) as CalendarEvent['color'],
+    isDeadline: ev.isDeadline || undefined,
   };
 }
 
@@ -55,6 +57,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(body.categoryId !== undefined && { categoryId: body.categoryId }),
     },
   });
+
+  // event นี้อาจเป็น "ช่วงลงมือทำ" ของขั้นตอนย่อยใน To-do (ผูกผ่าน Subtask.scheduledEventId)
+  // Subtask เก็บวัน/เวลาเป็นสำเนาแยกต่างหาก ไม่ได้อ่านสดจาก Event เลยไม่อัปเดตตามเองถ้าไม่เขียนย้อนกลับตรงนี้
+  // (บั๊กที่เจอจริง: ลากเวลาในปฏิทินแล้วหน้า To-do ยังโชว์เวลาเก่าค้างอยู่)
+  if (event.sourceTaskId && (newDate !== undefined || body.startTime !== undefined || body.endTime !== undefined)) {
+    await prisma.subtask.updateMany({
+      where: { scheduledEventId: event.id },
+      data: { plannedDate: event.date, startTime: event.startTime, endTime: event.endTime },
+    });
+  }
 
   return NextResponse.json({ event: serialize(event) });
 }

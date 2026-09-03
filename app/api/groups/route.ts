@@ -73,7 +73,10 @@ export async function POST(req: NextRequest) {
       color: typeof body?.color === 'string' ? body.color : 'blue',
       joinCode: generateJoinCode(), // ให้กลุ่มมีรหัสชวนเพื่อนตั้งแต่แรก
       ownerId: userId,
-      members: { create: { userId, role: 'owner', status: 'accepted', showEventTitles: true } },
+      // showEventTitles ไม่ใส่ตรงนี้ - ปล่อยให้ใช้ค่า default (false) ของ schema เหมือนสมาชิกทุกคน
+      // ปฏิทินรวมของกลุ่มควรเห็นแค่ "ว่าง/ไม่ว่าง" เป็นค่าเริ่มต้นเสมอ แม้แต่เจ้าของกลุ่มเอง
+      // ใครอยากให้เพื่อนเห็นชื่อกิจกรรมจริงต้องกดเปิดเองจากหน้าปฏิทินกลุ่ม
+      members: { create: { userId, role: 'owner', status: 'accepted' } },
     },
   });
 

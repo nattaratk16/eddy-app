@@ -10,25 +10,46 @@
  * (ความสำคัญ + ความเร่งด่วนจากกำหนดส่ง + ความยาวงาน) ให้ตรงกับปุ่ม
  * "เรียงตาม AI แนะนำ" ในหน้า To-do
  *
+ * กติกาการเลือกวัน:
+ *   - งานที่ "มีกำหนดส่ง"    -> ลงวันกำหนดส่งเสมอ (เพราะนั่นคือวันที่ต้องส่งจริง)
+ *                              ถ้าวันนั้นไม่มีช่องว่างพอ ก็ยังลงวันนั้นโดยยอมให้ชนกับงานอื่น
+ *   - งานที่ "ไม่มีกำหนดส่ง" -> หาช่องว่างแรกที่พอในหน้าต่างที่มองอยู่
+ *
  * body: {
- *   dryRun?: boolean   // true = แค่ "เสนอ" ไม่บันทึกลง DB (ใช้แสดงตัวอย่างให้ผู้ใช้กดยืนยัน)
- *   taskIds?: string[] // ระบุเฉพาะบางงาน (ไม่ระบุ = งานที่ยังไม่เสร็จและยังไม่ได้ลงปฏิทินทั้งหมด)
- *   days?: number      // มองไปข้างหน้ากี่วัน (ค่าเริ่มต้น 14, สูงสุด 30)
+ *   dryRun?: boolean      // true = แค่ "เสนอ" ไม่บันทึกลง DB (ใช้แสดงตัวอย่างให้ผู้ใช้กดยืนยัน)
+ *   taskIds?: string[]    // ระบุเฉพาะบางงาน (ไม่ระบุ = งานที่ยังไม่เสร็จและยังไม่ได้ลงปฏิทินทั้งหมด)
+ *   days?: number         // มองไปข้างหน้ากี่วัน (ค่าเริ่มต้น 14, สูงสุด 30)
+ *   onlyUndated?: boolean // เอาเฉพาะงานที่ยังไม่มีกำหนดส่ง (ใช้กับการ์ด "เอ็ดดี้เห็นว่าคุณมีเวลาว่าง")
+ *   at?: { date, startTime, endTime }  // ผู้ใช้เลือกเวลาเอง -> ใช้ค่านี้ตรงๆ ไม่ต้องหาช่องว่างให้
  * }
  * --------------------------------------------------------------
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { placeTask } from '@/lib/freeTime';
+import { availabilityWindow, placeTask, type FreeSlot } from '@/lib/freeTime';
 import { buildDateWindow, freeSlotsForUsers, todayISOBangkok } from '@/lib/schedule';
-import { minutesToTime } from '@/lib/calendarLayout';
-import { computePriorityScore } from '@/lib/priorityScore';
+import { minutesToTime, timeToMinutes } from '@/lib/calendarLayout';
+import { compareTasks } from '@/lib/priorityScore';
+import { colorForTask } from '@/lib/colors';
+import { syncDeadlineEvent } from '@/lib/taskCalendar';
 import type { Task } from '@/lib/types';
 
 const DEFAULT_WINDOW_DAYS = 14;
 const MAX_WINDOW_DAYS = 30;
 const DEFAULT_TASK_MINUTES = 60; // งานที่ไม่ได้ระบุเวลาโดยประมาณ ให้ถือว่า 1 ชม.
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * ตรวจว่าเป็นวันที่จริง ไม่ใช่แค่รูปแบบถูก
+ * regex อย่างเดียวไม่พอ - "2026-13-99" ผ่านรูปแบบ YYYY-MM-DD แต่ไม่มีอยู่จริง
+ * จึงต้องแปลงกลับมาเทียบว่าได้สตริงเดิมไหม (กัน Date auto-rollover เช่น 02-30 -> 03-02)
+ */
+function isRealDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00.000Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
 const TASK_CATEGORY_NAME = 'สิ่งที่ต้องทำ';
 const TASK_CATEGORY_COLOR = 'lilac';
 
@@ -48,6 +69,29 @@ interface Skipped {
   reason: string;
 }
 
+/**
+ * วางงานลงช่องว่างของ "วันที่ระบุ" เท่านั้น (ตัดเวลาที่ใช้ออกจาก slot เพื่อกันงานถัดไปทับ)
+ * bufferMin เว้นช่วงพักก่อน/หลัง - เหตุผลเดียวกับ lib/freeTime.ts::placeTask (ค่าเริ่มต้น 0 = พฤติกรรมเดิม)
+ */
+function placeTaskOnDate(
+  slots: FreeSlot[],
+  date: string,
+  durationMin: number,
+  bufferMin = 0,
+): { date: string; startMin: number; endMin: number } | null {
+  for (const slot of slots) {
+    if (slot.date !== date) continue;
+    const start = slot.startMin + bufferMin;
+    const end = start + durationMin;
+    if (end + bufferMin <= slot.endMin) {
+      const placed = { date, startMin: start, endMin: end };
+      slot.startMin = end + bufferMin;
+      return placed;
+    }
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -62,6 +106,24 @@ export async function POST(req: NextRequest) {
     typeof body?.days === 'number' && Number.isFinite(body.days)
       ? Math.min(Math.max(Math.trunc(body.days), 1), MAX_WINDOW_DAYS)
       : DEFAULT_WINDOW_DAYS;
+  const onlyUndated = body?.onlyUndated === true;
+
+  // ผู้ใช้เลือกวัน/เวลาเองจากกล่อง "ลงปฏิทิน" -> ข้ามการหาช่องว่าง ใช้ค่าที่เลือกเลย
+  const at =
+    body?.at && typeof body.at.date === 'string' && isRealDate(body.at.date) &&
+    typeof body.at.startTime === 'string' && TIME_RE.test(body.at.startTime) &&
+    typeof body.at.endTime === 'string' && TIME_RE.test(body.at.endTime)
+      ? { date: body.at.date as string, startTime: body.at.startTime as string, endTime: body.at.endTime as string }
+      : null;
+  if (body?.at && !at) {
+    return NextResponse.json({ error: 'รูปแบบวัน/เวลาไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD และ HH:mm)' }, { status: 400 });
+  }
+  if (at && (!taskIds || taskIds.length !== 1)) {
+    return NextResponse.json({ error: 'การเลือกเวลาเองใช้ได้ทีละงานเดียว' }, { status: 400 });
+  }
+  if (at && at.endTime <= at.startTime) {
+    return NextResponse.json({ error: 'เวลาจบต้องอยู่หลังเวลาเริ่ม' }, { status: 400 });
+  }
 
   // งานที่จัดได้ = ยังไม่เสร็จ + ยังไม่เคยลงปฏิทิน
   const tasks = await prisma.task.findMany({
@@ -69,6 +131,7 @@ export async function POST(req: NextRequest) {
       userId,
       done: false,
       scheduledEventId: null,
+      ...(onlyUndated ? { dueDate: null } : {}),
       ...(taskIds && taskIds.length > 0 ? { id: { in: taskIds } } : {}),
     },
   });
@@ -77,47 +140,108 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       scheduled: [],
       skipped: [],
-      message: 'ไม่มีงานที่ต้องจัด (งานที่ยังไม่เสร็จถูกลงปฏิทินไว้หมดแล้ว)',
+      message: onlyUndated
+        ? 'ตอนนี้ไม่มีงานค้างที่ยังไม่ได้กำหนดวัน'
+        : 'ไม่มีงานที่ต้องจัด (งานที่ยังไม่เสร็จถูกลงปฏิทินไว้หมดแล้ว)',
     });
   }
 
-  const dates = buildDateWindow(days);
   const today = todayISOBangkok();
+  // ขยายหน้าต่างให้ครอบคลุมกำหนดส่งที่ไกลที่สุดด้วย
+  // ไม่งั้นงานที่ส่งเกิน 14 วันจะไม่มีข้อมูลช่องว่างของวันนั้น แล้วต้องเดาเวลาเริ่มเอา
+  const furthestDue = tasks.reduce<string | null>((max, t) => {
+    if (!t.dueDate) return max;
+    const d = t.dueDate.toISOString().slice(0, 10);
+    return d > today && (max === null || d > max) ? d : max;
+  }, null);
+  const neededDays = furthestDue
+    ? Math.ceil((Date.parse(`${furthestDue}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000) + 1
+    : 0;
+  const dates = buildDateWindow(Math.min(Math.max(days, neededDays), MAX_WINDOW_DAYS));
   const slotsByUser = await freeSlotsForUsers([userId], dates);
   const slots = slotsByUser.get(userId) ?? [];
 
-  // เรียงตาม Priority Score: งานที่ "ควรทำก่อน" ได้เลือกช่องเวลาก่อน
-  const sorted = [...tasks].sort((a, b) => {
-    const toScore = (t: (typeof tasks)[number]) =>
-      computePriorityScore({
-        id: t.id,
-        title: t.title,
-        done: t.done,
-        priority: t.priority as Task['priority'],
-        dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : undefined,
-        estimatedMinutes: t.estimatedMinutes ?? undefined,
-      });
-    return toScore(b) - toScore(a);
+  // เรียงด้วยกฎเดียวกับที่ผู้ใช้เห็นในหน้า To-do (กำหนดส่งก่อน แล้วค่อยความสำคัญ)
+  // งานที่อยู่บนสุดของลิสต์จึงได้เลือกช่องเวลาก่อน — ผลลัพธ์ตรงกับที่ผู้ใช้คาด
+  const toTask = (t: (typeof tasks)[number]): Task => ({
+    id: t.id,
+    title: t.title,
+    done: t.done,
+    priority: t.priority as Task['priority'],
+    dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : undefined,
+    estimatedMinutes: t.estimatedMinutes ?? undefined,
   });
+  const sorted = [...tasks].sort((a, b) => compareTasks(toTask(a), toTask(b)));
 
   const proposals: Proposal[] = [];
   const skipped: Skipped[] = [];
 
+  // กรอบเวลาสะดวกของผู้ใช้ ใช้ตอนต้องยัดงานลงวันกำหนดส่งที่เต็มแล้ว
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { dayStart: true, dayEnd: true, bufferMinutes: true },
+  });
+  const window = availabilityWindow(me?.dayStart, me?.dayEnd);
+  const bufferMin = me?.bufferMinutes ?? 0;
+
+  // จุดที่งาน "ถูกบังคับวาง" ล่าสุดของแต่ละวันจบลง
+  // ต้องจำไว้เพราะช่องว่างของวันนั้นหมดแล้ว การคำนวณรอบถัดไปจึงไม่มีอะไรให้หัก
+  // ถ้าไม่จำ งานทุกชิ้นที่ถูกบังคับลงวันเดียวกันจะได้เวลาเริ่มเดียวกันหมด (ทับกันสนิท)
+  const forcedCursor = new Map<string, number>();
+
+  /**
+   * บังคับวางงานลงวันที่กำหนด แม้วันนั้นจะไม่มีช่องว่างเหลือแล้ว
+   * ใช้กับงานที่มีกำหนดส่ง เพราะผู้ใช้ต้องการเห็นงานอยู่บนวันที่ต้องส่งจริงๆ
+   *
+   * ยอมให้ทับกับ "กิจกรรมอื่น" ที่มีอยู่ก่อน (ผู้ใช้เลือกกติกานี้เอง)
+   * แต่ต้องไม่ทับ "กันเอง" — งานที่ถูกบังคับลงวันเดียวกันจะเรียงต่อกันไป
+   *
+   * ไม่ใส่ bufferMin ตรงนี้ตั้งใจ - ฟังก์ชันนี้ถูกเรียกเพราะ "ไม่มีที่ว่างพอ" อยู่แล้ว
+   * (ถึงขั้นต้องยอมให้ทับกิจกรรมอื่น) การพยายามเว้นช่วงพักในสถานการณ์ที่ที่ว่างไม่พออยู่แล้ว
+   * มีแต่จะทำให้งานเบียดกันแน่นกว่าเดิมโดยไม่ได้ประโยชน์อะไรเพิ่ม
+   */
+  function forcePlaceOn(date: string, durationMin: number): { date: string; startMin: number; endMin: number } {
+    const daySlots = slots.filter((s) => s.date === date && s.endMin > s.startMin);
+    let startMin = window.startMin;
+    if (daySlots.length > 0) {
+      const widest = daySlots.reduce((a, b) => (b.endMin - b.startMin > a.endMin - a.startMin ? b : a));
+      startMin = widest.startMin;
+      widest.startMin = Math.min(widest.endMin, widest.startMin + durationMin);
+    }
+    // ต่อท้ายงานที่ถูกบังคับลงวันเดียวกันก่อนหน้านี้
+    startMin = Math.max(startMin, forcedCursor.get(date) ?? 0);
+    // ไม่ให้ล้นออกนอกกรอบเวลาที่สะดวก (เช่น เริ่ม 21:30 งานยาว 2 ชม.)
+    if (startMin + durationMin > window.endMin) startMin = Math.max(0, window.endMin - durationMin);
+    forcedCursor.set(date, startMin + durationMin);
+    return { date, startMin, endMin: startMin + durationMin };
+  }
+
   for (const task of sorted) {
     const duration = task.estimatedMinutes && task.estimatedMinutes > 0 ? task.estimatedMinutes : DEFAULT_TASK_MINUTES;
     const due = task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null;
-    // งานที่เลยกำหนดส่งไปแล้ว ไม่ล็อกด้วย deadline (ไม่งั้นจะหาช่องไม่ได้เลย) - จัดให้เร็วที่สุดแทน
-    const overdue = due !== null && due < today;
-    const placed = placeTask(slots, duration, overdue ? null : due);
+
+    let placed: { date: string; startMin: number; endMin: number } | null;
+    if (at) {
+      // ผู้ใช้กำหนดมาเอง -> เชื่อผู้ใช้ ไม่ต้องเช็คว่าชนอะไรไหม
+      placed = { date: at.date, startMin: timeToMinutes(at.startTime)!, endMin: timeToMinutes(at.endTime)! };
+    } else if (due) {
+      // มีกำหนดส่ง -> ลงวันกำหนดส่งเสมอ
+      // งานที่เลยกำหนดไปแล้ว ย้อนอดีตไม่ได้ จึงลงวันนี้แทน (เร็วที่สุดที่ยังทำได้จริง)
+      const targetDate = due < today ? today : due;
+      const dayHasRoom = slots.some((s) => s.date === targetDate && s.endMin - s.startMin >= duration);
+      placed = dayHasRoom
+        ? placeTaskOnDate(slots, targetDate, duration, bufferMin)
+        : forcePlaceOn(targetDate, duration);
+    } else {
+      // ไม่มีกำหนดส่ง -> หาช่องว่างแรกที่พอ
+      placed = placeTask(slots, duration, null, bufferMin);
+    }
 
     if (!placed) {
       skipped.push({
         taskId: task.id,
         title: task.title,
-        reason:
-          due && !overdue
-            ? `ไม่มีช่วงว่างยาว ${duration} นาทีก่อนกำหนดส่ง (${due})`
-            : `ไม่มีช่วงว่างยาว ${duration} นาทีใน ${days} วันข้างหน้า`,
+        reason: `ไม่มีช่วงว่างยาว ${duration} นาทีใน ${days} วันข้างหน้า`,
       });
       continue;
     }
@@ -160,6 +284,9 @@ export async function POST(req: NextRequest) {
         startTime: p.startTime,
         endTime: p.endTime,
         description: 'จากสิ่งที่ต้องทำ',
+        // แต่ละงานได้สีของตัวเอง (คำนวณจาก id คงที่) ไม่งั้นงานจาก To-do จะเป็นสีเดียวกันหมด
+        color: colorForTask(p.taskId),
+        sourceTaskId: p.taskId,
         categoryId: category.id,
         userId,
       },
@@ -175,6 +302,8 @@ export async function POST(req: NextRequest) {
       continue;
     }
     committed.push(p);
+    // งานหลักเพิ่งถูกวางลงวันกำหนดส่ง -> วันนั้นไม่ว่างแล้ว หมุดต้องหายไป
+    await syncDeadlineEvent(p.taskId, userId);
   }
 
   return NextResponse.json({ scheduled: committed, skipped, committed: true });

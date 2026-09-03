@@ -47,6 +47,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
           isMine: t.assignment.assignedToUserId === userId,
         }
       : null,
+    done: t.done,
+    completedAt: t.completedAt ? t.completedAt.toISOString() : null,
   }));
 
   return NextResponse.json({ tasks: out });
@@ -96,6 +98,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null,
     createdById: task.createdById,
     assignment: null,
+    done: task.done,
+    completedAt: null,
   };
   return NextResponse.json({ task: out }, { status: 201 });
 }

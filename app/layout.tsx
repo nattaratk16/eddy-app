@@ -6,14 +6,11 @@ import './globals.css';
 
 // IBM Plex Sans Thai: ฟอนต์โมเดิร์นทันสมัย อ่านง่าย รองรับภาษาไทยครบทุกวรรณยุกต์
 // ใช้ทั้งแอป - น้ำหนักหนา (600/700) สำหรับหัวเรื่อง, น้ำหนักปกติ (400/500) สำหรับเนื้อหา
-const plexDisplay = IBM_Plex_Sans_Thai({
-  subsets: ['latin', 'thai'],
-  weight: ['500', '600', '700'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
-const plexBody = IBM_Plex_Sans_Thai({
+//
+// เดิมเรียก IBM_Plex_Sans_Thai สองครั้ง (display กับ body) ทั้งที่เป็นฟอนต์ตระกูลเดียวกัน
+// next/font จึงโหลดไฟล์ .woff2 ของน้ำหนัก 500/600/700 มาซ้ำสองชุด และประกาศ @font-face ซ้ำ
+// รวมเหลือชุดเดียวที่มีครบ 400-700 แล้วให้ font-display กับ font-body ใน Tailwind ชี้มาที่ตัวแปรเดียวกัน
+const plex = IBM_Plex_Sans_Thai({
   subsets: ['latin', 'thai'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-body',
@@ -25,7 +22,6 @@ const plexBody = IBM_Plex_Sans_Thai({
 const brandFont = Mitr({
   subsets: ['latin', 'thai'],
   weight: ['400', '500', '600'], // Mitr มีหนักสุดที่ 600
-
   variable: '--font-brand',
   display: 'swap',
 });
@@ -42,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th">
-      <body className={`${plexDisplay.variable} ${plexBody.variable} ${brandFont.variable} font-body`}>
+      <body className={`${plex.variable} ${brandFont.variable} font-body`}>
         <GlowBackground />
         <Providers>{children}</Providers>
       </body>

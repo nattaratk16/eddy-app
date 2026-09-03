@@ -8,6 +8,7 @@
  */
 import type { CalendarCategory, CalendarEvent } from './types';
 import { ROLE_AI_CONTEXT, isUserRole } from './roles';
+import type { BurnoutBandKey, BurnoutSignals } from './burnoutRisk';
 
 // ใช้ alias "-latest" แทนเวอร์ชันวันที่ตายตัว เพื่อไม่ให้ค้างรุ่นเก่าที่ถูกเลิกใช้ (เช่น gemini-1.5-flash ที่ถูกปลดระวางไปแล้ว)
 // ใช้รุ่น "flash-lite" เพราะงานในแอปนี้ (แชท/แยกข้อความ/วิเคราะห์ตาราง) ไม่ต้องการ "คิดนาน" แบบรุ่น flash เต็ม
@@ -270,11 +271,69 @@ ${userProfile ? `\nเกี่ยวกับผู้ใช้ (ใช้ช�
   return text ?? null;
 }
 
+// ---------- 3b) วิเคราะห์ภาระงาน/ความเสี่ยงหมดไฟด้วย AI (แดชบอร์ดส่วนตัว) ----------
+interface WorkloadInsightParams {
+  signals: BurnoutSignals;
+  band: BurnoutBandKey;
+  /** บริบทผู้ใช้ (นิสัย+เวลาว่าง) จาก buildUserProfileContext */
+  userProfile?: string;
+}
+
+const BURNOUT_BAND_TEXT: Record<BurnoutBandKey, string> = { low: 'เบา', medium: 'ปานกลาง', high: 'หนัก' };
+
+/**
+ * ส่งแค่ "ตัวเลขสรุป" ให้ Gemini ไม่ส่งรายการงาน/กิจกรรมจริงไป (ไม่จำเป็นต้องรู้รายละเอียด
+ * แค่ตัวเลขก็เพียงพอให้วิเคราะห์และให้คำแนะนำได้แล้ว เป็นการลดข้อมูลที่ส่งออกไปโดยไม่จำเป็น)
+ */
+export async function generateWorkloadInsight({ signals, band, userProfile }: WorkloadInsightParams): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const prompt = `${EDDY_SYSTEM_PROMPT}
+
+นี่คือสรุปภาระงานของผู้ใช้ใน 7 วันข้างหน้า (คำนวณจากปฏิทิน+สิ่งที่ต้องทำแล้ว ไม่ต้องคำนวณเอง):
+- เวลาที่ถูกจองไว้แล้วเฉลี่ยต่อวัน: ${Math.round(signals.avgUtilizationPct)}% ของเวลาที่มี
+- จำนวนวันที่งานแน่นเกินเวลาที่มีจริง (overload): ${signals.overloadDays} วัน จาก 7 วัน
+- งานที่เลยกำหนดส่งไปแล้ว: ${signals.overdueCount} งาน
+- งานสำคัญที่ใกล้ครบกำหนด (ภายใน 3 วัน): ${signals.urgentPileupCount} งาน
+- ระดับความเสี่ยงหมดไฟที่คำนวณได้: ${BURNOUT_BAND_TEXT[band]}
+${userProfile ? `\nเกี่ยวกับผู้ใช้ (ใช้ช่วยให้คำแนะนำเข้ากับเขา):\n${userProfile}\n` : ''}
+เขียนความเห็นสั้นๆ 1-2 ประโยค เป็นภาษาไทย เป็นกันเอง บอกตรงๆ ว่าตอนนี้รับงานเกินตัวหรือไม่และหนักแค่ไหน
+แล้วให้คำแนะนำที่ทำได้จริงสั้นๆ ท้ายประโยค (เช่น เลื่อนงานไม่เร่งด่วนออกไป พักบ้าง หรือถ้าตารางโอเคก็ให้กำลังใจ)`;
+
+  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Gemini API error: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  return text ?? null;
+}
+
 // ---------- 4) แตกงานใหญ่เป็นรายการย่อยอัตโนมัติ ----------
+// คืนทั้งชื่อขั้นตอนและ "ประมาณว่าใช้เวลากี่นาที"
+// เวลาที่ได้ตรงนี้ยังไม่ใช่วันเวลาจริง — ตัวจัดวันจริงคือ lib/subtaskPlan.ts ที่คำนวณ local
+// จากช่องว่างในปฏิทินจริง (หลักเดียวกับที่อื่นในโปรเจกต์: AI ตัดสิน "เนื้องาน" ส่วน "เมื่อไหร่" คำนวณเอง)
 const BREAKDOWN_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    subtasks: { type: 'ARRAY', items: { type: 'STRING' } },
+    subtasks: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          estimatedMinutes: { type: 'INTEGER' },
+        },
+        required: ['title', 'estimatedMinutes'],
+      },
+    },
   },
   required: ['subtasks'],
 };
@@ -282,22 +341,84 @@ const BREAKDOWN_SCHEMA = {
 interface BreakdownTaskParams {
   title: string;
   description?: string;
+  /** จำนวนวันตั้งแต่วันเริ่มถึงกำหนดส่ง - ช่วยให้ AI ซอยขั้นตอนให้พอดีกับเวลาที่มี */
+  spanDays?: number | null;
+  /** เวลารวมที่ผู้ใช้ประเมินไว้สำหรับงานหลัก (ถ้ามี) */
+  totalMinutes?: number | null;
+  /**
+   * ระยะเวลาโฟกัสต่อเนื่องสูงสุดของผู้ใช้ (นาที) จากโปรไฟล์ - ไม่บังคับ
+   * ใช้จำกัดเพดานเวลาต่อขั้นตอนแทน MAX_STEP_MINUTES เดิม (ถ้าตั้งค่าไว้และน้อยกว่า)
+   * เพราะ Task/Subtask หนึ่งชิ้นลงปฏิทินได้แค่ 1 ช่วงเวลาเดียว (ไม่มีกลไกแบ่งงานเดียวเป็นหลายรอบ
+   * ในปฏิทิน) การจำกัดตอนแตกงานเป็นจุดเดียวที่ทำได้จริงโดยไม่ต้องเปลี่ยนโครงสร้างข้อมูล
+   */
+  maxSessionMinutes?: number | null;
 }
 
-export async function breakdownTask({ title, description }: BreakdownTaskParams): Promise<string[] | null> {
+export interface BreakdownStep {
+  title: string;
+  estimatedMinutes: number;
+}
+
+const MIN_STEP_MINUTES = 15;
+const MAX_STEP_MINUTES = 240;
+
+export async function breakdownTask({
+  title,
+  description,
+  spanDays,
+  totalMinutes,
+  maxSessionMinutes,
+}: BreakdownTaskParams): Promise<BreakdownStep[] | null> {
+  // เพดานจริง (บังคับด้วยโค้ด ไม่ใช่แค่ขอ AI เฉยๆ) - ใช้ค่าที่น้อยกว่าระหว่างเพดานเดิมกับที่ผู้ใช้ตั้งไว้
+  const stepCap =
+    typeof maxSessionMinutes === 'number' && maxSessionMinutes > 0
+      ? Math.min(MAX_STEP_MINUTES, maxSessionMinutes)
+      : MAX_STEP_MINUTES;
+
+  // บอก AI ว่ามีเวลากี่วัน เพื่อให้ซอยขั้นตอนสมเหตุผล
+  // (งานที่มีเวลา 2 วัน ไม่ควรถูกซอยเป็น 6 ขั้นตอนยาวๆ)
+  const spanHint =
+    typeof spanDays === 'number' && spanDays > 0
+      ? `\nผู้ใช้มีเวลาทำงานนี้ทั้งหมด ${spanDays} วัน (นับจากวันเริ่มถึงกำหนดส่ง) ` +
+        `ให้ซอยจำนวนขั้นตอนให้เหมาะกับเวลาที่มี - เวลาน้อยให้ขั้นตอนน้อยและสั้นลง`
+      : '';
+  const totalHint =
+    typeof totalMinutes === 'number' && totalMinutes > 0
+      ? `\nผู้ใช้ประเมินว่างานนี้ใช้เวลารวมประมาณ ${totalMinutes} นาที ให้ผลรวมของทุกขั้นตอนใกล้เคียงค่านี้`
+      : '';
+  const focusHint =
+    stepCap < MAX_STEP_MINUTES
+      ? `\nผู้ใช้โฟกัสงานต่อเนื่องได้ไม่เกิน ${stepCap} นาทีต่อครั้ง ถ้างานยาวกว่านี้ให้ซอยเป็นหลายขั้นตอนแทน`
+      : '';
+
   const prompt = `
-งานนี้: "${title}"${description ? `\nรายละเอียดเพิ่มเติม: ${description}` : ''}
+งานนี้: "${title}"${description ? `\nรายละเอียดเพิ่มเติม: ${description}` : ''}${spanHint}${totalHint}${focusHint}
 
 ช่วยแตกงานนี้เป็นรายการย่อย (subtask) ที่ทำแล้วนำไปสู่งานหลักสำเร็จ
 - ให้แต่ละรายการย่อยสั้นกระชับ เป็นภาษาไทย เริ่มด้วยคำกริยา (เช่น "เขียน...", "ทำ...", "เตรียม...")
 - จำนวนรายการย่อยที่เหมาะสมคือ 3-6 รายการ ขึ้นอยู่กับความซับซ้อนของงาน
 - เรียงลำดับตามที่ควรทำก่อน-หลัง
+- ใส่ estimatedMinutes ของแต่ละขั้นตอนเป็นจำนวนนาทีที่สมจริง (ระหว่าง ${MIN_STEP_MINUTES} ถึง ${stepCap} นาที)
 `.trim();
 
-  const result = await callGeminiJSON<{ subtasks: string[] }>(prompt, BREAKDOWN_SCHEMA);
+  const result = await callGeminiJSON<{ subtasks: { title: string; estimatedMinutes: number }[] }>(
+    prompt,
+    BREAKDOWN_SCHEMA,
+  );
   if (!result || !Array.isArray(result.subtasks)) return null;
 
-  const cleaned = result.subtasks.map((s) => s.trim()).filter(Boolean);
+  const cleaned: BreakdownStep[] = result.subtasks
+    .map((s) => ({
+      title: typeof s?.title === 'string' ? s.title.trim() : '',
+      // กันค่าเพี้ยนจาก AI (ติดลบ / ยาวเป็นวัน) ด้วยการหนีบให้อยู่ในกรอบที่วางลงปฏิทินได้จริง
+      // (ใช้ stepCap แทน MAX_STEP_MINUTES ตรงๆ - นี่คือจุดที่บังคับจริง ไม่ใช่แค่บอก AI เฉยๆ)
+      estimatedMinutes: Math.min(
+        stepCap,
+        Math.max(MIN_STEP_MINUTES, Number.isFinite(s?.estimatedMinutes) ? Math.round(s.estimatedMinutes) : 30),
+      ),
+    }))
+    .filter((s) => s.title.length > 0);
+
   return cleaned.length > 0 ? cleaned : null;
 }
 
@@ -332,6 +453,8 @@ interface DistributeInput {
     /** Workload Score = committed / free (ยิ่งต่ำยิ่งมีที่ว่าง) - คำนวณ local ใน lib/workload.ts */
     workloadScore: number;
     bio?: string | null;
+    /** ทักษะ/ความถนัดจากโปรไฟล์ - ใช้จับคู่กับเนื้องานย่อยโดยตรง (คนละเรื่องกับ bio ที่เป็นข้อความอิสระ) */
+    skills?: string[] | null;
   }[];
 }
 
@@ -343,11 +466,13 @@ export async function distributeGroupTasks(
     .join('\n');
   const fmtScore = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : 'ไม่เหลือเวลาว่าง');
   const memberList = input.members
-    .map(
-      (m) =>
+    .map((m) => {
+      const skillsText = m.skills && m.skills.length > 0 ? ` | ทักษะ: ${m.skills.join(', ')}` : '';
+      return (
         `- id=${m.id} | ${m.name} | ว่าง ~${m.freeMinutes} นาที | งานที่มีอยู่แล้ว ~${m.committedMinutes} นาที` +
-        ` | ภาระงาน(workload score) ${fmtScore(m.workloadScore)}${m.bio ? ` | นิสัย: ${m.bio}` : ''}`,
-    )
+        ` | ภาระงาน(workload score) ${fmtScore(m.workloadScore)}${skillsText}${m.bio ? ` | นิสัย: ${m.bio}` : ''}`
+      );
+    })
     .join('\n');
 
   const prompt = `
@@ -361,11 +486,14 @@ ${memberList}
 
 กติกา:
 - มอบหมายให้ครบทุกงาน งานละ 1 คน
-- ดู "ภาระงาน (workload score)" เป็นหลัก = งานที่มีอยู่แล้ว ÷ เวลาว่าง
-  คะแนนยิ่งต่ำ = ยิ่งมีพื้นที่ว่างเหลือ ควรได้รับงานใหม่ก่อน
+- ดู "ทักษะ" ของแต่ละคนเทียบกับเนื้องานย่อยเป็นอันดับแรก - ถ้าชื่องานสื่อถึงทักษะเฉพาะ (เช่น
+  "ออกแบบ...", "เขียนโค้ด...", "นำเสนอ...") ให้เลือกคนที่มีทักษะนั้นตรงที่สุดก่อนคนอื่น
+- จากนั้นดู "ภาระงาน (workload score)" = งานที่มีอยู่แล้ว ÷ เวลาว่าง
+  คะแนนยิ่งต่ำ = ยิ่งมีพื้นที่ว่างเหลือ ควรได้รับงานใหม่ก่อน (ในกลุ่มคนที่ทักษะพอกัน)
   (อย่าดูแค่ "เวลาว่าง" อย่างเดียว คนที่ว่างเยอะแต่มีงานค้างเยอะกว่าถือว่าแน่นกว่า)
-- ถ้านิสัย/ความถนัดของใครเข้ากับงานไหนเป็นพิเศษ ให้จับคู่ให้เหมาะได้
-  แม้ภาระงานจะสูงกว่าเล็กน้อย แต่ห้ามกองงานหลายชิ้นไว้ที่คนที่ภาระงานสูงสุด
+- ทักษะที่ตรงกว่าสำคัญกว่าภาระงานที่ต่ำกว่าเล็กน้อย แต่ห้ามกองงานหลายชิ้นไว้ที่คนคนเดียว
+  เพราะทักษะตรงเพียงอย่างเดียว ถ้าภาระงานสูงกว่าคนอื่นมากๆ ให้เลือกคนที่ว่างกว่าแทน
+- ถ้าไม่มีใครมีทักษะที่ตรงชัดเจน หรือทักษะไม่ได้ระบุไว้ ให้ใช้นิสัย/ความถนัดจาก "นิสัย" ประกอบได้
 - ตอบเป็น assignments โดยใช้ id ที่ให้มาเท่านั้น (taskId ต้องมาจากรายการงาน, userId ต้องมาจากรายชื่อสมาชิก)
 `.trim();
 

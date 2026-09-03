@@ -14,14 +14,17 @@ import { prisma } from './prisma';
 import { totalFreeMinutes, type FreeSlot } from './freeTime';
 import { freeSlotsForUsers, nowMinutesBangkok, todayISOBangkok } from './schedule';
 import { computeMemberWorkload, type MemberWorkload } from './workload';
+import { rawBookedMinutesByKind, scaleToBookedMinutes, type KindMinutes } from './categoryWorkload';
 
-/** งาน To-do ที่ไม่ได้ระบุเวลา ให้ถือว่า 1 ชม. ตอนคิดภาระงาน */
-const DEFAULT_TASK_MINUTES = 60;
+/** งาน To-do ที่ไม่ได้ระบุเวลา ให้ถือว่า 1 ชม. ตอนคิดภาระงาน - export ไว้ให้วิดเจ็ตอื่นใช้ค่าเดียวกัน */
+export const DEFAULT_TASK_MINUTES = 60;
+
+export type MemberWorkloadWithKind = MemberWorkload & KindMinutes;
 
 export interface GroupWorkloadResult {
   /** ช่วงว่างของแต่ละคน (mutate ได้ - placeTask จะตัดเวลาที่ใช้ออก) */
   slotsByUser: Map<string, FreeSlot[]>;
-  workloadByUser: Map<string, MemberWorkload>;
+  workloadByUser: Map<string, MemberWorkloadWithKind>;
 }
 
 /**
@@ -47,11 +50,16 @@ export async function computeGroupWorkload(
       select: { userId: true, estimatedMinutes: true },
     }),
     // งานกลุ่มที่ถูกมอบหมายไว้แล้วแต่ยังไม่ยืนยัน (ยังไม่กลายเป็น event เลยไม่ถูกนับเป็นเวลาไม่ว่าง)
+    // excludeGroupId = กำลังจะ (re)distribute กลุ่มนี้ - งานที่ถูกจัดอัตโนมัติของกลุ่มนี้กำลังจะถูก
+    // แทนที่ด้วยชุดใหม่เลยไม่นับซ้ำ แต่งานที่ "มอบหมายเอง" (source: manual) ยังยืนตัวอยู่ ไม่ได้ถูกแทนที่
+    // จึงต้องนับเป็นภาระอยู่เหมือนเดิม (ดู /api/groups/[id]/distribute ที่ไม่แตะ source: manual)
     prisma.groupTaskAssignment.findMany({
       where: {
         assignedToUserId: { in: memberIds },
         status: 'suggested',
-        ...(excludeGroupId ? { groupTask: { groupId: { not: excludeGroupId } } } : {}),
+        ...(excludeGroupId
+          ? { OR: [{ groupTask: { groupId: { not: excludeGroupId } } }, { source: 'manual' }] }
+          : {}),
       },
       select: { assignedToUserId: true, groupTask: { select: { estimatedMinutes: true } } },
     }),
@@ -62,23 +70,24 @@ export async function computeGroupWorkload(
   for (const t of pendingTodos) addPending(t.userId, t.estimatedMinutes ?? DEFAULT_TASK_MINUTES);
   for (const a of pendingAssignments) addPending(a.assignedToUserId, a.groupTask.estimatedMinutes);
 
+  // นาทีดิบต่อหมวด (วิชาการ/ไม่ใช่วิชาการ) - ใช้แค่หาสัดส่วน ไม่ใช่ตัวเลขสุดท้าย (ดู lib/categoryWorkload.ts)
+  const rawKindByUser = await rawBookedMinutesByKind(memberIds, dates, members);
+
   const today = { date: todayISOBangkok(), nowMin: nowMinutesBangkok() };
-  const workloadByUser = new Map<string, MemberWorkload>();
+  const workloadByUser = new Map<string, MemberWorkloadWithKind>();
   for (const m of members) {
-    workloadByUser.set(
-      m.userId,
-      computeMemberWorkload(
-        {
-          userId: m.userId,
-          dayStart: m.dayStart,
-          dayEnd: m.dayEnd,
-          freeMinutes: totalFreeMinutes(slotsByUser.get(m.userId) ?? []),
-          pendingMinutes: pendingByUser.get(m.userId) ?? 0,
-        },
-        dates,
-        today,
-      ),
+    const base = computeMemberWorkload(
+      {
+        userId: m.userId,
+        dayStart: m.dayStart,
+        dayEnd: m.dayEnd,
+        freeMinutes: totalFreeMinutes(slotsByUser.get(m.userId) ?? []),
+        pendingMinutes: pendingByUser.get(m.userId) ?? 0,
+      },
+      dates,
+      today,
     );
+    workloadByUser.set(m.userId, { ...base, ...scaleToBookedMinutes(rawKindByUser.get(m.userId), base.bookedMinutes) });
   }
 
   return { slotsByUser, workloadByUser };

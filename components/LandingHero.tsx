@@ -26,7 +26,7 @@ const decor = [
   { c: 'right-[14%] top-[58%]', size: 'h-3.5 w-3.5', color: 'bg-brand-orange', d: 1.6 },
 ];
 
-export default function LandingHero() {
+export default function LandingHero({ isSafari = false }: { isSafari?: boolean }) {
   // h-[100dvh] + overflow-hidden = สูงเท่าหน้าจอพอดี ไม่มีแถบเลื่อน
   // ใช้ dvh ไม่ใช่ vh เพราะบนมือถือ vh ไม่นับแถบที่อยู่ของเบราว์เซอร์ ทำให้เนื้อหาล้นจอ
   return (
@@ -77,6 +77,9 @@ export default function LandingHero() {
             width={640}
             height={678}
             priority
+            // โลโก้แสดงจริงกว้างแค่ 170-240px แต่ถ้าไม่บอก sizes next/image จะสร้าง srcset
+            // จาก width={640} เป็น 640w/1280w แล้วเสิร์ฟไฟล์ใหญ่เกินจำเป็นหลายเท่า
+            sizes="(min-width: 1024px) 240px, (min-width: 640px) 210px, 170px"
             className="h-auto max-h-[24vh] w-[170px] object-contain drop-shadow-[0_12px_24px_rgba(10,76,196,0.16)] sm:w-[210px] lg:w-[240px]"
           />
         </motion.div>
@@ -102,7 +105,7 @@ export default function LandingHero() {
         transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
         className="relative z-10 mx-auto flex h-[30vh] w-full max-w-[520px] items-end justify-center pb-1 sm:h-[34vh]"
       >
-        <MascotWave fit="height" />
+        <MascotWave fit="height" isSafari={isSafari} />
       </motion.div>
     </main>
   );

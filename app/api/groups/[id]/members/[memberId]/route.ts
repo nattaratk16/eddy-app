@@ -35,6 +35,25 @@ export async function DELETE(
     }
   }
 
+  // เก็บกวาดงานกลุ่มที่เคยมอบหมายให้คนนี้ - ไม่งั้นจะค้างเป็น "รอยืนยัน"/"ลงปฏิทินแล้ว" ตลอดไป
+  // โดยไม่มีใครกดยืนยัน/ติ๊กเสร็จให้ได้อีกเลย (งานตัวเองไม่ถูกลบ แค่กลับไปเป็น "ยังไม่ได้มอบหมาย")
+  const assignments = await prisma.groupTaskAssignment.findMany({
+    where: { assignedToUserId: target.userId, groupTask: { groupId: params.id } },
+    select: { id: true, groupTaskId: true, approvedEventId: true },
+  });
+  const eventIds = assignments.map((a) => a.approvedEventId).filter((x): x is string => !!x);
+  if (eventIds.length > 0) await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
+  if (assignments.length > 0) {
+    await prisma.groupTaskAssignment.deleteMany({ where: { id: { in: assignments.map((a) => a.id) } } });
+    // งานที่เคยติ๊กว่าเสร็จแล้วแต่เจ้าของถูกเอาออกจากกลุ่มไปแล้ว ต้องรีเซ็ตกลับด้วย - ไม่งั้นจะค้าง
+    // เป็น "เสร็จแล้ว" ถาวร เพราะ PATCH .../tasks/[taskId] ต้องเช็ค assignment.assignedToUserId
+    // ที่ตอนนี้ไม่มีอยู่แล้ว (assignment ถูกลบไปข้างบน) เลยไม่มีใครติ๊กกลับให้ได้อีกเลย
+    await prisma.groupTask.updateMany({
+      where: { id: { in: assignments.map((a) => a.groupTaskId) } },
+      data: { done: false, completedAt: null },
+    });
+  }
+
   await prisma.groupMember.delete({ where: { id: target.id } });
   return NextResponse.json({ ok: true });
 }

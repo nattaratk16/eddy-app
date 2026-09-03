@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Check, X, Share2 } from 'lucide-react';
 import clsx from 'clsx';
 import { PASTEL_COLORS, getColorOption } from '@/lib/colors';
+import { CATEGORY_KIND_OPTIONS, type CategoryKind } from '@/lib/categoryKind';
 import type { CalendarCategory, PastelColor } from '@/lib/types';
 
 interface CategoryManagerProps {
@@ -36,6 +37,31 @@ function ColorPicker({ value, onChange }: { value: PastelColor; onChange: (c: Pa
   );
 }
 
+/** ปุ่มสลับวิชาการ/ไม่ใช่วิชาการ - ค่าเริ่มต้นเดามาจากชื่อ แต่แก้ตรงนี้ได้เสมอถ้าเดาผิด */
+function KindToggle({ value, onChange }: { value: CategoryKind; onChange: (k: CategoryKind) => void }) {
+  return (
+    <div className="flex gap-1.5">
+      {CATEGORY_KIND_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={clsx(
+            'rounded-full px-2.5 py-1 font-body text-xs font-medium transition-colors',
+            value === opt.value
+              ? opt.value === 'academic'
+                ? 'bg-kind-academic text-white'
+                : 'bg-kind-nonAcademic text-white'
+              : 'bg-white text-ink-muted shadow-clay-inset',
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function CategoryManager({
   categories,
   visibleIds,
@@ -52,17 +78,19 @@ export default function CategoryManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState<PastelColor>('blue');
+  const [editKind, setEditKind] = useState<CategoryKind>('non_academic');
 
   function startEdit(cat: CalendarCategory) {
     setEditingId(cat.id);
     setEditName(cat.name);
     setEditColor(cat.color);
+    setEditKind(cat.kind ?? 'non_academic');
   }
 
   function confirmEdit() {
     if (!editingId) return;
     const name = editName.trim();
-    if (name) onUpdate(editingId, { name, color: editColor });
+    if (name) onUpdate(editingId, { name, color: editColor, kind: editKind });
     setEditingId(null);
   }
 
@@ -92,6 +120,10 @@ export default function CategoryManager({
                 autoFocus
               />
               <ColorPicker value={editColor} onChange={setEditColor} />
+              <p className="mb-1.5 mt-3 font-body text-xs text-ink-muted">
+                หมวดหมู่นี้เกี่ยวกับ (ใช้แยกภาระงานในหน้ากลุ่ม)
+              </p>
+              <KindToggle value={editKind} onChange={setEditKind} />
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={confirmEdit}

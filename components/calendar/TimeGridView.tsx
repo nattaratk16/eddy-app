@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, isSameDay, isToday } from 'date-fns';
-import { getColorOption } from '@/lib/colors';
+import { Flag } from 'lucide-react';
+import { getEventColor } from '@/lib/colors';
 import {
   DEFAULT_DURATION,
   HOUR_HEIGHT,
@@ -59,11 +60,13 @@ export default function TimeGridView({
   const hasAllDay = allDayByDay.some((list) => list.length > 0);
 
   // กิจกรรมที่มีเวลา จัดวางตำแหน่ง (คำนวณการเหลื่อมกัน) แยกตามวัน
+  // หมุดกำหนดส่ง (isDeadline) ไม่เข้าลูปนี้ - ระยะเวลา 0 นาที ไม่ควรไปแย่งคอลัมน์กับ event/งานจริง
+  // เพราะจะทำให้ทั้งคู่ถูกบีบแคบลงเหลือครึ่งความกว้างทั้งที่หมุดไม่ได้กินเวลาจริงเลย
   const timedByDay = useMemo(
     () =>
       days.map((day) => {
         const items = events
-          .filter((ev) => ev.startTime && isSameDay(new Date(ev.date), day))
+          .filter((ev) => ev.startTime && !ev.isDeadline && isSameDay(new Date(ev.date), day))
           .map((ev) => {
             const startMin = timeToMinutes(ev.startTime) as number;
             let endMin = timeToMinutes(ev.endTime) ?? startMin + DEFAULT_DURATION;
@@ -72,6 +75,17 @@ export default function TimeGridView({
           });
         return layoutDayEvents(items);
       }),
+    [days, events],
+  );
+
+  // หมุดกำหนดส่งที่ระบุเวลา - เรนเดอร์แยกเป็นเส้นขีดพาด + ไอคอนธง ปักทับได้อิสระ ไม่แย่งพื้นที่กับใคร
+  const deadlinesByDay = useMemo(
+    () =>
+      days.map((day) =>
+        events
+          .filter((ev) => ev.isDeadline && ev.startTime && isSameDay(new Date(ev.date), day))
+          .map((ev) => ({ event: ev, startMin: timeToMinutes(ev.startTime) as number })),
+      ),
     [days, events],
   );
 
@@ -115,7 +129,21 @@ export default function TimeGridView({
               <div key={days[i].toISOString()} className="flex flex-col gap-0.5 border-l border-eddy-100 p-1 first:border-l-0">
                 {list.map((ev) => {
                   const cat = categoryOf(ev);
-                  const color = cat ? getColorOption(cat.color) : null;
+                  const color = getEventColor(ev.color, cat?.color);
+                  // หมุดกำหนดส่งไม่มีเวลาชัดเจน: ใส่กรอบเส้นประ+ไอคอนธงแทนพื้นทึบ
+                  // ให้ตาแยกออกจาก event/งานจริงทันที และไม่ได้ล็อกเวลาไว้จริง ทับซ้อนกับอันอื่นได้เต็มที่
+                  if (ev.isDeadline) {
+                    return (
+                      <span
+                        key={ev.id}
+                        title={ev.title}
+                        className="flex items-center gap-1 truncate rounded border border-dashed border-eddy-400 bg-pastel-pink/40 px-1.5 py-0.5 text-left font-body text-[11px] font-semibold text-eddy-700"
+                      >
+                        <Flag size={10} className="flex-shrink-0" />
+                        <span className="truncate">{ev.title}</span>
+                      </span>
+                    );
+                  }
                   return (
                     <button
                       key={ev.id}
@@ -170,7 +198,7 @@ export default function TimeGridView({
                   {/* บล็อกกิจกรรมที่มีเวลา */}
                   {positioned.map(({ event: ev, startMin, endMin, leftPct, widthPct }) => {
                     const cat = categoryOf(ev);
-                    const color = cat ? getColorOption(cat.color) : null;
+                    const color = getEventColor(ev.color, cat?.color);
                     const top = (startMin / 60) * HOUR_HEIGHT;
                     const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 18);
                     const compact = height < 34;
@@ -204,6 +232,22 @@ export default function TimeGridView({
                       </button>
                     );
                   })}
+
+                  {/* หมุดกำหนดส่ง: เส้นขีดพาด + ไอคอนธงปักไว้ข้างเวลา - ไม่ใช่กล่องทึบ ไม่กินพื้นที่สเกลเวลา
+                      pointer-events-none เพราะแก้ตรงนี้ไม่ได้ (ต้องแก้ที่หน้า To-do) ไม่ต้องให้ดูเหมือนกดได้ */}
+                  {deadlinesByDay[dayIdx].map(({ event: ev, startMin }) => (
+                    <div
+                      key={ev.id}
+                      title={`กำหนดส่ง ${ev.title} (${ev.startTime})`}
+                      className="pointer-events-none absolute inset-x-0.5 z-10 flex items-center gap-1"
+                      style={{ top: (startMin / 60) * HOUR_HEIGHT }}
+                    >
+                      <span className="flex flex-shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full bg-pastel-pink px-1.5 py-0.5 font-display text-[10px] font-bold text-eddy-700 shadow-clay-sm">
+                        <Flag size={9} className="flex-shrink-0" /> {ev.startTime}
+                      </span>
+                      <span className="h-px min-w-0 flex-1 border-t border-dashed border-eddy-400" />
+                    </div>
+                  ))}
 
                   {/* เส้นบอกเวลาปัจจุบัน (เฉพาะคอลัมน์ของวันนี้) */}
                   {showNowLine && (

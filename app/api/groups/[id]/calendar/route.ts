@@ -39,7 +39,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const showTitlesByUser = new Map(members.map((m) => [m.userId, m.showEventTitles]));
 
   const events = await prisma.event.findMany({
-    where: { userId: { in: memberUserIds }, date: { gte: start, lt: end } },
+    // หมุดกำหนดส่งเป็นตัวช่วยวางแผนส่วนตัว ไม่ใช่ช่วงเวลาที่ไม่ว่างจริง
+    // ไม่ควรโผล่ในปฏิทินกลุ่มเป็นแท่งสีทึบ (จะทำให้เพื่อนเข้าใจผิดว่าคนนั้นติดธุระ)
+    where: { userId: { in: memberUserIds }, date: { gte: start, lt: end }, isDeadline: false },
     orderBy: { date: 'asc' },
   });
 

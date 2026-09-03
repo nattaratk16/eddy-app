@@ -28,16 +28,25 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   // สมาชิก + โปรไฟล์ (เวลาว่าง/นิสัย)
   const members = await prisma.groupMember.findMany({
     where: { groupId: params.id, status: 'accepted' },
-    include: { user: { select: { id: true, name: true, email: true, bio: true, dayStart: true, dayEnd: true } } },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, bio: true, skills: true, dayStart: true, dayEnd: true, bufferMinutes: true },
+      },
+    },
   });
   if (members.length === 0) return NextResponse.json({ error: 'กลุ่มยังไม่มีสมาชิก' }, { status: 400 });
+  // buffer เป็นเรื่องส่วนตัวของเจ้าของปฏิทินแต่ละคน - ใช้ตอนวางงานลงปฏิทินของคนนั้นๆ
+  const bufferByUser = new Map(members.map((m) => [m.userId, m.user.bufferMinutes ?? 0]));
 
-  // งานที่ยังไม่ถูก approve (ยังกระจายได้)
+  // งานที่ยังไม่ถูก approve (ยังกระจายได้) - ไม่แตะงานที่ถูก "มอบหมายเอง" (source: manual)
+  // เพราะเป็นการตัดสินใจของคนแล้ว ปุ่มนี้ไม่ควรแย่งคืนไปจัดใหม่โดยไม่ได้ตั้งใจ
   const allTasks = await prisma.groupTask.findMany({
     where: { groupId: params.id },
     include: { assignment: true },
   });
-  const tasks = allTasks.filter((t) => !t.assignment || t.assignment.status !== 'approved');
+  const tasks = allTasks.filter(
+    (t) => !t.assignment || (t.assignment.status !== 'approved' && t.assignment.source !== 'manual'),
+  );
   if (tasks.length === 0) {
     return NextResponse.json({ assigned: 0, unassigned: 0, message: 'ไม่มีงานที่ต้องจัด (งานทั้งหมดถูกยืนยันแล้ว)' });
   }
@@ -69,6 +78,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
           committedMinutes: w.committedMinutes,
           workloadScore: w.score,
           bio: m.user.bio,
+          skills: m.user.skills,
         };
       }),
     });
@@ -92,6 +102,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     startTime: string;
     endTime: string;
     status: string;
+    source: string;
   }[] = [];
 
   for (const task of sortedTasks) {
@@ -101,7 +112,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     const candidates = rankCandidates([...workloadByUser.values()], geminiPref.get(task.id));
 
     for (const uid of candidates) {
-      const placed = placeTask(slotsByUser.get(uid)!, task.estimatedMinutes, due);
+      const placed = placeTask(slotsByUser.get(uid)!, task.estimatedMinutes, due, bufferByUser.get(uid) ?? 0);
       if (placed) {
         toCreate.push({
           groupTaskId: task.id,
@@ -110,6 +121,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
           startTime: minutesToTime(placed.startMin),
           endTime: minutesToTime(placed.endMin),
           status: 'suggested',
+          source: 'auto',
         });
         // อัปเดตภาระงานของคนนี้ทันที งานชิ้นถัดไปจะได้ตัดสินใจจากภาพที่เป็นจริง
         // (เวลาว่างถูก placeTask ตัดไปแล้ว ส่วนงานที่เพิ่งรับไปนับเข้า committed)
@@ -127,9 +139,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     }
   }
 
-  // แทนที่การมอบหมายเดิม (ที่ยังไม่ approve) ด้วยชุดใหม่
+  // แทนที่การมอบหมายเดิม (ที่ยังไม่ approve) ด้วยชุดใหม่ - กันเผื่อไม่แตะ source: manual ซ้ำอีกชั้น
+  // (แม้ taskIds จะกรอง task ที่ถูกมอบหมายเองออกไปแล้วตอนสร้าง `tasks` ด้านบน)
   const taskIds = tasks.map((t) => t.id);
-  await prisma.groupTaskAssignment.deleteMany({ where: { groupTaskId: { in: taskIds }, status: { not: 'approved' } } });
+  await prisma.groupTaskAssignment.deleteMany({
+    where: { groupTaskId: { in: taskIds }, status: { not: 'approved' }, source: { not: 'manual' } },
+  });
   if (toCreate.length > 0) await prisma.groupTaskAssignment.createMany({ data: toCreate });
 
   const assignedMinutesByUser = new Map<string, number>();

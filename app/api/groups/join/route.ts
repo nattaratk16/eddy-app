@@ -45,8 +45,10 @@ export async function POST(req: NextRequest) {
   if (existing) {
     await prisma.groupMember.update({ where: { id: existing.id }, data: { status: 'accepted' } });
   } else {
+    // showEventTitles ไม่ใส่ตรงนี้ - ปล่อยให้ใช้ค่า default (false) ของ schema เหมือนตอนถูกเชิญปกติ
+    // (ปฏิทินรวมของกลุ่มควรเห็นแค่ "ว่าง/ไม่ว่าง" เป็นค่าเริ่มต้นเสมอ ไม่ว่าจะเข้ากลุ่มด้วยรหัสหรือถูกเชิญ)
     await prisma.groupMember.create({
-      data: { groupId: group.id, userId, role: 'member', status: 'accepted', showEventTitles: true },
+      data: { groupId: group.id, userId, role: 'member', status: 'accepted' },
     });
   }
 

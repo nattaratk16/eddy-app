@@ -10,6 +10,7 @@
  */
 
 import type { CalendarCategory, CalendarEvent } from './types';
+import type { BurnoutRisk } from './burnoutRisk';
 
 // ---------- ตัวช่วยแปลงเวลา "HH:mm" <-> นาที ----------
 function timeToMinutes(t?: string): number | null {
@@ -257,5 +258,30 @@ export function buildWeeklySummary(
     `สัปดาห์นี้มีกิจกรรมทั้งหมด ${weekEvents.length} รายการ ` +
     (busiestDate ? `วันที่แน่นที่สุดคือ${busiestLabel} (${busiestDate[1]} รายการ) ` : '') +
     (topCategory ? `ส่วนใหญ่เป็นหมวด "${topCategory.name}" ลองจัดเวลาพักผ่อนสลับด้วยนะ` : '')
+  );
+}
+
+// ---------- 5) วิเคราะห์ภาระงาน/ความเสี่ยงหมดไฟ (แดชบอร์ดส่วนตัว) ----------
+/** ใช้แทนตอน generateWorkloadInsight (lib/gemini.ts) เรียกไม่สำเร็จ/ไม่มี API key */
+export function buildWorkloadInsight(risk: BurnoutRisk): string {
+  // ไม่มีภาระอะไรเลย - ให้ข้อความที่ต่างจากระดับ "เบา" ทั่วไป จะได้ไม่ฟังดูเหมือนมีงานอยู่บ้าง
+  if (risk.avgUtilizationPct === 0 && risk.overloadDays === 0 && risk.overdueCount === 0 && risk.urgentPileupCount === 0) {
+    return 'ตอนนี้ยังไม่มีภาระอะไรเลยในสัปดาห์นี้ พักผ่อนได้เต็มที่ หรือจะเริ่มวางแผนอะไรใหม่ก็ได้นะ';
+  }
+
+  if (risk.band === 'low') {
+    return `สัปดาห์นี้ภาระงานยังอยู่ในระดับที่ไหว (เฉลี่ยจองเวลาไว้ ${Math.round(risk.avgUtilizationPct)}%) รักษาจังหวะนี้ไว้ได้เลย`;
+  }
+  if (risk.band === 'medium') {
+    return (
+      `สัปดาห์นี้เริ่มแน่นแล้ว (เฉลี่ยจองเวลาไว้ ${Math.round(risk.avgUtilizationPct)}%` +
+      (risk.overdueCount > 0 ? `, มีงานเลยกำหนด ${risk.overdueCount} ชิ้น` : '') +
+      `) ลองเลื่อนงานที่ไม่เร่งด่วนออกไปบ้างนะ`
+    );
+  }
+  return (
+    `ตอนนี้ภาระงานหนักเกินตัวแล้ว (เฉลี่ยจองเวลาไว้ ${Math.round(risk.avgUtilizationPct)}% และมีวันที่งานล้นถึง ${risk.overloadDays} วัน)` +
+    (risk.overdueCount > 0 ? ` มีงานเลยกำหนดสะสม ${risk.overdueCount} ชิ้นด้วย` : '') +
+    ` ลองจัดลำดับความสำคัญใหม่และพักบ้างนะ ก่อนจะหมดไฟ`
   );
 }

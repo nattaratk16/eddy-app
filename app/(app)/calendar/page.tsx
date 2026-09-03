@@ -325,7 +325,10 @@ function CalendarPageContent() {
   }
 
   function openEditModal(ev: CalendarEvent) {
-    if (ev.source === 'google' || ev.source === 'recurring') return; // อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ
+    // อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ
+    // isDeadline: แก้ผ่านฟอร์ม event ตรงๆ จะไม่ย้อนไปอัปเดต Task.dueDate/dueTime
+    // แล้วรอบซิงก์ถัดไปจะเขียนทับกลับเป็นค่าเดิม ต้องแก้ที่หน้า To-do เท่านั้น
+    if (ev.source === 'google' || ev.source === 'recurring' || ev.isDeadline) return;
     setModalState({ open: true, editing: ev });
   }
 

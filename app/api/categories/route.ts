@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { guessCategoryKind, isCategoryKind } from '@/lib/categoryKind';
 import type { CalendarCategory } from '@/lib/types';
 
-function serialize(cat: { id: string; name: string; color: string; shared: boolean }): CalendarCategory {
-  return { id: cat.id, name: cat.name, color: cat.color as CalendarCategory['color'], shared: cat.shared };
+function serialize(cat: { id: string; name: string; color: string; shared: boolean; kind: string }): CalendarCategory {
+  return {
+    id: cat.id,
+    name: cat.name,
+    color: cat.color as CalendarCategory['color'],
+    shared: cat.shared,
+    kind: isCategoryKind(cat.kind) ? cat.kind : 'non_academic',
+  };
 }
 
 export async function GET() {
@@ -25,8 +32,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   if (!body?.name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
+  // เดาวิชาการ/ไม่ใช่วิชาการจากชื่อไว้ก่อน - ผู้ใช้แก้เองได้ทีหลังถ้าเดาผิด (ดู lib/categoryKind.ts)
   const category = await prisma.category.create({
-    data: { name: body.name, color: body.color ?? 'blue', userId: session.user.id },
+    data: { name: body.name, color: body.color ?? 'blue', kind: guessCategoryKind(body.name), userId: session.user.id },
   });
 
   return NextResponse.json({ category: serialize(category) }, { status: 201 });

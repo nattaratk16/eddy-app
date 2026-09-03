@@ -125,7 +125,8 @@ async function adviseSlot(userId: string, date: string, startTime: string | null
 
   const [dayEvents, recurringRows, profile] = await Promise.all([
     prisma.event.findMany({
-      where: { userId, date: { gte: from, lt: to } },
+      // หมุดกำหนดส่งไม่ใช่เวลาไม่ว่าง ไม่ต้องเอามาเสนอเป็น "ชนกัน" หรือทำให้วันดูแน่นเกินจริง
+      where: { userId, date: { gte: from, lt: to }, isDeadline: false },
       select: { title: true, date: true, startTime: true, endTime: true },
     }),
     prisma.recurringEvent.findMany({ where: { userId } }),

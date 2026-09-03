@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
   const [sameDayEventsRaw, categoriesRaw, user, recurringRaw] = await Promise.all([
     prisma.event.findMany({
       // eventId = กิจกรรมที่กำลังแก้ไขอยู่ (ถ้ามี) - ต้องไม่เอามาเทียบกับตัวเอง ไม่งั้นจะโดนมองว่า "ชนกับตัวเอง"
-      where: { userId, date: { gte: dayStart, lt: dayEnd }, ...(eventId && { id: { not: eventId } }) },
+      // isDeadline:false - หมุดกำหนดส่งมีระยะเวลา 0 นาที ไม่ถือเป็นเวลาที่ถูกจอง เพิ่มกิจกรรมทับได้ตามปกติ
+      where: { userId, date: { gte: dayStart, lt: dayEnd }, isDeadline: false, ...(eventId && { id: { not: eventId } }) },
     }),
     prisma.category.findMany({ where: { userId } }),
     prisma.user.findUnique({ where: { id: userId }, select: { role: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),

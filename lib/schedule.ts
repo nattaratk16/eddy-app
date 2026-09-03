@@ -29,8 +29,16 @@ export { todayISOBangkok, buildDateWindow, nowMinutesBangkok } from './thaiTime'
  *
  * คืน Map<userId, FreeSlot[]> โดย slot ของวันแรกจะถูกตัดไม่ให้ย้อนหลังกว่าเวลาปัจจุบัน
  * (อาร์เรย์ที่คืนมาแก้ไขได้ - placeTask จะ mutate เพื่อกันงานถัดไปวางทับ)
+ *
+ * excludeEventIds: event ที่ไม่ต้องนับว่า "ไม่ว่าง"
+ *   ใช้ตอนจัดตารางใหม่ให้สิ่งที่อยู่บนปฏิทินอยู่แล้ว - ถ้าไม่ยกเว้น มันจะเห็นบล็อกของตัวเอง
+ *   เป็นเวลาไม่ว่าง แล้วหนีตัวเองไปเรื่อยๆ ทั้งที่ตารางไม่ได้เปลี่ยนอะไรเลย
  */
-export async function freeSlotsForUsers(userIds: string[], dates: string[]): Promise<Map<string, FreeSlot[]>> {
+export async function freeSlotsForUsers(
+  userIds: string[],
+  dates: string[],
+  options?: { excludeEventIds?: string[] },
+): Promise<Map<string, FreeSlot[]>> {
   const result = new Map<string, FreeSlot[]>();
   if (userIds.length === 0 || dates.length === 0) return result;
 
@@ -40,7 +48,15 @@ export async function freeSlotsForUsers(userIds: string[], dates: string[]): Pro
   const [users, events, recurringRows] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, dayStart: true, dayEnd: true } }),
     prisma.event.findMany({
-      where: { userId: { in: userIds }, date: { gte: windowStart, lt: windowEnd } },
+      where: {
+        userId: { in: userIds },
+        date: { gte: windowStart, lt: windowEnd },
+        // หมุดกำหนดส่งไม่ใช่เวลาไม่ว่าง (ระยะเวลา 0 นาที ผู้ใช้ยังลงมือทำอย่างอื่นได้ตามปกติ)
+        isDeadline: false,
+        ...(options?.excludeEventIds && options.excludeEventIds.length > 0
+          ? { id: { notIn: options.excludeEventIds } }
+          : {}),
+      },
       select: { userId: true, date: true, startTime: true, endTime: true },
     }),
     prisma.recurringEvent.findMany({ where: { userId: { in: userIds } } }),

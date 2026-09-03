@@ -6,30 +6,63 @@ interface PastelColorOption {
   swatchClass: string; // ใช้ตอนเลือกสีในฟอร์ม (พื้นหลังเข้มขึ้นนิดให้เห็นสีชัด)
   chipClass: string; // ใช้แสดงเป็น chip บนปฏิทิน/รายการ (พื้นอ่อน + ตัวอักษรเข้ม)
   dotClass: string; // จุดกลมเล็กแสดงสีหมวดหมู่
+  strokeClass: string; // เส้น SVG (เช่น เสี้ยวโดนัทกราฟสัดส่วนเวลา) - สีเดียวกับ dotClass
 }
 
 // ห้ามต่อ string เอง เช่น `bg-pastel-${color}` เพราะ Tailwind ต้องเห็น class แบบเต็มตอน build
 // 6 สีแรกเป็นค่าดั้งเดิม (ห้ามแก้ไข ไม่งั้นหมวดหมู่เก่าที่ผู้ใช้สร้างไว้จะเปลี่ยนสีไปเอง)
 // 10 สีที่เหลือสร้าง+ตรวจสอบผ่าน dataviz skill (categorical color validator) เพื่อให้แยกแยะง่าย
 export const PASTEL_COLORS: PastelColorOption[] = [
-  { value: 'pink', label: 'ชมพู', swatchClass: 'bg-pastel-pink-dark', chipClass: 'bg-pastel-pink text-eddy-700', dotClass: 'bg-pastel-pink-dark' },
-  { value: 'yellow', label: 'เหลือง', swatchClass: 'bg-pastel-yellow-dark', chipClass: 'bg-pastel-yellow text-eddy-700', dotClass: 'bg-pastel-yellow-dark' },
-  { value: 'mint', label: 'มิ้นท์', swatchClass: 'bg-pastel-mint-dark', chipClass: 'bg-pastel-mint text-eddy-700', dotClass: 'bg-pastel-mint-dark' },
-  { value: 'blue', label: 'ฟ้า', swatchClass: 'bg-pastel-blue-dark', chipClass: 'bg-pastel-blue text-eddy-700', dotClass: 'bg-pastel-blue-dark' },
-  { value: 'peach', label: 'พีช', swatchClass: 'bg-pastel-peach-dark', chipClass: 'bg-pastel-peach text-eddy-700', dotClass: 'bg-pastel-peach-dark' },
-  { value: 'lilac', label: 'ม่วงอ่อน', swatchClass: 'bg-pastel-lilac-dark', chipClass: 'bg-pastel-lilac text-eddy-700', dotClass: 'bg-pastel-lilac-dark' },
-  { value: 'amber', label: 'อำพัน', swatchClass: 'bg-pastel-amber-dark', chipClass: 'bg-pastel-amber text-eddy-700', dotClass: 'bg-pastel-amber-dark' },
-  { value: 'lime', label: 'เขียวมะนาว', swatchClass: 'bg-pastel-lime-dark', chipClass: 'bg-pastel-lime text-eddy-700', dotClass: 'bg-pastel-lime-dark' },
-  { value: 'olive', label: 'เขียวมะกอก', swatchClass: 'bg-pastel-olive-dark', chipClass: 'bg-pastel-olive text-eddy-700', dotClass: 'bg-pastel-olive-dark' },
-  { value: 'teal', label: 'เขียวมรกต', swatchClass: 'bg-pastel-teal-dark', chipClass: 'bg-pastel-teal text-eddy-700', dotClass: 'bg-pastel-teal-dark' },
-  { value: 'sky', label: 'ฟ้าอมเขียว', swatchClass: 'bg-pastel-sky-dark', chipClass: 'bg-pastel-sky text-eddy-700', dotClass: 'bg-pastel-sky-dark' },
-  { value: 'indigo', label: 'น้ำเงินอมม่วง', swatchClass: 'bg-pastel-indigo-dark', chipClass: 'bg-pastel-indigo text-eddy-700', dotClass: 'bg-pastel-indigo-dark' },
-  { value: 'violet', label: 'ม่วง', swatchClass: 'bg-pastel-violet-dark', chipClass: 'bg-pastel-violet text-eddy-700', dotClass: 'bg-pastel-violet-dark' },
-  { value: 'plum', label: 'มัลเบอร์รี่', swatchClass: 'bg-pastel-plum-dark', chipClass: 'bg-pastel-plum text-eddy-700', dotClass: 'bg-pastel-plum-dark' },
-  { value: 'coral', label: 'ส้มอมชมพู', swatchClass: 'bg-pastel-coral-dark', chipClass: 'bg-pastel-coral text-eddy-700', dotClass: 'bg-pastel-coral-dark' },
-  { value: 'rose', label: 'กุหลาบ', swatchClass: 'bg-pastel-rose-dark', chipClass: 'bg-pastel-rose text-eddy-700', dotClass: 'bg-pastel-rose-dark' },
+  { value: 'pink', label: 'ชมพู', swatchClass: 'bg-pastel-pink-dark', chipClass: 'bg-pastel-pink text-eddy-700', dotClass: 'bg-pastel-pink-dark', strokeClass: 'stroke-pastel-pink-dark' },
+  { value: 'yellow', label: 'เหลือง', swatchClass: 'bg-pastel-yellow-dark', chipClass: 'bg-pastel-yellow text-eddy-700', dotClass: 'bg-pastel-yellow-dark', strokeClass: 'stroke-pastel-yellow-dark' },
+  { value: 'mint', label: 'มิ้นท์', swatchClass: 'bg-pastel-mint-dark', chipClass: 'bg-pastel-mint text-eddy-700', dotClass: 'bg-pastel-mint-dark', strokeClass: 'stroke-pastel-mint-dark' },
+  { value: 'blue', label: 'ฟ้า', swatchClass: 'bg-pastel-blue-dark', chipClass: 'bg-pastel-blue text-eddy-700', dotClass: 'bg-pastel-blue-dark', strokeClass: 'stroke-pastel-blue-dark' },
+  { value: 'peach', label: 'พีช', swatchClass: 'bg-pastel-peach-dark', chipClass: 'bg-pastel-peach text-eddy-700', dotClass: 'bg-pastel-peach-dark', strokeClass: 'stroke-pastel-peach-dark' },
+  { value: 'lilac', label: 'ม่วงอ่อน', swatchClass: 'bg-pastel-lilac-dark', chipClass: 'bg-pastel-lilac text-eddy-700', dotClass: 'bg-pastel-lilac-dark', strokeClass: 'stroke-pastel-lilac-dark' },
+  { value: 'amber', label: 'อำพัน', swatchClass: 'bg-pastel-amber-dark', chipClass: 'bg-pastel-amber text-eddy-700', dotClass: 'bg-pastel-amber-dark', strokeClass: 'stroke-pastel-amber-dark' },
+  { value: 'lime', label: 'เขียวมะนาว', swatchClass: 'bg-pastel-lime-dark', chipClass: 'bg-pastel-lime text-eddy-700', dotClass: 'bg-pastel-lime-dark', strokeClass: 'stroke-pastel-lime-dark' },
+  { value: 'olive', label: 'เขียวมะกอก', swatchClass: 'bg-pastel-olive-dark', chipClass: 'bg-pastel-olive text-eddy-700', dotClass: 'bg-pastel-olive-dark', strokeClass: 'stroke-pastel-olive-dark' },
+  { value: 'teal', label: 'เขียวมรกต', swatchClass: 'bg-pastel-teal-dark', chipClass: 'bg-pastel-teal text-eddy-700', dotClass: 'bg-pastel-teal-dark', strokeClass: 'stroke-pastel-teal-dark' },
+  { value: 'sky', label: 'ฟ้าอมเขียว', swatchClass: 'bg-pastel-sky-dark', chipClass: 'bg-pastel-sky text-eddy-700', dotClass: 'bg-pastel-sky-dark', strokeClass: 'stroke-pastel-sky-dark' },
+  { value: 'indigo', label: 'น้ำเงินอมม่วง', swatchClass: 'bg-pastel-indigo-dark', chipClass: 'bg-pastel-indigo text-eddy-700', dotClass: 'bg-pastel-indigo-dark', strokeClass: 'stroke-pastel-indigo-dark' },
+  { value: 'violet', label: 'ม่วง', swatchClass: 'bg-pastel-violet-dark', chipClass: 'bg-pastel-violet text-eddy-700', dotClass: 'bg-pastel-violet-dark', strokeClass: 'stroke-pastel-violet-dark' },
+  { value: 'plum', label: 'มัลเบอร์รี่', swatchClass: 'bg-pastel-plum-dark', chipClass: 'bg-pastel-plum text-eddy-700', dotClass: 'bg-pastel-plum-dark', strokeClass: 'stroke-pastel-plum-dark' },
+  { value: 'coral', label: 'ส้มอมชมพู', swatchClass: 'bg-pastel-coral-dark', chipClass: 'bg-pastel-coral text-eddy-700', dotClass: 'bg-pastel-coral-dark', strokeClass: 'stroke-pastel-coral-dark' },
+  { value: 'rose', label: 'กุหลาบ', swatchClass: 'bg-pastel-rose-dark', chipClass: 'bg-pastel-rose text-eddy-700', dotClass: 'bg-pastel-rose-dark', strokeClass: 'stroke-pastel-rose-dark' },
 ];
 
 export function getColorOption(color: PastelColor): PastelColorOption {
   return PASTEL_COLORS.find((c) => c.value === color) ?? PASTEL_COLORS[3];
+}
+
+/**
+ * สีประจำงานหนึ่งชิ้น - คำนวณจาก id ของงาน
+ *
+ * "สุ่ม" แต่คงที่: id เดิมได้สีเดิมเสมอ
+ *   - ขั้นตอนย่อยของงานเดียวกันจึงได้สีเดียวกัน (ส่งค่า taskId ของงานแม่เข้ามา)
+ *   - จัดลงปฏิทินใหม่กี่ครั้งสีก็ไม่เปลี่ยน
+ *   - ไม่ต้องเก็บ state อะไรเพิ่ม
+ *
+ * ใช้ FNV-1a ซึ่งกระจายค่าดีพอสำหรับงานนี้และเขียนสั้น (ไม่ต้องพึ่ง lib ภายนอก)
+ */
+export function colorForTask(taskId: string): PastelColor {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < taskId.length; i++) {
+    hash ^= taskId.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return PASTEL_COLORS[hash % PASTEL_COLORS.length].value;
+}
+
+/**
+ * สีที่ใช้แสดง event หนึ่งใบ
+ * event ที่มีสีของตัวเอง (งานจาก To-do) ใช้สีนั้น ที่เหลือใช้สีของหมวดหมู่ตามเดิม
+ */
+export function getEventColor(
+  eventColor: string | null | undefined,
+  categoryColor: PastelColor | null | undefined,
+): PastelColorOption | null {
+  const value = (eventColor ?? categoryColor) as PastelColor | undefined;
+  if (!value) return null;
+  return getColorOption(value);
 }

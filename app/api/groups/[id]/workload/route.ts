@@ -10,8 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
-import { buildDateWindow } from '@/lib/schedule';
+import { buildDateWindow, nowMinutesBangkok, todayISOBangkok } from '@/lib/schedule';
 import { computeGroupWorkload } from '@/lib/groupWorkload';
+import { computeDailyAverageLoad } from '@/lib/workload';
 
 const WINDOW_DAYS = 7;
 
@@ -28,17 +29,21 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     where: { groupId: params.id, status: 'accepted' },
     include: { user: { select: { id: true, name: true, email: true, dayStart: true, dayEnd: true } } },
   });
-  if (members.length === 0) return NextResponse.json({ days: WINDOW_DAYS, workload: [] });
+  if (members.length === 0) return NextResponse.json({ days: WINDOW_DAYS, workload: [], trend: [] });
 
   const dates = buildDateWindow(WINDOW_DAYS);
-  const { workloadByUser } = await computeGroupWorkload(
-    members.map((m) => m.userId),
-    dates,
-    members.map((m) => ({ userId: m.userId, dayStart: m.user.dayStart, dayEnd: m.user.dayEnd })),
-  );
+  const memberPrefs = members.map((m) => ({ userId: m.userId, dayStart: m.user.dayStart, dayEnd: m.user.dayEnd }));
+  const { slotsByUser, workloadByUser } = await computeGroupWorkload(members.map((m) => m.userId), dates, memberPrefs);
+
+  // แนวโน้มภาระงานเฉลี่ยของทั้งกลุ่มรายวัน - กราฟเส้นแยกจากกราฟแท่งรายคนด้านบน (ดูหน้ากลุ่ม)
+  const trend = computeDailyAverageLoad(slotsByUser, memberPrefs, dates, {
+    date: todayISOBangkok(),
+    nowMin: nowMinutesBangkok(),
+  });
 
   return NextResponse.json({
     days: WINDOW_DAYS,
+    trend,
     workload: members.map((m) => {
       const w = workloadByUser.get(m.userId)!;
       return {
@@ -50,6 +55,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         pendingMinutes: w.pendingMinutes,
         freeMinutes: w.freeMinutes,
         assignedMinutes: 0,
+        academicMinutes: w.academicMinutes,
+        nonAcademicMinutes: w.nonAcademicMinutes,
         score: Number.isFinite(w.score) ? Number(w.score.toFixed(2)) : null,
       };
     }),

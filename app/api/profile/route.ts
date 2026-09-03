@@ -8,6 +8,15 @@ const BIO_MAX = 500; // "เกี่ยวกับฉัน/นิสัย" �
 const VALID_COLORS = new Set(PASTEL_COLORS.map((c) => c.value));
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+// ช่วงที่ยอมรับได้ - ไม่ผูกกับตัวเลือกสำเร็จรูปอีกต่อไป ผู้ใช้พิมพ์เองได้ในกรอบนี้
+// (15-240 ตรงกับ MIN_STEP_MINUTES/MAX_STEP_MINUTES ที่ lib/gemini.ts ใช้บังคับขนาดขั้นตอนย่อยอยู่แล้ว
+// ตั้งเกินเพดานนี้ไปก็ไม่มีผลเพิ่มเติม เลยจำกัดไว้ตรงนี้ให้ตรงกับพฤติกรรมจริง)
+const MIN_FOCUS_MINUTES = 15;
+const MAX_FOCUS_MINUTES = 240;
+const MIN_BUFFER_MINUTES = 0;
+const MAX_BUFFER_MINUTES = 120;
+const MAX_SKILLS = 20;
+const SKILL_MAX_LEN = 40;
 
 export async function PATCH(req: NextRequest) {
   const session = await auth();
@@ -48,6 +57,54 @@ export async function PATCH(req: NextRequest) {
       const t = body[key].trim();
       if (t && !TIME_RE.test(t)) return NextResponse.json({ error: 'รูปแบบเวลาไม่ถูกต้อง (HH:mm)' }, { status: 400 });
       data[key] = t || null;
+    }
+  }
+
+  if (body.skills !== undefined) {
+    const rawSkills: unknown[] | null = Array.isArray(body.skills) ? body.skills : null;
+    if (!rawSkills) {
+      return NextResponse.json({ error: 'รูปแบบทักษะไม่ถูกต้อง' }, { status: 400 });
+    }
+    const trimmed: string[] = rawSkills
+      .filter((s): s is string => typeof s === 'string')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && s.length <= SKILL_MAX_LEN);
+    data.skills = [...new Set(trimmed)].slice(0, MAX_SKILLS);
+  }
+
+  if (body.maxFocusMinutes !== undefined) {
+    if (body.maxFocusMinutes === null) {
+      data.maxFocusMinutes = null;
+    } else if (
+      typeof body.maxFocusMinutes !== 'number' ||
+      !Number.isInteger(body.maxFocusMinutes) ||
+      body.maxFocusMinutes < MIN_FOCUS_MINUTES ||
+      body.maxFocusMinutes > MAX_FOCUS_MINUTES
+    ) {
+      return NextResponse.json(
+        { error: `ระยะเวลาโฟกัสต้องอยู่ระหว่าง ${MIN_FOCUS_MINUTES}-${MAX_FOCUS_MINUTES} นาที` },
+        { status: 400 },
+      );
+    } else {
+      data.maxFocusMinutes = body.maxFocusMinutes;
+    }
+  }
+
+  if (body.bufferMinutes !== undefined) {
+    if (body.bufferMinutes === null) {
+      data.bufferMinutes = null;
+    } else if (
+      typeof body.bufferMinutes !== 'number' ||
+      !Number.isInteger(body.bufferMinutes) ||
+      body.bufferMinutes < MIN_BUFFER_MINUTES ||
+      body.bufferMinutes > MAX_BUFFER_MINUTES
+    ) {
+      return NextResponse.json(
+        { error: `เวลาเว้นช่วงพักต้องอยู่ระหว่าง ${MIN_BUFFER_MINUTES}-${MAX_BUFFER_MINUTES} นาที` },
+        { status: 400 },
+      );
+    } else {
+      data.bufferMinutes = body.bufferMinutes;
     }
   }
 

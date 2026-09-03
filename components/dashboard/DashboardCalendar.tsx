@@ -25,11 +25,11 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
-import { ArrowRight, CalendarDays } from 'lucide-react';
+import { ArrowRight, CalendarDays, Flag } from 'lucide-react';
 import clsx from 'clsx';
 import Modal from '@/components/Modal';
 import DayTimeline from '@/components/calendar/DayTimeline';
-import { getColorOption } from '@/lib/colors';
+import { getEventColor } from '@/lib/colors';
 import { timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
@@ -150,12 +150,23 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
                 <span className="flex w-full min-w-0 flex-col gap-0.5">
                   {list.slice(0, MAX_CHIPS).map((ev) => {
                     const cat = categoryOf(ev);
-                    const color = cat ? getColorOption(cat.color) : null;
+                    const color = getEventColor(ev.color, cat?.color);
                     return (
-                      <span key={ev.id} className="flex w-full min-w-0 items-center gap-1 font-body text-[11px] text-ink">
-                        <span
-                          className={clsx('h-1.5 w-1.5 flex-shrink-0 rounded-full', color ? color.dotClass : 'bg-eddy-300')}
-                        />
+                      <span
+                        key={ev.id}
+                        className={clsx(
+                          'flex w-full min-w-0 items-center gap-1 font-body text-[11px]',
+                          ev.isDeadline ? 'font-semibold text-eddy-700' : 'text-ink',
+                        )}
+                      >
+                        {/* หมุดกำหนดส่งใช้ไอคอนธงแทนจุดสี - แยกจาก event/งานจริงตั้งแต่แรกเห็น */}
+                        {ev.isDeadline ? (
+                          <Flag size={10} className="flex-shrink-0 text-eddy-700" />
+                        ) : (
+                          <span
+                            className={clsx('h-1.5 w-1.5 flex-shrink-0 rounded-full', color ? color.dotClass : 'bg-eddy-300')}
+                          />
+                        )}
                         {ev.startTime && <span className="flex-shrink-0 text-ink-muted">{ev.startTime}</span>}
                         <span className="truncate">{ev.title}</span>
                       </span>

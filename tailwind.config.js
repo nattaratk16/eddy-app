@@ -81,6 +81,19 @@ module.exports = {
           tight: '#F0682B',
           full: '#C81E24',
         },
+        // Academic vs Non-Academic ในกราฟภาระงานกลุ่ม (WorkloadPanel) - คนละความหมายกับ `load` ข้างบน
+        // (load = ระดับความแน่นของตาราง, kind = ประเภทของงานที่ครองเวลานั้น) เลยตั้งใจเลือกคู่สีคนละโทน
+        // ผ่าน validator ของ dataviz skill ครบทุกข้อ (lightness band / chroma / CVD ΔE 18.2 / contrast >= 3:1)
+        kind: {
+          academic: '#4C6FE0',
+          nonAcademic: '#E85D75',
+        },
+        // กราฟวงกลม Eisenhower วันนี้ (สำคัญ vs ไม่สำคัญ ของงานด่วน) - คนละความหมายกับ load/kind ข้างบน
+        // ผ่าน validator ของ dataviz skill ครบทุกข้อ (chroma >= 0.1 / CVD ΔE 31-32 / contrast >= 3:1)
+        eisenhower: {
+          important: '#8544E0',
+          routine: '#C46F1E',
+        },
         // สีเสริมจากพาเลตมาสคอต - ใช้เป็นจุดเน้นเล็กๆ (ป้าย, ไฮไลต์, ประกายมาสคอต)
         // ชื่อ gold คงไว้เพราะมีที่เรียกใช้อยู่ แต่ค่าจริงเป็นเหลืองของมาสคอตแล้ว
         gold: {
@@ -106,10 +119,13 @@ module.exports = {
         },
       },
       fontFamily: {
-        display: ['var(--font-display)'],
+        // display กับ body เป็น IBM Plex Sans Thai ตระกูลเดียวกัน (ต่างกันแค่น้ำหนัก
+        // ซึ่งกำหนดไว้ใน fontSize role tokens ด้านล่างอยู่แล้ว) จึงชี้มาที่ตัวแปรเดียว
+        // เพื่อไม่ต้องโหลดไฟล์ฟอนต์ซ้ำสองชุด
+        display: ['var(--font-body)'],
         body: ['var(--font-body)'],
         // ฟอนต์กลมมนสำหรับโลโก้/หัวเรื่องหน้าแรก
-        brand: ['var(--font-brand)', 'var(--font-display)'],
+        brand: ['var(--font-brand)', 'var(--font-body)'],
       },
       // สเกลตัวอักษรมาตรฐาน (role-based) — ใช้ text-h1/h2/h3/body/caption แทนการสุ่ม text-xs/sm/lg
       // ผูก line-height + น้ำหนัก + letter-spacing มาให้ในตัว เพื่อให้ทุกหน้าสมดุลเป็นชุดเดียวกัน

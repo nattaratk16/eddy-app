@@ -36,6 +36,9 @@ model User {
   timezone     String? // โซนเวลา IANA เช่น "Asia/Bangkok"
   dayStart     String? // ช่วงเวลาที่สะดวกเริ่ม "HH:mm" - ป้อนให้ AI หาเวลาว่าง
   dayEnd       String? // ช่วงเวลาที่สะดวกจบ "HH:mm"
+  skills          String[] @default([]) // ทักษะ/ความถนัด - AI ใช้จับคู่ตอนแตกงานกลุ่มแล้วมอบหมายให้สมาชิก
+  maxFocusMinutes Int? // ระยะเวลาโฟกัสต่อเนื่องสูงสุด (นาที) - จำกัดขนาดขั้นตอนย่อยตอน AI แตกงาน (ไม่บังคับ)
+  bufferMinutes   Int? // เว้นช่วงพักระหว่างงานที่ AI จัดลงปฏิทินให้ (นาที) - ไม่บังคับ
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   tasks         Task[]
@@ -110,9 +113,18 @@ model Task {
   id        String    @id @default(cuid())
   title     String
   done      Boolean   @default(false)
+  // เวลาที่ติ๊กว่าเสร็จจริงๆ (null = ยังไม่เสร็จ) - แยกจาก updatedAt เพราะ updatedAt เปลี่ยน
+  // ทุกครั้งที่แก้อะไรก็ตาม ไม่ใช่แค่ตอนติ๊กเสร็จ ใช้ตัดหน้า "เสร็จแล้ว" เป็นรายเดือนได้แม่นยำ
+  completedAt DateTime?
   priority  String    @default("medium") // "low" | "medium" | "high"
   category  String?
   dueDate   DateTime?
+  // เวลาส่งของวันกำหนดส่ง "HH:mm" (ไม่บังคับ)
+  // null = ไม่ระบุเวลา -> หมุดกำหนดส่งในปฏิทินจะขึ้นเป็นกิจกรรมทั้งวัน
+  dueTime   String?
+  // วันที่เริ่มลงมือ (ค่าเริ่มต้น = วันที่เพิ่มงาน แต่ผู้ใช้แก้ได้)
+  // ใช้เป็นขอบล่างของช่วงเวลาที่เอ็ดดี้กระจายงานย่อย: startDate -> dueDate
+  startDate DateTime?
   estimatedMinutes Int? // ใช้คำนวณ Priority Score (แกน "ความยาก/ระยะเวลา") - ไม่บังคับกรอก
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -125,7 +137,13 @@ model Task {
   scheduledEventId String? @unique
   scheduledEvent   Event?  @relation("TaskSchedule", fields: [scheduledEventId], references: [id], onDelete: SetNull)
 
+  // หมุด "วันต้องส่ง" ในปฏิทิน — คนละใบกับ scheduledEvent ที่เป็น "ช่วงลงมือทำ"
+  // ขึ้นเฉพาะเมื่อวันกำหนดส่งยังไม่มีกิจกรรมของงานนี้อยู่ (กันซ้ำ)
+  deadlineEventId String? @unique
+  deadlineEvent   Event?  @relation("TaskDeadline", fields: [deadlineEventId], references: [id], onDelete: SetNull)
+
   @@index([userId, done])
+  @@index([userId, completedAt])
 }
 
 // รายการย่อยภายในงานหนึ่งชิ้น (checklist ง่ายๆ - แค่ชื่อ + เสร็จหรือยัง)
@@ -134,9 +152,24 @@ model Subtask {
   title     String
   done      Boolean  @default(false)
   order     Int      @default(0) // ใช้จัดลำดับตอนลากสลับตำแหน่ง - เรียงตามนี้แทน createdAt
+  // แผนว่าควรทำงานย่อยนี้ "เมื่อไหร่" - เอ็ดดี้เสนอให้ตอนแตกงาน แล้วผู้ใช้ปรับแก้เองได้
+  // null = ยังไม่ได้วางแผน (เช่น งานที่ไม่มีกำหนดส่ง หรือผู้ใช้เพิ่มรายการย่อยเอง)
+  plannedDate DateTime?
+  startTime   String? // "HH:mm"
+  endTime     String? // "HH:mm"
+  estimatedMinutes Int? // ความยาวที่เอ็ดดี้ประเมินไว้ ใช้ตอนคำนวณว่าจะวางลงช่องว่างไหน
   createdAt DateTime @default(now())
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId    String
+
+  // ขั้นตอนย่อยที่ถูกวางลงปฏิทินแล้ว (แยก event ของตัวเอง คนละใบกับ event ของงานหลัก)
+  // onDelete: SetNull -> ลบ event ในหน้าปฏิทิน แล้วขั้นตอนนี้กลับมาเป็น "ยังไม่ได้ลงปฏิทิน" เอง
+  scheduledEventId String? @unique
+  scheduledEvent   Event?  @relation("SubtaskSchedule", fields: [scheduledEventId], references: [id], onDelete: SetNull)
+
+  // Prisma ไม่สร้าง index ให้ foreign key อัตโนมัติ - ใส่เองเพราะถูก query ด้วย taskId ตลอด
+  // (findMany/count ในทุกฟังก์ชันของ lib/taskCalendar.ts และ breakdown/plan route)
+  @@index([taskId])
 }
 
 // หมวดหมู่ปฏิทิน เช่น "ปฏิทินการเรียน", "ปฏิทินการออกกำลังกาย"
@@ -144,12 +177,18 @@ model Category {
   id        String   @id @default(cuid())
   name      String
   color     String   @default("blue") // "pink" | "yellow" | "mint" | "blue" | "peach" | "lilac" | "amber" | "lime" | "olive" | "teal" | "sky" | "indigo" | "violet" | "plum" | "coral" | "rose"
+  // "academic" | "non_academic" - เดาอัตโนมัติจากชื่อตอนสร้าง (lib/categoryKind.ts) ผู้ใช้แก้ไขเองได้ภายหลังถ้าเดาผิด
+  // ใช้แยกภาระงานวิชาการ/ไม่ใช่วิชาการในกราฟภาระงานกลุ่ม (WorkloadPanel)
+  kind      String   @default("non_academic")
   shared    Boolean  @default(false) // เฟส 4: เปิดแชร์หมวดหมู่นี้ให้ผู้ใช้คนอื่นเห็นหรือยัง
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   events    Event[]
+
+  // ensureTaskCategory() ใน lib/taskCalendar.ts เช็คหมวดหมู่นี้ทุกครั้งที่ลงปฏิทินจากงาน
+  @@index([userId])
 }
 
 model Event {
@@ -160,6 +199,23 @@ model Event {
   endTime     String?
   location    String?
   description String?
+  // สีเฉพาะของ event นี้ (ทับสีของหมวดหมู่) - null = ใช้สีหมวดหมู่ตามปกติ
+  // ใช้กับงานจาก To-do: แต่ละงานได้สีของตัวเองจะได้ไม่กลืนกันทั้งปฏิทิน
+  color       String?
+
+  // งานใน To-do ที่เป็นต้นทางของ event นี้ (null = ผู้ใช้สร้างเองในปฏิทิน)
+  // เก็บ "ที่มา" ไว้บน event ตรงๆ แทนที่จะพึ่งลิงก์ฝั่ง Task/Subtask อย่างเดียว
+  // เพราะถ้าลิงก์ขาด (เขียนไม่สำเร็จกลางคัน) event จะกลายเป็นกำพร้าที่ตามเก็บไม่ได้เลย
+  // มีคอลัมน์นี้แล้วลบงานทีเดียวเก็บกวาดได้ครบเสมอด้วย query เดียว
+  sourceTaskId String?
+
+  // true = เป็น "หมุดวันต้องส่ง" ไม่ใช่ช่วงเวลาที่ต้องลงมือทำจริง (ระยะเวลา 0 นาที)
+  // ต้องแยกจาก event/งานจริงทั้งฝั่งแสดงผล (ห้ามเป็นกล่องทึบกินพื้นที่สเกลเวลา)
+  // และฝั่งตรรกะ AI/หาเวลาว่าง (ห้ามนับเป็นเวลาไม่ว่างหรือถือว่าตารางชนกัน)
+  isDeadline   Boolean @default(false)
+
+  @@index([userId, sourceTaskId])
+  @@index([userId, isDeadline])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -169,6 +225,10 @@ model Event {
 
   // ฝั่งตรงข้ามของ Task.scheduledEvent (event นี้ถูกสร้างจากงานใน To-do หรือเปล่า)
   scheduledForTask Task? @relation("TaskSchedule")
+  // ฝั่งตรงข้ามของ Subtask.scheduledEvent (event นี้ถูกสร้างจากขั้นตอนย่อยหรือเปล่า)
+  scheduledForSubtask Subtask? @relation("SubtaskSchedule")
+  // ฝั่งตรงข้ามของ Task.deadlineEvent (event นี้เป็นหมุดวันต้องส่งหรือเปล่า)
+  deadlineForTask     Task?    @relation("TaskDeadline")
 
   @@index([userId, date])
 }
@@ -225,7 +285,13 @@ model GroupTask {
   updatedAt        DateTime             @updatedAt
   assignment       GroupTaskAssignment?
 
+  // ติ๊กว่าเสร็จงานจริงหรือยัง - คนละแกนกับ assignment.status (ที่บอกแค่ "ลงปฏิทินหรือยัง")
+  // เฉพาะ assignment.assignedToUserId เท่านั้นที่ติ๊กได้ (ดู PATCH /api/groups/[id]/tasks/[taskId])
+  done        Boolean   @default(false)
+  completedAt DateTime?
+
   @@index([groupId])
+  @@index([groupId, done])
 }
 
 // ผลการมอบหมายงานกลุ่ม (AI เสนอ 1 งาน → 1 คน + ช่วงเวลา) รอสมาชิก approve ลงปฏิทินตัวเอง
@@ -238,6 +304,9 @@ model GroupTaskAssignment {
   startTime        String // "HH:mm"
   endTime          String // "HH:mm"
   status           String    @default("suggested") // "suggested" | "approved" | "rejected"
+  // "auto" (ปุ่มให้เอ็ดดี้จัดตาราง) | "manual" (เลือกเองตอนแตกงาน/จากรายการ)
+  // /distribute จะไม่แตะของที่ source="manual" กันโดนแย่งคืนตอนกด "ให้เอ็ดดี้จัดตาราง" ทีหลัง
+  source           String    @default("auto")
   approvedEventId  String? // event ที่สร้างในปฏิทินส่วนตัวตอน approve (เฟส 3d)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

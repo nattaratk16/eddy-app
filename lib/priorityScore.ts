@@ -54,3 +54,30 @@ export function computePriorityScore(task: Task): number {
   const effort = effortScore(task.estimatedMinutes);
   return importance * WEIGHTS.importance + urgency * WEIGHTS.urgency + effort * WEIGHTS.effort;
 }
+
+// ---------- ลำดับงานที่ล็อกไว้ (ใช้ทั้งหน้า To-do และตอนจัดลงปฏิทิน) ----------
+// เดิมเป็นปุ่มสลับ "เรียงตาม AI แนะนำ" ที่ใช้ Priority Score ด้านบน
+// เปลี่ยนเป็นกฎตายตัวที่ผู้ใช้เดาผลได้: กำหนดส่งมาก่อน แล้วค่อยความสำคัญ
+// (Priority Score ยังอยู่เพราะเป็นสูตรที่อธิบายไว้ใน README และใช้เป็นเกณฑ์อ้างอิงได้)
+const PRIORITY_RANK: Record<Task['priority'], number> = { high: 0, medium: 1, low: 2 };
+
+/**
+ * เปรียบเทียบงานสองชิ้นตามลำดับที่ล็อกไว้
+ *
+ *   1. งานที่มีกำหนดส่ง มาก่อนงานที่ไม่มีกำหนดส่งเสมอ
+ *   2. มีกำหนดส่งทั้งคู่ -> วันที่ใกล้กว่ามาก่อน
+ *   3. กำหนดส่งวันเดียวกัน (หรือไม่มีทั้งคู่) -> ความสำคัญมากกว่ามาก่อน
+ *   4. เท่ากันหมด -> เรียงตามชื่อ เพื่อให้ลำดับคงที่ ไม่สลับไปมาเวลา re-render
+ */
+export function compareTasks(a: Task, b: Task): number {
+  if (a.dueDate && b.dueDate) {
+    if (a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
+  } else if (a.dueDate) {
+    return -1;
+  } else if (b.dueDate) {
+    return 1;
+  }
+  const byPriority = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+  if (byPriority !== 0) return byPriority;
+  return a.title.localeCompare(b.title, 'th');
+}

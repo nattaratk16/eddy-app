@@ -12,8 +12,8 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
-import { Plus } from 'lucide-react';
-import { getColorOption } from '@/lib/colors';
+import { Flag, Plus } from 'lucide-react';
+import { getEventColor } from '@/lib/colors';
 import { timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
@@ -135,7 +135,7 @@ export default function MonthView({
               <div className="flex w-full min-w-0 flex-col gap-0.5">
                 {dayEvents.slice(0, MAX_CHIPS).map((ev) => {
                   const cat = categoryOf(ev);
-                  const color = cat ? getColorOption(cat.color) : null;
+                  const color = getEventColor(ev.color, cat?.color);
                   return (
                     <button
                       key={ev.id}
@@ -143,9 +143,16 @@ export default function MonthView({
                         e.stopPropagation();
                         onEventClick(ev);
                       }}
-                      className="flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left font-body text-[11px] text-ink transition-colors hover:bg-white"
+                      className={`flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left font-body text-[11px] transition-colors hover:bg-white ${
+                        ev.isDeadline ? 'font-semibold text-eddy-700' : 'text-ink'
+                      }`}
                     >
-                      <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${color ? color.dotClass : 'bg-eddy-300'}`} />
+                      {/* หมุดกำหนดส่งใช้ไอคอนธงแทนจุดสี - แยกจาก event/งานจริงตั้งแต่แรกเห็น */}
+                      {ev.isDeadline ? (
+                        <Flag size={10} className="flex-shrink-0 text-eddy-700" />
+                      ) : (
+                        <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${color ? color.dotClass : 'bg-eddy-300'}`} />
+                      )}
                       {ev.startTime && <span className="flex-shrink-0 text-ink-muted">{ev.startTime}</span>}
                       <span className="truncate">{ev.title}</span>
                     </button>

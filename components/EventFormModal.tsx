@@ -67,7 +67,8 @@ export default function EventFormModal({
       setConflict(null);
       return;
     }
-    const sameDay = allEvents.filter((e) => e.date === date);
+    // หมุดกำหนดส่งมีระยะเวลา 0 นาที ไม่ใช่เวลาที่ถูกจอง ไม่ต้องเอามาเช็คว่าชนกัน
+    const sameDay = allEvents.filter((e) => e.date === date && !e.isDeadline);
     setConflict(checkScheduleConflict(startTime, endTime || undefined, sameDay, initialEvent?.id));
   }, [date, startTime, endTime, allEvents, initialEvent?.id]);
 

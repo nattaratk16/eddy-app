@@ -15,6 +15,7 @@ import { ArrowRight, Clock, Crown, ListChecks, LogOut, Sparkles, Trash2, UserChe
 import clsx from 'clsx';
 import Card from '@/components/Card';
 import WorkloadPanel from '@/components/groups/WorkloadPanel';
+import WorkloadTrendChart from '@/components/groups/WorkloadTrendChart';
 import { GROUP_UPDATED_EVENT, notifyGroupUpdated } from '@/lib/groupEvents';
 import type { GroupInfo, GroupTaskInfo } from '@/lib/types';
 
@@ -145,6 +146,11 @@ export default function GroupOverviewPage({ params }: { params: { id: string } }
         {/* กราฟภาระงาน - หัวใจของระบบกลุ่ม ให้พื้นที่ใหญ่สุด */}
         <Card>
           <WorkloadPanel groupId={params.id} />
+        </Card>
+
+        {/* กราฟเส้นแยกต่างหาก - ภาพรวมเฉลี่ยทั้งกลุ่มรายวัน คนละมุมกับกราฟแท่งรายคนด้านบน */}
+        <Card>
+          <WorkloadTrendChart groupId={params.id} />
         </Card>
       </div>
 

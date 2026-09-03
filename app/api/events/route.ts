@@ -14,6 +14,8 @@ function serialize(ev: PrismaEvent): CalendarEvent {
     location: ev.location ?? undefined,
     description: ev.description ?? undefined,
     categoryId: ev.categoryId,
+    color: (ev.color ?? undefined) as CalendarEvent['color'],
+    isDeadline: ev.isDeadline || undefined,
   };
 }
 
