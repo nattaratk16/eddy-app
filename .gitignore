@@ -36,3 +36,8 @@ next-env.d.ts
 /mascottmodel/eddy_LOGO.png
 /mascottmodel/*.mp4
 /แบบที่สนใจ.jpg
+
+# คลิปต้นฉบับ/ภาพหน้าจอที่วางไว้ที่ root ของโปรเจกต์ - แอปไม่ได้เรียกใช้
+# (ของที่แอปใช้จริงอยู่ใน public/ เช่น public/mascot/eddy-duo-wave.webm ที่แปลงมาจากคลิปต้นฉบับ)
+/*.mp4
+/แก้1.png
