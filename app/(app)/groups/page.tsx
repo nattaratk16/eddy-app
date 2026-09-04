@@ -29,6 +29,7 @@ import Modal from '@/components/Modal';
 import Button from '@/components/Button';
 import Reveal from '@/components/motion/Reveal';
 import EddyMascot from '@/components/EddyMascot';
+import EmptyState from '@/components/EmptyState';
 import { PASTEL_COLORS, getColorOption } from '@/lib/colors';
 import type { GroupInfo, GroupInvitation, PastelColor } from '@/lib/types';
 
@@ -250,29 +251,14 @@ export default function GroupsPage() {
         {loading ? (
           <p className="py-10 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>
         ) : groups.length === 0 ? (
-          <Card className="flex flex-col items-center gap-3 py-12 text-center">
-            <EddyMascot mood="think" size={72} />
-            <p className="font-display text-h3 text-ink">ยังไม่มีกลุ่ม</p>
-            <p className="max-w-sm font-body text-sm text-ink-muted">
-              สร้างกลุ่มแล้วชวนเพื่อนมาแชร์ตาราง หรือถ้าเพื่อนส่งรหัสกลุ่มมาให้ ก็กด &quot;เข้าร่วมกลุ่ม&quot; ได้เลย
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                onClick={() => setCreating(true)}
-                className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 !px-5 !py-2.5 hover:!brightness-110"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Plus size={16} /> สร้างกลุ่ม
-                </span>
-              </Button>
-              <button
-                onClick={() => setJoining(true)}
-                className="flex items-center gap-1.5 rounded-full border border-eddy-200 bg-white px-5 py-2.5 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
-              >
-                <KeyRound size={16} /> เข้าร่วมด้วยรหัส
-              </button>
-            </div>
-          </Card>
+          <EmptyState
+            size="full"
+            mood="think"
+            title="ยังไม่มีกลุ่ม"
+            description='สร้างกลุ่มแล้วชวนเพื่อนมาแชร์ตาราง หรือถ้าเพื่อนส่งรหัสกลุ่มมาให้ ก็กด "เข้าร่วมกลุ่ม" ได้เลย'
+            action={{ label: 'สร้างกลุ่ม', icon: <Plus size={16} />, onClick: () => setCreating(true) }}
+            secondaryAction={{ label: 'เข้าร่วมด้วยรหัส', icon: <KeyRound size={16} />, onClick: () => setJoining(true) }}
+          />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((g, i) => (

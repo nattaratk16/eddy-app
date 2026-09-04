@@ -16,6 +16,7 @@ import EditTaskModal, { type TaskEditPatch } from '@/components/EditTaskModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CompletedTasksModal from '@/components/CompletedTasksModal';
 import EddyMascot from '@/components/EddyMascot';
+import EmptyState from '@/components/EmptyState';
 import SortableSubtaskList, { type SubtaskPlanPatch } from '@/components/SortableSubtaskList';
 import { compareTasks } from '@/lib/priorityScore';
 import type { Subtask, Task, TaskPriority } from '@/lib/types';
@@ -156,6 +157,7 @@ export default function TodoPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [newDueDate, setNewDueDate] = useState('');
   const [newDueTime, setNewDueTime] = useState('');
+  const [newEstimatedMinutes, setNewEstimatedMinutes] = useState('');
   // ข้อ 6: ช่องวันที่เริ่ม ค่าเริ่มต้นคือวันที่ผู้ใช้เพิ่มงาน (= วันนี้)
   const [newStartDate, setNewStartDate] = useState(todayISO());
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -405,15 +407,17 @@ export default function TodoPage() {
     const dueTime = newDueDate && newDueTime ? newDueTime : undefined;
     // ข้อ 6: ไม่ได้แตะช่องวันที่เริ่ม = ใช้วันนี้ (วันที่กดเพิ่ม)
     const startDate = newStartDate || todayISO();
+    const estimatedMinutes = newEstimatedMinutes ? Number(newEstimatedMinutes) : undefined;
     setNewDueDate('');
     setNewDueTime('');
     setNewStartDate(todayISO());
+    setNewEstimatedMinutes('');
     setShowDetails(false);
 
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, priority: newPriority, dueDate, dueTime, startDate }),
+      body: JSON.stringify({ title, priority: newPriority, dueDate, dueTime, startDate, estimatedMinutes }),
     });
     const data = await res.json();
     if (!res.ok) return;
@@ -919,6 +923,23 @@ export default function TodoPage() {
                     </p>
                   </div>
                 </div>
+                <div className="flex-1">
+                  <label className="mb-1 block font-body text-xs text-ink-muted" htmlFor="new-estimated-minutes">
+                    เวลาโดยประมาณ (นาที)
+                  </label>
+                  <input
+                    id="new-estimated-minutes"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={5}
+                    value={newEstimatedMinutes}
+                    onChange={(e) => setNewEstimatedMinutes(e.target.value)}
+                    placeholder="เช่น 60"
+                    className="w-full rounded-clay-sm bg-eddy-50 px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
+                  />
+                  <p className="mt-1 font-body text-[11px] text-ink-muted">ไม่บังคับ - ใช้คำนวณตอนเอ็ดดี้จัดงานลงปฏิทินให้</p>
+                </div>
               </div>
             ) : (
               <button
@@ -926,7 +947,7 @@ export default function TodoPage() {
                 onClick={() => setShowDetails(true)}
                 className="self-start font-body text-xs font-semibold text-eddy-600 hover:underline"
               >
-                + เพิ่มรายละเอียด (วันที่เริ่ม / กำหนดส่ง / เวลาส่ง)
+                + เพิ่มรายละเอียด (วันที่เริ่ม / กำหนดส่ง / เวลาส่ง / เวลาโดยประมาณ)
               </button>
             )}
           </form>
@@ -1136,12 +1157,10 @@ export default function TodoPage() {
           {/* Task list */}
           <div className="mt-5 flex flex-col gap-3">
             {visibleTasks.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-8 text-center">
-                <EddyMascot mood={doneCount > 0 ? 'celebrate' : 'happy'} size={64} float={false} />
-                <p className="font-body text-sm text-ink-soft">
-                  {doneCount > 0 && tasks.length === 0 ? 'เคลียร์งานหมดแล้ว เก่งมาก!' : 'ยังไม่มีสิ่งที่ต้องทำ — เพิ่มงานแรกได้เลย'}
-                </p>
-              </div>
+              <EmptyState
+                mood={doneCount > 0 ? 'celebrate' : 'happy'}
+                title={doneCount > 0 && tasks.length === 0 ? 'เคลียร์งานหมดแล้ว เก่งมาก!' : 'ยังไม่มีสิ่งที่ต้องทำ — เพิ่มงานแรกได้เลย'}
+              />
             )}
             {visibleTasks.map((task) => {
               const priority = priorityOptions.find((p) => p.value === task.priority)!;
