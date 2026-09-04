@@ -25,3 +25,12 @@ next-env.d.ts
 # local tooling / logs
 .claude/
 *.log
+
+# ไฟล์ต้นฉบับงานออกแบบก้อนใหญ่ + บันทึกการทำงานส่วนตัว
+# (ของที่แอปใช้จริงถูก export/ตัดออกมาไว้ใน public/icons, public/mascot และ app/icon.png แล้ว)
+/Work Summary/
+/mascottmodel/ICON PNG/
+/mascottmodel/ICON.png
+/mascottmodel/eddy_LOGO.png
+/mascottmodel/*.mp4
+/แบบที่สนใจ.jpg
