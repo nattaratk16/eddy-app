@@ -1,45 +1,17 @@
-const crypto = require('crypto');
-const os = require('os');
-const path = require('path');
-
-/**
- * โปรเจกต์นี้วางอยู่บนไดรฟ์ E: ซึ่งเป็นฮาร์ดดิสก์ต่อผ่าน USB (ASMT 2115)
- * การอ่านไฟล์เล็กๆ จำนวนมากบน USB ช้ากว่า NVMe ภายในเครื่องราว 30 เท่า
- * (วัดจริง: อ่าน 400 ไฟล์ = 1844ms บน E: เทียบกับ 62ms บน C:)
- *
- * webpack ต้องอ่าน/เขียน cache ก้อนใหญ่ (หลักร้อย MB) ทุกครั้งที่เริ่ม dev server
- * ถ้าปล่อยให้ cache อยู่ใน .next/cache บน USB ตัวมันเองจะกลายเป็นคอขวด
- * เลยย้าย cache ไปไว้บนไดรฟ์ระบบ (temp) เมื่อพบว่าโปรเจกต์อยู่คนละไดรฟ์กัน
- *
- * ตั้ง NEXT_WEBPACK_CACHE_DIR เองได้ถ้าอยากกำหนดที่เก็บ / ตั้งเป็น 'off' เพื่อปิดพฤติกรรมนี้
- */
-function fastCacheDir() {
-  const override = process.env.NEXT_WEBPACK_CACHE_DIR;
-  if (override) return override === 'off' ? null : override;
-
-  const tmp = os.tmpdir();
-  // เทียบเฉพาะกรณีที่ path มี drive letter (Windows) — บน Linux/mac จะ parse ได้ค่าว่างทั้งคู่ แล้วข้ามไป
-  const projectDrive = path.parse(process.cwd()).root.toLowerCase();
-  const tmpDrive = path.parse(tmp).root.toLowerCase();
-  if (!projectDrive || projectDrive === tmpDrive) return null;
-
-  // ใส่ hash ของ path เต็มด้วย ไม่งั้นโปรเจกต์คนละที่ที่ชื่อโฟลเดอร์เหมือนกัน
-  // (เช่น git worktree หรือสำเนาบน C:) จะใช้ cache ก้อนเดียวกันแล้วตีกัน
-  const key = crypto.createHash('sha1').update(process.cwd()).digest('hex').slice(0, 8);
-  return path.join(tmp, 'nextjs-cache', `${path.basename(process.cwd())}-${key}`);
-}
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
-  webpack: (config, { dev }) => {
-    const dir = dev && fastCacheDir();
-    if (dir && config.cache && config.cache.type === 'filesystem') {
-      config.cache.cacheDirectory = dir;
-    }
-    return config;
-  },
 };
+
+/*
+ * เคยมี webpack.cache.cacheDirectory ย้าย cache ไปไว้บนไดรฟ์ระบบตรงนี้
+ * เขียนไว้ตอนโปรเจกต์อยู่บนไดรฟ์ E: ซึ่งเป็นฮาร์ดดิสก์ต่อ USB (อ่านไฟล์เล็กๆ ช้ากว่า NVMe ~30 เท่า)
+ * ตอนนี้โปรเจกต์ย้ายมาอยู่ D: ซึ่งเป็นพาร์ทิชันบน NVMe ตัวเดียวกับ C: แล้ว จึงไม่ได้เร็วขึ้นอีกต่อไป
+ * แถมยังมีผลเสีย 2 ข้อ เลยเอาออก:
+ *   1. cache ก้อน ~180 MB ไปกองใน %TEMP% ซึ่ง Windows (Storage Sense / Disk Cleanup) ลบทิ้งได้เอง
+ *      พอโดนลบ dev server ต้องคอมไพล์ใหม่ทั้งโปรเจกต์ กลายเป็น "อยู่ดีๆ ก็ช้า" แบบไม่มีสาเหตุให้เห็น
+ *   2. การมี webpack config อยู่ทำให้เปิด Turbopack ไม่ได้ (Next เตือนแล้วข้าม config นี้ไป)
+ * ถ้าย้ายโปรเจกต์กลับไปอยู่บนไดรฟ์ที่ช้ากว่าไดรฟ์ระบบอีก ค่อยเอาโค้ดเดิมกลับมาจาก git history
+ */
 
 module.exports = nextConfig;

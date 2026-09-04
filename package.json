@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev",
+    "dev": "next dev --turbopack",
+    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "backfill:category-kind": "node scripts/backfill-category-kind.mjs"
+    "backfill:category-kind": "node scripts/backfill-category-kind.mjs",
+    "dev:webpack": "next dev"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
