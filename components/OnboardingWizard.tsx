@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, ArrowLeft, Check, CalendarDays, ListChecks, MessageCircle, Users } from 'lucide-react';
-import SkyBackground from '@/components/SkyBackground';
+import { ArrowRight, ArrowLeft, Check, CalendarDays, ListChecks, MessageCircle, Users } from 'lucide-react';
+import AuthLayout from '@/components/auth/AuthLayout';
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_EMOJI, type UserRole } from '@/lib/roles';
 
 const ROLES: UserRole[] = ['school', 'university', 'working'];
@@ -46,20 +47,19 @@ export default function OnboardingWizard() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-8">
-      <SkyBackground />
-
-      {/* ปุ่มข้าม */}
-      <button
-        onClick={skip}
-        disabled={loading}
-        className="absolute right-5 top-5 z-20 rounded-full px-3 py-1.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:bg-white/60 hover:text-ink"
-      >
-        ข้ามไปก่อน
-      </button>
-
-      <div className="relative z-10 w-full max-w-lg">
-        <div className="rounded-[24px] border border-white/80 bg-white/90 p-6 shadow-clay backdrop-blur-md sm:p-8">
+    <AuthLayout
+      maxWidth="max-w-lg"
+      topRight={
+        <button
+          onClick={skip}
+          disabled={loading}
+          className="rounded-full px-3 py-1.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:bg-eddy-50 hover:text-ink"
+        >
+          ข้ามไปก่อน
+        </button>
+      }
+    >
+        <div>
           {/* จุดบอกสเตป */}
           <div className="mb-6 flex justify-center gap-2">
             {[0, 1, 2].map((i) => (
@@ -78,9 +78,7 @@ export default function OnboardingWizard() {
                 transition={{ duration: 0.25 }}
                 className="text-center"
               >
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-clay bg-ink shadow-clay">
-                  <Sparkles size={30} className="text-white" fill="currentColor" />
-                </div>
+                <Image src="/mascot/eddy-wordmark.png" alt="EDDY" width={900} height={411} className="mx-auto h-12 w-auto" priority />
                 <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-ink">ยินดีต้อนรับสู่ Eddy 🎉</h1>
                 <p className="mx-auto mt-2 max-w-sm font-body text-sm text-ink-soft">
                   มาตั้งค่าเล็กน้อยให้เอ็ดดี้รู้จักคุณกันก่อน จะได้ช่วยจัดตารางและแนะนำได้ตรงกับคุณมากขึ้น (ใช้เวลาแค่ 1 นาที)
@@ -190,7 +188,6 @@ export default function OnboardingWizard() {
             )}
           </AnimatePresence>
         </div>
-      </div>
-    </main>
+    </AuthLayout>
   );
 }

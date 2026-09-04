@@ -4,10 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
-import SkyBackground from '@/components/SkyBackground';
+import { AtSign, Lock, Eye, EyeOff } from 'lucide-react';
+import AuthLayout from '@/components/auth/AuthLayout';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import GoogleIcon from '@/components/icons/GoogleIcon';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,10 +22,10 @@ export default function LoginPage() {
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
-    const email = String(form.get('email') ?? '');
+    const identifier = String(form.get('identifier') ?? '');
     const password = String(form.get('password') ?? '');
 
-    const res = await signIn('credentials', { email, password, redirect: false });
+    const res = await signIn('credentials', { identifier, password, redirect: false });
 
     if (res?.error) {
       setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
@@ -37,54 +38,52 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white px-4 py-6">
-      <SkyBackground />
-
-      {/* โลโก้กลับหน้าแรก */}
-      <Link
-        href="/"
-        className="absolute left-5 top-5 z-20 flex items-center gap-2 font-display text-lg font-bold tracking-tight text-ink"
-      >
-        <Sparkles size={20} className="text-eddy-500" fill="currentColor" /> EDDY
-      </Link>
-
-      <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
-        <div className="rounded-[24px] border border-white/80 bg-white/90 p-6 shadow-clay backdrop-blur-md">
-          <div className="mb-4 text-center">
-            <h2 className="font-display text-h2 text-ink">ยินดีต้อนรับกลับมา 👋</h2>
-            <p className="mt-1 font-body text-body text-ink-soft">เข้าสู่ระบบเพื่อจัดตารางวันนี้กันต่อ</p>
+    <AuthLayout
+      topRight={
+        <p className="font-body text-sm text-ink-muted">
+          ยังไม่มีบัญชี?{' '}
+          <Link href="/register" className="font-semibold text-eddy-600 hover:text-eddy-700">
+            สมัครสมาชิก
+          </Link>
+        </p>
+      }
+    >
+      <div className="animate-fade-in-up">
+          <div className="mb-6 text-center">
+            <h2 className="font-display text-h1 text-ink">ยินดีต้อนรับกลับมา 👋</h2>
+            <p className="mt-1.5 font-body text-body text-ink-soft">เข้าสู่ระบบเพื่อจัดตารางวันนี้กันต่อ</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
-              id="email"
-              name="email"
-              type="email"
-              label="อีเมล"
-              placeholder="you@example.com"
-              icon={<Mail size={18} />}
+              id="identifier"
+              name="identifier"
+              type="text"
+              label="อีเมลหรือชื่อผู้ใช้"
+              placeholder="you@example.com หรือ username"
+              icon={<AtSign size={18} />}
               required
             />
 
-            <div>
-              <Input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                label="รหัสผ่าน"
-                placeholder="••••••••"
-                icon={<Lock size={18} />}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="mt-2 flex items-center gap-1 text-xs font-semibold text-eddy-600"
-              >
-                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-              </button>
-            </div>
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              label="รหัสผ่าน"
+              placeholder="••••••••"
+              icon={<Lock size={18} />}
+              rightSlot={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                  className="transition-colors hover:text-eddy-600"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+              required
+            />
 
             {error && (
               <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 text-sm text-eddy-700">{error}</p>
@@ -105,20 +104,15 @@ export default function LoginPage() {
             variant="secondary"
             fullWidth
             type="button"
-            className="!rounded-full"
+            className="!rounded-xl"
             onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
           >
-            เข้าสู่ระบบด้วย Google
+            <span className="flex items-center justify-center gap-2">
+              <GoogleIcon size={18} /> เข้าสู่ระบบด้วย Google
+            </span>
           </Button>
 
-          <p className="mt-4 text-center font-body text-sm text-ink-muted">
-            ยังไม่มีบัญชี?{' '}
-            <Link href="/register" className="font-semibold text-eddy-600 hover:text-eddy-700">
-              สมัครสมาชิก
-            </Link>
-          </p>
-        </div>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

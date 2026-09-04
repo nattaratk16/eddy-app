@@ -43,6 +43,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-lg font-bold text-ink">{title}</h3>
               <button
+                type="button"
                 onClick={onClose}
                 aria-label="ปิดหน้าต่าง"
                 className="rounded-full p-1.5 text-ink-muted hover:bg-eddy-50"
