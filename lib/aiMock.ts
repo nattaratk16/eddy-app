@@ -11,6 +11,7 @@
 
 import type { CalendarCategory, CalendarEvent } from './types';
 import type { BurnoutRisk } from './burnoutRisk';
+import { todayISOBangkok } from './thaiTime';
 
 // ---------- ตัวช่วยแปลงเวลา "HH:mm" <-> นาที ----------
 function timeToMinutes(t?: string): number | null {
@@ -150,17 +151,19 @@ const TIME_WORD_MAP: Record<string, string> = {
 };
 
 function findDate(text: string): { date: Date; matched: string } | null {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // "วันนี้" ต้องเป็นวันนี้ตามเวลาไทยของผู้ใช้ ไม่ใช่ของเซิร์ฟเวอร์ (โปรดักชันมักรัน UTC - พิมพ์
+  // "พรุ่งนี้บ่ายสาม" ตอนตีหนึ่งจะได้วันผิดไปหนึ่งวัน) ยึดเที่ยงคืน UTC ของวันไทยเป็นหมุด
+  // แล้วบวกวันด้วยเมธอด UTC ทั้งหมด ไม่ปนกับเมธอดเวลาท้องถิ่น
+  const today = new Date(`${todayISOBangkok()}T00:00:00.000Z`);
 
   if (text.includes('พรุ่งนี้')) {
     const d = new Date(today);
-    d.setDate(d.getDate() + 1);
+    d.setUTCDate(d.getUTCDate() + 1);
     return { date: d, matched: 'พรุ่งนี้' };
   }
   if (text.includes('มะรืนนี้')) {
     const d = new Date(today);
-    d.setDate(d.getDate() + 2);
+    d.setUTCDate(d.getUTCDate() + 2);
     return { date: d, matched: 'มะรืนนี้' };
   }
   if (text.includes('วันนี้')) {
@@ -173,9 +176,9 @@ function findDate(text: string): { date: Date; matched: string } | null {
     const hasNextWeekWord = text.slice(idx, idx + name.length + 5).includes('หน้า');
     const hasDayPrefix = text.slice(Math.max(0, idx - 3), idx) === 'วัน';
     const d = new Date(today);
-    const diff = (weekday - d.getDay() + 7) % 7;
-    d.setDate(d.getDate() + (diff === 0 ? 7 : diff)); // ถ้าตรงกับวันนี้พอดี ให้หมายถึงสัปดาห์หน้า
-    if (hasNextWeekWord) d.setDate(d.getDate() + 7);
+    const diff = (weekday - d.getUTCDay() + 7) % 7;
+    d.setUTCDate(d.getUTCDate() + (diff === 0 ? 7 : diff)); // ถ้าตรงกับวันนี้พอดี ให้หมายถึงสัปดาห์หน้า
+    if (hasNextWeekWord) d.setUTCDate(d.getUTCDate() + 7);
     const matched = `${hasDayPrefix ? 'วัน' : ''}${name}${hasNextWeekWord ? 'หน้า' : ''}`;
     return { date: d, matched };
   }
@@ -218,14 +221,11 @@ export function parseEventFromText(text: string): ParsedEventDraft | null {
   title = title.replace(/\s+/g, ' ').trim();
   if (!title) title = 'กิจกรรมใหม่';
 
-  const baseDate = dateMatch?.date ?? new Date();
-  const yyyy = baseDate.getFullYear();
-  const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(baseDate.getDate()).padStart(2, '0');
-
+  // findDate คืนหมุดเที่ยงคืน UTC มา อ่านวันออกมาตรงๆ จาก ISO (ห้ามใช้ getFullYear/getMonth/getDate
+  // ซึ่งเป็นเวลาท้องถิ่นของเซิร์ฟเวอร์ - จะเลื่อนวันบนเครื่องที่ไม่ได้ตั้งเวลาไทย)
   return {
     title,
-    date: `${yyyy}-${mm}-${dd}`,
+    date: dateMatch ? dateMatch.date.toISOString().slice(0, 10) : todayISOBangkok(),
     startTime: timeMatch?.time,
   };
 }

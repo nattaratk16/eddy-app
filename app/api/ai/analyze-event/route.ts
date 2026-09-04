@@ -17,10 +17,14 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.user.id;
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setDate(dayEnd.getDate() + 1);
+  // Event.date เก็บเป็น "ป้ายวันที่" ที่เที่ยงคืน UTC - สร้างกรอบ 1 วันแบบ UTC ตรงๆ
+  // เดิมใช้ setHours(0,0,0,0) + setDate(+1) ซึ่งอิงเวลาท้องถิ่นของเซิร์ฟเวอร์ (และช่วง DST
+  // ของบาง timezone จะได้กรอบ 23/25 ชม. แทน 24) ผลลัพธ์เท่าเดิมแต่ไม่ต้องพึ่งโชคอีก
+  const dayStart = new Date(`${String(date).slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(dayStart.getTime())) {
+    return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+  }
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const [sameDayEventsRaw, categoriesRaw, user, recurringRaw] = await Promise.all([
     prisma.event.findMany({

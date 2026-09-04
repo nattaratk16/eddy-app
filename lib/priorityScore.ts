@@ -10,6 +10,7 @@
  * --------------------------------------------------------------
  */
 import type { Task } from './types';
+import { todayISOBangkok } from './thaiTime';
 
 const IMPORTANCE_SCORE: Record<Task['priority'], number> = {
   high: 1,
@@ -30,14 +31,15 @@ function clamp(n: number, min: number, max: number): number {
 
 function urgencyScore(dueDate?: string): number {
   if (!dueDate) return URGENCY_NO_DUE_DATE;
-  const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return URGENCY_NO_DUE_DATE;
+  // ตัดเอาเฉพาะส่วน "YYYY-MM-DD" แล้วยึดเที่ยงคืน UTC เป็นหมุดทั้งคู่ (รับได้ทั้ง "2026-09-05"
+  // และ ISO เต็ม) - เทียบวันต่อวันตามเวลาไทย ไม่ปล่อยให้ timezone ของเครื่องที่รันมาเลื่อนวัน
+  // เดิมใช้ new Date() + setHours(0,0,0,0) ซึ่งบนเซิร์ฟเวอร์ UTC จะยังนับเป็นเมื่อวานอยู่ช่วง 00:00-07:00 น. ไทย
+  const due = Date.parse(`${dueDate.slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(due)) return URGENCY_NO_DUE_DATE;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
+  const today = Date.parse(`${todayISOBangkok()}T00:00:00.000Z`);
 
-  const daysLeft = (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+  const daysLeft = (due - today) / (1000 * 60 * 60 * 24);
   // เลยกำหนดส่งแล้ว (daysLeft ติดลบ) ให้ถือว่าเร่งด่วนสุด (clamp ที่ 1)
   return clamp(1 - daysLeft / URGENCY_WINDOW_DAYS, 0, 1);
 }
