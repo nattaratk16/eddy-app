@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
 import MascotWave from '@/components/MascotWave';
 
@@ -19,30 +21,46 @@ const item = {
  * ของตกแต่งลอยรอบขอบจอ - จงใจวางไว้ริมซ้าย/ริมขวาเท่านั้น
  * กลางหน้าปล่อยโล่งให้โลโก้กับมาสคอตเป็นพระเอก (แบบเดียวกับ referance.png)
  */
+// โทนเดียวกับที่เหลือของหน้า (ฟ้าแบรนด์ล้วน) - เดิมมีเหลือง/ชมพู/ส้มปนอยู่ด้วยจนดูคลุ้ง
 const decor = [
-  { c: 'left-[6%] top-[24%]', size: 'h-5 w-5', color: 'bg-brand-yellow', d: 0 },
-  { c: 'left-[12%] top-[52%]', size: 'h-3 w-3', color: 'bg-brand-pink', d: 1.1 },
+  { c: 'left-[6%] top-[24%]', size: 'h-5 w-5', color: 'bg-accent-300', d: 0 },
+  { c: 'left-[12%] top-[52%]', size: 'h-3 w-3', color: 'bg-eddy-200', d: 1.1 },
   { c: 'right-[8%] top-[30%]', size: 'h-4 w-4', color: 'bg-accent-300', d: 0.5 },
-  { c: 'right-[14%] top-[58%]', size: 'h-3.5 w-3.5', color: 'bg-brand-orange', d: 1.6 },
+  { c: 'right-[14%] top-[58%]', size: 'h-3.5 w-3.5', color: 'bg-eddy-300', d: 1.6 },
 ];
 
 export default function LandingHero({ isSafari = false }: { isSafari?: boolean }) {
-  // h-[100dvh] + overflow-hidden = สูงเท่าหน้าจอพอดี ไม่มีแถบเลื่อน
-  // ใช้ dvh ไม่ใช่ vh เพราะบนมือถือ vh ไม่นับแถบที่อยู่ของเบราว์เซอร์ ทำให้เนื้อหาล้นจอ
+  // เดิมเป็น h-screen + overflow-hidden ล็อกเท่าจอเดียวไม่ให้เลื่อน ตอนนี้หน้าแรกมีเนื้อหาสาธิต
+  // ฟีเจอร์อยู่ใต้ fold แล้ว เลยเปลี่ยนเป็น min-height ให้หน้าเลื่อนต่อลงไปได้ (ยังคงสูงเท่าจอพอดี
+  // เป็นค่าเริ่มต้นเหมือนเดิมถ้าเนื้อหาไม่เกิน) - ใช้ dvh ไม่ใช่ vh เพราะบนมือถือ vh ไม่นับแถบที่อยู่ของเบราว์เซอร์
+  const heroRef = useRef<HTMLElement>(null);
+  // พารัลแลกซ์: วัด scroll เทียบกับตัว hero เอง (ไม่ใช่ทั้งหน้า) ตั้งแต่เริ่มเห็นจนกว่าจะเลื่อนพ้นจอ
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]); // ฉากหลังเลื่อนช้ากว่าเนื้อหา = มีมิติ
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, 140]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+  const contentScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
+
   return (
-    <main className="relative flex h-screen h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white">
-      <SkyBackground />
+    <main
+      ref={heroRef}
+      className="relative flex min-h-screen min-h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-white"
+    >
+      <motion.div style={{ y: bgY }} className="absolute inset-0">
+        <SkyBackground />
+        {decor.map((s, i) => (
+          <motion.span
+            key={i}
+            aria-hidden
+            className={`pointer-events-none absolute ${s.c} ${s.size} ${s.color} rounded-full opacity-60`}
+            animate={{ scale: [0.9, 1.2, 0.9], y: [0, -12, 0], opacity: [0.35, 0.7, 0.35] }}
+            transition={{ duration: 5, repeat: Infinity, delay: s.d, ease: 'easeInOut' }}
+          />
+        ))}
+      </motion.div>
 
-      {decor.map((s, i) => (
-        <motion.span
-          key={i}
-          aria-hidden
-          className={`pointer-events-none absolute ${s.c} ${s.size} ${s.color} rounded-full opacity-60`}
-          animate={{ scale: [0.9, 1.2, 0.9], y: [0, -12, 0], opacity: [0.35, 0.7, 0.35] }}
-          transition={{ duration: 5, repeat: Infinity, delay: s.d, ease: 'easeInOut' }}
-        />
-      ))}
-
+      {/* เนื้อหาหลักทั้งหมดจางลง+เลื่อนลง+หดนิดๆ ตอนเลื่อนพ้น hero ให้รู้สึกมีความลึก (parallax) */}
+      <motion.div style={{ y: contentY, opacity: contentOpacity, scale: contentScale }} className="flex flex-1 flex-col">
       {/* ---------- แถบบนลอย (แคปซูลขาว) ---------- */}
       <motion.header
         initial={{ opacity: 0, y: -14 }}
@@ -52,7 +70,7 @@ export default function LandingHero({ isSafari = false }: { isSafari?: boolean }
       >
         <span className="flex items-center gap-2">
           <Image src="/mascot/eddy-a-128.png" alt="" width={36} height={40} className="h-8 w-auto" />
-          <span className="font-brand text-xl font-semibold tracking-tight text-eddy-600">EDDY</span>
+          <Image src="/mascot/eddy-wordmark.png" alt="EDDY" width={900} height={411} className="h-5 w-auto" />
         </span>
 
         <Link
@@ -72,15 +90,15 @@ export default function LandingHero({ isSafari = false }: { isSafari?: boolean }
       >
         <motion.div variants={item}>
           <Image
-            src="/mascot/eddy-logo-640.png"
+            src="/mascot/eddy-wordmark.png"
             alt="EDDY — Plan the date, clear the list, your perfect assist."
-            width={640}
-            height={678}
+            width={900}
+            height={411}
             priority
-            // โลโก้แสดงจริงกว้างแค่ 170-240px แต่ถ้าไม่บอก sizes next/image จะสร้าง srcset
-            // จาก width={640} เป็น 640w/1280w แล้วเสิร์ฟไฟล์ใหญ่เกินจำเป็นหลายเท่า
-            sizes="(min-width: 1024px) 240px, (min-width: 640px) 210px, 170px"
-            className="h-auto max-h-[24vh] w-[170px] object-contain drop-shadow-[0_12px_24px_rgba(10,76,196,0.16)] sm:w-[210px] lg:w-[240px]"
+            // โลโก้แสดงจริงกว้างแค่ 220-320px แต่ถ้าไม่บอก sizes next/image จะสร้าง srcset
+            // จาก width={900} ใหญ่เกินจำเป็นหลายเท่า
+            sizes="(min-width: 1024px) 320px, (min-width: 640px) 280px, 220px"
+            className="h-auto max-h-[24vh] w-[220px] object-contain drop-shadow-[0_12px_24px_rgba(10,76,196,0.16)] sm:w-[280px] lg:w-[320px]"
           />
         </motion.div>
 
@@ -106,6 +124,17 @@ export default function LandingHero({ isSafari = false }: { isSafari?: boolean }
         className="relative z-10 mx-auto flex h-[30vh] w-full max-w-[520px] items-end justify-center pb-1 sm:h-[34vh]"
       >
         <MascotWave fit="height" isSafari={isSafari} />
+      </motion.div>
+      </motion.div>
+
+      {/* ตัวชี้ว่าเลื่อนต่อได้ - อยู่นอกเนื้อหาที่จางลงตอนเลื่อน จะได้ไม่หายไปพร้อมกัน */}
+      <motion.div
+        aria-hidden
+        className="relative z-10 mb-4 flex justify-center"
+        animate={{ y: [0, 8, 0] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <ChevronDown size={22} className="text-eddy-400" />
       </motion.div>
     </main>
   );
