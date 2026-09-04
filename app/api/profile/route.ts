@@ -3,11 +3,11 @@ import { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { PASTEL_COLORS } from '@/lib/colors';
+import { USERNAME_RE } from '@/lib/validation';
 
 const BIO_MAX = 500; // "เกี่ยวกับฉัน/นิสัย" ยาวได้ขึ้น เพราะใช้ป้อนให้ AI วิเคราะห์
 const VALID_COLORS = new Set(PASTEL_COLORS.map((c) => c.value));
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 // ช่วงที่ยอมรับได้ - ไม่ผูกกับตัวเลือกสำเร็จรูปอีกต่อไป ผู้ใช้พิมพ์เองได้ในกรอบนี้
 // (15-240 ตรงกับ MIN_STEP_MINUTES/MAX_STEP_MINUTES ที่ lib/gemini.ts ใช้บังคับขนาดขั้นตอนย่อยอยู่แล้ว
 // ตั้งเกินเพดานนี้ไปก็ไม่มีผลเพิ่มเติม เลยจำกัดไว้ตรงนี้ให้ตรงกับพฤติกรรมจริง)
@@ -37,6 +37,19 @@ export async function PATCH(req: NextRequest) {
     const v = body.bio.trim();
     if (v.length > BIO_MAX) return NextResponse.json({ error: `เกี่ยวกับฉันยาวเกินไป (สูงสุด ${BIO_MAX})` }, { status: 400 });
     data.bio = v || null;
+  }
+
+  // บทบาท/ตำแหน่ง และ สถานศึกษา/ที่ทำงาน - มีในฐานข้อมูลมาตั้งแต่แรก เพิ่งมีหน้าให้แก้ตอนทำหน้าตั้งค่า
+  if (typeof body.title === 'string') {
+    const v = body.title.trim();
+    if (v.length > 80) return NextResponse.json({ error: 'บทบาท/ตำแหน่งยาวเกินไป' }, { status: 400 });
+    data.title = v || null;
+  }
+
+  if (typeof body.organization === 'string') {
+    const v = body.organization.trim();
+    if (v.length > 120) return NextResponse.json({ error: 'ชื่อสถานศึกษา/ที่ทำงานยาวเกินไป' }, { status: 400 });
+    data.organization = v || null;
   }
 
   if (typeof body.avatarEmoji === 'string') {
