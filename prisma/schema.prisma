@@ -176,7 +176,10 @@ model Subtask {
 model Category {
   id        String   @id @default(cuid())
   name      String
-  color     String   @default("blue") // "pink" | "yellow" | "mint" | "blue" | "peach" | "lilac" | "amber" | "lime" | "olive" | "teal" | "sky" | "indigo" | "violet" | "plum" | "coral" | "rose"
+  // ค่าที่ใช้ได้ = PastelColor ใน lib/types.ts (ที่มาของความจริงคือ PASTEL_COLORS ใน lib/colors.ts)
+  // "pink" | "yellow" | "mint" | "blue" | "peach" | "lilac" | "amber" | "lime" | "olive" | "teal" | "sky" | "indigo"
+  // | "violet" | "plum" | "coral" | "rose" | "mustard" | "azure" | "jade" | "orchid" | "bronze" | "grape" | "pine" | "wine"
+  color     String   @default("blue")
   // "academic" | "non_academic" - เดาอัตโนมัติจากชื่อตอนสร้าง (lib/categoryKind.ts) ผู้ใช้แก้ไขเองได้ภายหลังถ้าเดาผิด
   // ใช้แยกภาระงานวิชาการ/ไม่ใช่วิชาการในกราฟภาระงานกลุ่ม (WorkloadPanel)
   kind      String   @default("non_academic")

@@ -59,7 +59,17 @@ export type PastelColor =
   | 'violet'
   | 'plum'
   | 'coral'
-  | 'rose';
+  | 'rose'
+  // ชั้นอ่อน (เข้มกว่า 16 สีแรกหนึ่งขั้น)
+  | 'mustard'
+  | 'azure'
+  | 'jade'
+  | 'orchid'
+  // ชั้นเข้ม (ตัวอักษรบนพื้นเป็นสีขาว)
+  | 'bronze'
+  | 'grape'
+  | 'pine'
+  | 'wine';
 
 export interface CalendarCategory {
   id: string;

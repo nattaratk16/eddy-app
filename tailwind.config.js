@@ -24,7 +24,17 @@ module.exports = {
         },
         // Pastel accent palette - functional (user-chosen category colors).
         // First 6 are original values, kept byte-for-byte so existing categories never recolor.
-        // The 10 added ones were generated + CVD-validated with the dataviz skill to fill hue gaps.
+        // The next 10 were generated + CVD-validated with the dataviz skill to fill hue gaps.
+        //
+        // The last 8 (mustard..wine) were added once the first 16 had saturated the hue circle:
+        // measured in OKLCH they all sit on one thin ring (L 0.91-0.96, C 0.03-0.08), which is why
+        // blue/indigo are only ΔE 1.4 apart and peach/amber, coral/rose, violet/plum, lime/olive
+        // are all under 2. Another hue at that lightness would have landed on top of a neighbour,
+        // so the 8 open a second axis instead - lightness:
+        //   soft (L 0.80) - still pastel, keeps `text-eddy-700` on the chip (contrast 4.8-5.3)
+        //   deep (L 0.53) - needs `text-white` on the chip instead (contrast 5.0-5.8)
+        // Every one is >= ΔE 10 from all 16 originals and from each other, and the worst pair in
+        // the full 24 is still the pre-existing blue/indigo, i.e. nothing got harder to tell apart.
         pastel: {
           pink: '#FFD3E2',
           'pink-dark': '#F7A9C4',
@@ -58,6 +68,24 @@ module.exports = {
           'coral-dark': '#F88D96',
           rose: '#FFDED4',
           'rose-dark': '#F89177',
+          // -- ชั้นอ่อน (L 0.80) - เข้มกว่า 16 สีแรกหนึ่งขั้น แต่ยังใช้ตัวอักษร eddy-700 ได้ --
+          mustard: '#DABB50',
+          'mustard-dark': '#A18300',
+          azure: '#7BC6FF',
+          'azure-dark': '#018ED6',
+          jade: '#66D7A2',
+          'jade-dark': '#009F6A',
+          orchid: '#E7A0ED',
+          'orchid-dark': '#B65CBF',
+          // -- ชั้นเข้ม (L 0.53) - ต้องใช้ตัวอักษรสีขาวบนพื้นนี้ (eddy-700 คอนทราสต์ไม่ผ่าน) --
+          bronze: '#896500',
+          'bronze-dark': '#715200',
+          grape: '#7353BE',
+          'grape-dark': '#613BAB',
+          pine: '#007C7A',
+          'pine-dark': '#006664',
+          wine: '#B43858',
+          'wine-dark': '#9F1644',
         },
         // สีรอง - ฟ้าสว่าง #64D7FF จากพาเลต ใช้คู่กับ eddy blue ทำ gradient (น้ำเงิน -> ฟ้า)
         accent: {
