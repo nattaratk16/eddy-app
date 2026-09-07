@@ -227,7 +227,7 @@ export default function EventFormModal({
       </div>
 
       {conflict && (
-        <div className="flex items-start gap-3 rounded-clay-sm bg-pastel-pink/50 p-3">
+        <div className="flex items-start gap-3 rounded-clay-sm bg-pastel-pink/50 dark:bg-pastel-pink-dark/15 p-3">
           <EddyMascot mood="think" size={36} float={false} />
           <div className="flex-1">
             <p className="font-body text-sm text-ink">
@@ -246,7 +246,7 @@ export default function EventFormModal({
       )}
 
       {(aiLoading || aiAnalysis) && date && startTime && (
-        <div className="flex items-start gap-3 rounded-clay-sm bg-pastel-lilac/50 p-3">
+        <div className="flex items-start gap-3 rounded-clay-sm bg-pastel-lilac/50 dark:bg-pastel-lilac-dark/15 p-3">
           <EddyMascot character="nova" mood={aiLoading ? 'think' : 'happy'} size={36} float={false} />
           <div className="flex-1">
             <p className="flex items-center gap-1 font-display text-xs font-semibold text-eddy-700">

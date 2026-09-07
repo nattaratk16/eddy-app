@@ -254,7 +254,7 @@ export default function WorkPreferencesForm(p: WorkPreferencesFormProps) {
                   type="button"
                   onClick={() => removeSkill(s)}
                   aria-label={`ลบทักษะ ${s}`}
-                  className="text-eddy-700/60 transition-colors hover:text-eddy-700"
+                  className="text-chip-ink/60 transition-colors hover:text-chip-ink"
                 >
                   <X size={12} />
                 </button>

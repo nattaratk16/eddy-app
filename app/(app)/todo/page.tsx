@@ -962,7 +962,7 @@ export default function TodoPage() {
 
           {/* ข้อ 4: เตือนก่อนว่ามีงานเลยกำหนดส่งแล้วยังไม่ถูกติ๊ก - ถ้าปล่อยไว้จะถือเป็น "งานที่ถูกลืม" */}
           {forgottenTasks.length > 0 && !forgottenAcked && (
-            <div className="mt-4 rounded-clay-sm border border-pastel-peach bg-pastel-peach/40 p-4">
+            <div className="mt-4 rounded-clay-sm border border-pastel-peach bg-pastel-peach/40 dark:bg-pastel-peach-dark/15 dark:border-pastel-peach-dark/30 p-4">
               <div className="flex items-start gap-2">
                 <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-eddy-700" />
                 <div className="flex-1">
@@ -1119,7 +1119,7 @@ export default function TodoPage() {
               )}
 
               {plan.skipped.length > 0 && (
-                <div className="mt-3 rounded-clay-sm bg-pastel-peach/50 px-3 py-2">
+                <div className="mt-3 rounded-clay-sm bg-pastel-peach/50 dark:bg-pastel-peach-dark/15 px-3 py-2">
                   <p className="font-display text-xs font-semibold text-ink">ยังจัดให้ไม่ได้ {plan.skipped.length} งาน</p>
                   <ul className="mt-1 flex flex-col gap-0.5">
                     {plan.skipped.map((item) => (
@@ -1284,7 +1284,7 @@ export default function TodoPage() {
                               type="button"
                               onClick={() => unscheduleTask(task.id)}
                               aria-label="เอาออกจากปฏิทิน"
-                              className="ml-0.5 text-eddy-700/70 hover:text-eddy-700"
+                              className="ml-0.5 text-chip-ink/70 hover:text-chip-ink"
                             >
                               <X size={10} />
                             </button>
@@ -1387,7 +1387,7 @@ export default function TodoPage() {
                     </p>
                   )}
                   {breakdownNotice[task.id] && (
-                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-mint/50 px-3 py-1.5 font-body text-[11px] text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">
+                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-mint/50 dark:bg-pastel-mint-dark/15 px-3 py-1.5 font-body text-[11px] text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">
                       {breakdownNotice[task.id]}
                     </p>
                   )}
@@ -1410,7 +1410,7 @@ export default function TodoPage() {
                       )}
 
                       {subtasks.length === 0 && (
-                        <div className="flex items-center gap-2 rounded-clay-sm bg-pastel-mint/50 px-3 py-2">
+                        <div className="flex items-center gap-2 rounded-clay-sm bg-pastel-mint/50 dark:bg-pastel-mint-dark/15 px-3 py-2">
                           <EddyMascot mood="think" size={28} float={false} />
                           <p className="flex-1 font-body text-xs text-ink">
                             ยังไม่มีขั้นตอนย่อย — กดปุ่มไม้กายสิทธิ์ที่แถวด้านบน แล้วเอ็ดดี้จะซอยขั้นตอนให้

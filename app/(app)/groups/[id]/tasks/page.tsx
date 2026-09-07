@@ -326,7 +326,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
         </div>
 
         {result && (
-          <div className="mt-3 flex items-center gap-2.5 rounded-clay-sm bg-pastel-mint/50 px-4 py-2.5">
+          <div className="mt-3 flex items-center gap-2.5 rounded-clay-sm bg-pastel-mint/50 dark:bg-pastel-mint-dark/15 px-4 py-2.5">
             <EddyMascot character="nova" mood="happy" size={32} float={false} />
             <p className="font-body text-sm text-ink">{result}</p>
           </div>

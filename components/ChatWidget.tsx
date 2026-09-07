@@ -267,7 +267,7 @@ export default function ChatWidget() {
 
                           {/* วันนั้นชนของเดิม/แน่นเกินไป - เสนอเวลาอื่นให้เลือก */}
                           {!m.added && m.draft.intent === 'event' && m.slotAdvice && (
-                            <div className="mt-2.5 rounded-clay-sm bg-pastel-amber/40 p-2.5">
+                            <div className="mt-2.5 rounded-clay-sm bg-pastel-amber/40 dark:bg-pastel-amber-dark/15 p-2.5">
                               <p className="flex items-start gap-1.5 font-body text-caption text-ink">
                                 <AlertTriangle size={13} className="mt-0.5 flex-shrink-0 text-brand-orange-ink" />
                                 {m.slotAdvice.message}

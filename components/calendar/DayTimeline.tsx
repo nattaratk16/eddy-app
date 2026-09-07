@@ -94,7 +94,7 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
               {/* จุดบนเส้นไทม์ไลน์ - หมุดกำหนดส่งใช้ไอคอนธงแทนจุดกลม ให้แยกออกจาก event/งานจริงตั้งแต่แรกเห็น */}
               {ev.isDeadline ? (
                 <span className="relative z-10 mt-2.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-pastel-pink ring-2 ring-surface">
-                  <Flag size={9} className="text-eddy-700" />
+                  <Flag size={9} className="text-chip-ink" />
                 </span>
               ) : (
                 <span
