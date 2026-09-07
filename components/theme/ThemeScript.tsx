@@ -13,7 +13,7 @@ import { LIGHT_ONLY_PATHS, THEME_STORAGE_KEY } from '@/lib/theme';
 const script = `
 (function () {
   try {
-    var path = location.pathname.replace(/\/+$/, '') || '/';
+    var path = location.pathname.replace(/[/]+$/, '') || '/';
     var lightOnly = ${JSON.stringify(LIGHT_ONLY_PATHS)};
     var saved = localStorage.getItem('${THEME_STORAGE_KEY}');
     var dark =
