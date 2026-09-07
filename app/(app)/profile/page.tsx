@@ -93,8 +93,8 @@ export default async function ProfilePage() {
             {/* แบนเนอร์ยื่นชนขอบการ์ด (ยกเลิก padding p-6 ของ Card) */}
             <div className="-mx-6 -mt-6 h-28 overflow-hidden bg-gradient-to-r from-eddy-500 via-accent-500 to-pastel-lilac-dark sm:h-32">
               <div className="relative h-full w-full">
-                <div className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-surface/20 blur-2xl" />
-                <div className="pointer-events-none absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-surface/15 blur-2xl" />
+                <div className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
+                <div className="pointer-events-none absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
               </div>
             </div>
 

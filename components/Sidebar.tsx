@@ -110,7 +110,7 @@ export default function Sidebar() {
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           aria-label="ออกจากระบบ"
-          className="flex h-9 w-9 items-center justify-center rounded-clay-sm text-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark-muted transition-colors duration-150 hover:bg-pastel-pink/40 hover:text-chip-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-clay-sm text-ink-muted transition-colors duration-150 hover:bg-pastel-pink/40 hover:text-chip-ink"
         >
           <LogOut size={18} />
         </button>

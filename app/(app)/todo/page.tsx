@@ -1387,7 +1387,7 @@ export default function TodoPage() {
                     </p>
                   )}
                   {breakdownNotice[task.id] && (
-                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-mint/50 dark:bg-pastel-mint-dark/15 px-3 py-1.5 font-body text-[11px] text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">
+                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-mint/50 dark:bg-pastel-mint-dark/20 px-3 py-1.5 font-body text-[11px] text-ink  dark:text-pastel-mint-dark">
                       {breakdownNotice[task.id]}
                     </p>
                   )}

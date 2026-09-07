@@ -131,7 +131,7 @@ export default function GroupOverviewPage(props: { params: Promise<{ id: string 
               {waitingMe > 0 && (
                 <Link
                   href={`/groups/${params.id}/tasks`}
-                  className="mt-4 flex items-center gap-2.5 rounded-clay-sm bg-pastel-yellow/70 px-4 py-3 transition-colors hover:brightness-95"
+                  className="mt-4 flex items-center gap-2.5 rounded-clay-sm bg-pastel-yellow/70 dark:bg-pastel-yellow-dark/20 px-4 py-3 transition-colors hover:brightness-95"
                 >
                   <UserCheck size={18} className="flex-shrink-0 text-eddy-700" />
                   <span className="min-w-0 flex-1 font-body text-sm text-ink">
@@ -226,7 +226,7 @@ function BigStat({ label, value, tone = 'default' }: { label: string; value: num
     <div
       className={clsx(
         'rounded-clay-sm px-3 py-3 text-center',
-        tone === 'warn' ? 'bg-pastel-yellow/60' : tone === 'ok' ? 'bg-pastel-mint/60' : 'bg-eddy-50',
+        tone === 'warn' ? 'bg-pastel-yellow/60 dark:bg-pastel-yellow-dark/20' : tone === 'ok' ? 'bg-pastel-mint/60' : 'bg-eddy-50',
       )}
     >
       <p className="font-display text-2xl font-bold leading-none text-ink">{value}</p>
@@ -277,7 +277,7 @@ function MemberRow({
         <button
           onClick={() => onRemove(m.id)}
           aria-label={m.isMe ? 'ออกจากกลุ่ม' : `เอา ${m.name} ออกจากกลุ่ม`}
-          className="flex-shrink-0 rounded-full p-1 text-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark-muted transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
+          className="flex-shrink-0 rounded-full p-1 text-ink-muted dark:bg-pastel-pink-dark/15 transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
         >
           <Trash2 size={14} />
         </button>

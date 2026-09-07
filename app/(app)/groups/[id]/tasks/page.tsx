@@ -697,7 +697,7 @@ function TaskRow({
       <button
         onClick={() => onRemove(task.id)}
         aria-label={`ลบงาน ${task.title}`}
-        className="flex-shrink-0 rounded-full p-1.5 text-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark-muted transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
+        className="flex-shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
       >
         <Trash2 size={15} />
       </button>

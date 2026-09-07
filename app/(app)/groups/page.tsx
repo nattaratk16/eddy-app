@@ -232,7 +232,7 @@ export default function GroupsPage() {
               <Link
                 key={g.id}
                 href={`/groups/${g.id}/tasks`}
-                className="flex items-center gap-3 rounded-clay border border-eddy-100 bg-pastel-yellow/40 px-4 py-3 transition-colors hover:border-eddy-300"
+                className="flex items-center gap-3 rounded-clay border border-eddy-100 bg-pastel-yellow/40 dark:bg-pastel-yellow-dark/20 px-4 py-3 transition-colors hover:border-eddy-300"
               >
                 <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${getColorOption(g.color).dotClass}`} />
                 <span className="min-w-0 flex-1 truncate font-body text-sm text-ink">
@@ -375,9 +375,9 @@ function StatCard({
       className={clsx(
         'flex flex-col justify-center rounded-clay border px-4 py-3',
         tone === 'warn'
-          ? 'border-transparent bg-pastel-yellow/70'
+          ? 'border-transparent bg-pastel-yellow/70 dark:bg-pastel-yellow-dark/20'
           : tone === 'accent'
-          ? 'border-transparent bg-pastel-mint/60'
+          ? 'border-transparent bg-pastel-mint/60 dark:bg-pastel-mint-dark/20'
           : 'border-eddy-100 bg-surface',
       )}
     >

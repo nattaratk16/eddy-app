@@ -373,7 +373,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
                 <button
                   onClick={() => remove(it.id)}
                   aria-label={`ลบ ${it.title}`}
-                  className="rounded-full p-2 text-ink dark:bg-pastel-coral-dark/20 dark:text-pastel-coral-dark-muted transition-colors hover:bg-pastel-coral/50 hover:text-chip-ink"
+                  className="rounded-full p-2 text-ink-muted transition-colors hover:bg-pastel-coral/50 hover:text-chip-ink"
                 >
                   <Trash2 size={15} />
                 </button>

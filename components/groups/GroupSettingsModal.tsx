@@ -49,16 +49,23 @@ export default function GroupSettingsModal({ open, onClose, group, onSaved }: Pr
 
     setSaving(true);
     setError('');
-    const res = await fetch(`/api/groups/${group.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed, description: description.trim(), color }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) return setError(data.error ?? 'บันทึกไม่สำเร็จ');
-    onSaved();
-    onClose();
+    try {
+      const res = await fetch(`/api/groups/${group.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed, description: description.trim(), color }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(data.error ?? 'บันทึกไม่สำเร็จ');
+      onSaved();
+      onClose();
+    } catch {
+      // เน็ตหลุด/ยกเลิกกลางคัน - ถ้าไม่ดักไว้ setSaving(false) จะไม่ถูกเรียก
+      // แล้วปุ่มจะค้างเป็น "กำลังบันทึก..." ตลอดจนกว่าจะปิดแล้วเปิดใหม่
+      setError('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const inputCls =
