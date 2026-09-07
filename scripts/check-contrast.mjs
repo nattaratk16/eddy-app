@@ -68,7 +68,10 @@ for (const f of files) {
   for (const m of src.matchAll(/['"`]([^'"`\n]*\b(?:bg|text)-[\w/-]+[^'"`\n]*)['"`]/g)) {
     const str = m[1];
     if (str.includes('dark:')) continue; // มี dark: กำกับเองแล้ว ไม่ต้องเช็ค
-    const bgs = [...str.matchAll(/(?:^|\s)bg-([\w-]+(?:\/\d+)?)/g)].map((x) => x[1]);
+    const bgs = [...str.matchAll(/(?:^|\s)!?bg-([\w-]+(?:\/\d+)?)/g)].map((x) => x[1])
+      .filter((b) => !/^gradient-/.test(b));
+    // พื้นแบบไล่สี: ใช้จุดเริ่ม (from-) เป็นตัวแทนพื้น - ไม่งั้นคู่พวกนี้จะหลุดการตรวจไปเลย
+    for (const g of str.matchAll(/(?:^|\s)!?from-([\w-]+(?:\/\d+)?)/g)) bgs.push(g[1]);
     const txts = [...str.matchAll(/(?:^|\s)text-([\w-]+(?:\/\d+)?)/g)].map((x) => x[1])
       .filter((t) => !/^(xs|sm|base|lg|xl|\dxl|left|right|center|body|caption|micro|h[123]|display|body-lg|\[)/.test(t));
     for (const b of bgs) for (const t of txts) {

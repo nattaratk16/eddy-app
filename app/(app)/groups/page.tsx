@@ -150,7 +150,7 @@ export default function GroupsPage() {
 
       {/* ---- แถบสรุป + เกริ่นว่ากลุ่มทำอะไรได้ ---- */}
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-        <Card className="relative overflow-hidden !bg-gradient-to-br !from-eddy-50 !to-pastel-lilac/40">
+        <Card className="relative overflow-hidden !bg-gradient-to-br !from-eddy-50 !to-pastel-lilac/40 dark:!to-eddy-100">
           <div className="flex items-start gap-4">
             <EddyMascot mood="happy" size={64} />
             <div className="min-w-0 flex-1">

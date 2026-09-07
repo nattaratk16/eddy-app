@@ -113,7 +113,7 @@ export default async function DashboardPage() {
       <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* การ์ดโฟกัสวันนี้ (เด่น) */}
         <Reveal className="sm:col-span-2">
-          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-surface/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-7 text-chip-ink shadow-clay">
+          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-surface/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-7 text-chip-ink shadow-clay dark:from-eddy-50 dark:via-eddy-50 dark:to-eddy-100 dark:text-ink">
             <div className="relative z-10 flex-1">
               <p className="font-body text-caption font-semibold uppercase tracking-[0.06em] text-eddy-600">โฟกัสวันนี้</p>
               <p className="mt-1.5 font-display text-h2 text-ink">
