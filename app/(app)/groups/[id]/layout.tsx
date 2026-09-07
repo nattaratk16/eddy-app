@@ -13,11 +13,12 @@
 import { ReactNode, useCallback, useEffect, useRef, useState, use } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, Settings, UserPlus, Users } from 'lucide-react';
 import clsx from 'clsx';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
 import { getColorOption } from '@/lib/colors';
+import GroupSettingsModal from '@/components/groups/GroupSettingsModal';
 import { GROUP_UPDATED_EVENT, notifyGroupUpdated } from '@/lib/groupEvents';
 import type { GroupInfo } from '@/lib/types';
 
@@ -37,6 +38,7 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
 
   const pathname = usePathname();
   const [group, setGroup] = useState<GroupInfo | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [taskCount, setTaskCount] = useState<number | null>(null);
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -177,9 +179,19 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
               {group?.name ?? 'กำลังโหลด...'}
             </h1>
             {group?.isOwner && (
-              <span title="คุณเป็นเจ้าของกลุ่ม" className="flex-shrink-0">
-                <Crown size={18} className="text-amber-500" />
-              </span>
+              <>
+                <span title="คุณเป็นเจ้าของกลุ่ม" className="flex-shrink-0">
+                  <Crown size={18} className="text-amber-500" />
+                </span>
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  aria-label="ตั้งค่ากลุ่ม"
+                  title="ตั้งค่ากลุ่ม"
+                  className="flex-shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-eddy-50 hover:text-ink"
+                >
+                  <Settings size={17} />
+                </button>
+              </>
             )}
           </div>
           {group?.description && <p className="mt-0.5 font-body text-sm text-ink-muted">{group.description}</p>}
@@ -352,6 +364,20 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
           </p>
         )}
       </Modal>
+
+      {/* ตั้งค่ากลุ่ม - เรนเดอร์เมื่อโหลดข้อมูลกลุ่มมาแล้วเท่านั้น ฟอร์มต้องใช้ค่าเดิมมาตั้งต้น */}
+      {group && (
+        <GroupSettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          group={group}
+          onSaved={() => {
+            load();
+            // หน้ารายการกลุ่ม/แท็บอื่นที่เปิดค้างอยู่ต้องเห็นชื่อ-สีใหม่ด้วย
+            notifyGroupUpdated();
+          }}
+        />
+      )}
     </div>
   );
 }
