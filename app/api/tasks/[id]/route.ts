@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { removeAllTaskEvents, removeDeadlineEvent, removeSubtaskEvents, syncDeadlineEvent } from '@/lib/taskCalendar';
+import {
+  removeAllTaskEvents,
+  removeDeadlineEvent,
+  removeSubtaskEvents,
+  renameTaskEvents,
+  syncDeadlineEvent,
+} from '@/lib/taskCalendar';
 import type { Task } from '@/lib/types';
 import type { Task as PrismaTask, Event as PrismaEvent } from '@prisma/client';
 
@@ -117,6 +123,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     },
     include: { scheduledEvent: true },
   });
+
+  // เปลี่ยนชื่องาน -> ชื่อบน event ที่อยู่ในปฏิทินต้องเปลี่ยนตาม
+  // (ชื่อถูกคัดลอกไปเก็บที่ Event.title ตอนจัดลงปฏิทิน ไม่ได้ join มาตอนแสดงผล)
+  if (body.title !== undefined && body.title !== existing.title) {
+    await renameTaskEvents(params.id, session.user.id);
+  }
 
   // อะไรก็ตามที่กระทบวันกำหนดส่ง/สถานะงาน/ปฏิทิน ต้องคิดหมุดวันต้องส่งใหม่
   if (

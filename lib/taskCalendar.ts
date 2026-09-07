@@ -154,6 +154,52 @@ export async function syncAllSubtaskEvents(taskId: string, userId: string): Prom
   return count;
 }
 
+/**
+ * เปลี่ยนชื่องานหลัก -> แก้ชื่อบน event ที่ผูกอยู่ให้ตรงกัน
+ *
+ * ชื่องานถูก "คัดลอก" ไปเก็บไว้ที่ Event.title ตอนจัดลงปฏิทิน ไม่ได้ join มาแสดงตอน render
+ * เปลี่ยนชื่อในหน้า To-do เฉยๆ ปฏิทินจึงยังโชว์ชื่อเดิมค้างอยู่ตลอดไป
+ *
+ * ตั้งใจไม่เรียก syncAllSubtaskEvents ที่มีอยู่แล้ว เพราะตัวนั้นคำนวณวัน/เวลาใหม่ทั้งชุด
+ * ถ้าผู้ใช้ลากเลื่อน event ในปฏิทินเอง การเปลี่ยนแค่ "ชื่อ" จะดึงมันกลับไปที่แผนเดิม
+ * ตรงนี้จึงแตะเฉพาะฟิลด์ title อย่างเดียว
+ *
+ * (หมุดกำหนดส่งไม่ต้องจัดการที่นี่ - syncDeadlineEvent เขียนชื่อใหม่ให้อยู่แล้ว)
+ */
+export async function renameTaskEvents(taskId: string, userId: string): Promise<number> {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { userId: true, title: true, scheduledEventId: true },
+  });
+  if (!task || task.userId !== userId) return 0;
+
+  let updated = 0;
+
+  // บล็อก "ช่วงลงมือทำ" ของงานหลัก
+  if (task.scheduledEventId) {
+    const r = await prisma.event.updateMany({
+      where: { id: task.scheduledEventId, userId },
+      data: { title: task.title },
+    });
+    updated += r.count;
+  }
+
+  // ขั้นตอนย่อย - ชื่อ event เป็นรูปแบบ "ชื่องานหลัก — ชื่อขั้นตอน" จึงต้องประกอบใหม่ทั้งคู่
+  const subtasks = await prisma.subtask.findMany({
+    where: { taskId, scheduledEventId: { not: null } },
+    select: { title: true, scheduledEventId: true },
+  });
+  for (const s of subtasks) {
+    const r = await prisma.event.updateMany({
+      where: { id: s.scheduledEventId as string, userId },
+      data: { title: `${task.title} — ${s.title}` },
+    });
+    updated += r.count;
+  }
+
+  return updated;
+}
+
 /** เอาขั้นตอนย่อยทั้งหมดของงานออกจากปฏิทิน (ใช้ตอนกด "เอาออกจากปฏิทิน" ที่งานหลัก) */
 export async function removeSubtaskEvents(taskId: string, userId: string): Promise<number> {
   const subtasks = await prisma.subtask.findMany({
