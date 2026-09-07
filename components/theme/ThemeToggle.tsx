@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
-import { THEME_STORAGE_KEY } from './ThemeScript';
+import { THEME_STORAGE_KEY } from '@/lib/theme';
 
 type Choice = 'light' | 'dark' | 'system';
 

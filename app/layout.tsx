@@ -3,6 +3,7 @@ import { IBM_Plex_Sans_Thai, Mitr } from 'next/font/google';
 import Providers from './providers';
 import GlowBackground from '@/components/backgrounds/GlowBackground';
 import ThemeScript from '@/components/theme/ThemeScript';
+import ThemeSync from '@/components/theme/ThemeSync';
 import './globals.css';
 
 // IBM Plex Sans Thai: ฟอนต์โมเดิร์นทันสมัย อ่านง่าย รองรับภาษาไทยครบทุกวรรณยุกต์
@@ -45,6 +46,7 @@ export default function RootLayout({
         <ThemeScript />
       </head>
       <body className={`${plex.variable} ${brandFont.variable} font-body`}>
+        <ThemeSync />
         <GlowBackground />
         <Providers>{children}</Providers>
       </body>
