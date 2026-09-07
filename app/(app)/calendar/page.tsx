@@ -103,6 +103,7 @@ function CalendarPageContent() {
 
   // Loop ชีวิต (กิจกรรมประจำ)
   const [recurring, setRecurring] = useState<RecurringEventInfo[]>([]);
+  const [loopOpen, setLoopOpen] = useState(false);
 
   // กิจกรรมจาก Google Calendar (อ่านอย่างเดียว)
   const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
@@ -228,15 +229,18 @@ function CalendarPageContent() {
   const summaryRequestSeq = useRef(0);
 
   useEffect(() => {
+    // เดินเลขคิวก่อนทุกอย่าง - คำขอที่ค้างอยู่ต้องกลายเป็น "ของเก่า" ทันทีที่เปลี่ยนสัปดาห์
+    // ต้องอยู่เหนือทั้ง early return และ setTimeout:
+    //   - ถ้าไปเดินเลขข้างใน setTimeout คำขอเก่าที่กลับมาระหว่างรอ 400ms จะยังนับเป็นคำขอปัจจุบัน
+    //   - ถ้าไปเดินเลขใต้ early return สัปดาห์ที่ไม่มีกิจกรรมจะไม่ยกเลิกคำขอค้าง แล้วโดนสรุป
+    //     ของสัปดาห์ก่อนมาแปะทับ ทั้งที่ตัวเลขข้างล่างขึ้น 0 รายการ
+    const seq = ++summaryRequestSeq.current;
+
     setAiWeeklySummary(null);
     if (weekEvents.length === 0) {
       setSummaryLoading(false);
       return;
     }
-    // เดินเลขคิวทันทีตั้งแต่ยังไม่ยิง - คำขอที่ค้างอยู่จะกลายเป็นของเก่าทันทีที่เปลี่ยนสัปดาห์
-    // (ถ้าไปเดินเลขข้างใน setTimeout คำขอเก่าที่เพิ่งกลับมาจะยังนับว่าเป็นคำขอปัจจุบันอยู่
-    //  แล้วเอาสรุปของสัปดาห์ก่อนมาแปะทับสัปดาห์ใหม่ในช่วง 400ms ที่รออยู่)
-    const seq = ++summaryRequestSeq.current;
     setSummaryLoading(true);
 
     // หน่วง 400ms ก่อนยิงจริง - กดลูกศรเลื่อนสัปดาห์รัวๆ จะเรียก Gemini แค่ครั้งเดียวตอนหยุดกด
@@ -386,8 +390,10 @@ function CalendarPageContent() {
       {/* minmax(0,1fr) กันคอลัมน์ปฏิทินดันกริดจนล้นจอ (1fr เฉยๆ ยอมให้ลูกกว้างเกินช่องได้) */}
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
         {/* ---------- Sidebar ซ้าย (โล่ง: มินิปฏิทิน + หมวดหมู่) ----------
-            ตรึงไว้ตอนเลื่อนหน้า - ปฏิทินฝั่งขวาสูงกว่าเสมอ ถ้าปล่อยให้เลื่อนตามจะเหลือช่องว่างยาวๆ ข้างล่าง */}
-        <aside className="flex flex-col gap-5 lg:sticky lg:top-6">
+            ตรึงไว้ตอนเลื่อนหน้า - ปฏิทินฝั่งขวาสูงกว่าเสมอ ถ้าปล่อยให้เลื่อนตามจะเหลือช่องว่างยาวๆ ข้างล่าง
+            ต้องมี max-h + overflow-y-auto คู่กันเสมอ: sticky ที่สูงเกินจอจะตรึงค้างแล้วเลื่อนดูส่วนล่างไม่ได้เลย
+            (เปิดฟอร์มเพิ่มหมวดหมู่แล้วตัวเลือกสี 24 ช่องกินความสูงหลายแถว ปุ่มบันทึกจะหลุดจอบนโน้ตบุ๊ก) */}
+        <aside className="flex flex-col gap-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
           <Card className="!p-4">
             <MiniCalendar selectedDate={anchor} events={displayEvents} onSelectDate={setAnchor} />
           </Card>
@@ -423,10 +429,19 @@ function CalendarPageContent() {
             onAdd={() => openAddModal()}
             extra={
               <>
-                {/* Loop ชีวิต (ตารางประจำ) */}
-                <Popover label="Loop ประจำ" icon={<Repeat size={14} />} badge={recurring.length} width="w-80">
-                  <RecurringManager categories={categories} onChange={loadRecurring} />
-                </Popover>
+                {/* Loop ชีวิต (ตารางประจำ) - เปิดเป็น modal กลางจอ ฟอร์มกรอกยาวเกินกว่าจะอยู่ใน popover ไหว */}
+                <button
+                  onClick={() => setLoopOpen(true)}
+                  className="flex items-center gap-1.5 rounded-full border border-eddy-200 bg-white px-3.5 py-2 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
+                >
+                  <Repeat size={14} />
+                  Loop ประจำ
+                  {recurring.length > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold text-white">
+                      {recurring.length}
+                    </span>
+                  )}
+                </button>
 
                 {/* เชื่อม Google Calendar (อ่านอย่างเดียว) */}
                 <Popover
@@ -531,6 +546,11 @@ function CalendarPageContent() {
           loading={summaryLoading}
         />
       </div>
+
+      {/* Loop ชีวิต (ตารางประจำ) */}
+      <Modal open={loopOpen} onClose={() => setLoopOpen(false)} title="Loop ประจำ" maxWidth="max-w-2xl">
+        <RecurringManager categories={categories} onChange={loadRecurring} />
+      </Modal>
 
       {/* ไทม์ไลน์ของวันที่คลิกในมุมมองเดือน - ดูก่อนว่ามีอะไร แล้วค่อยกดเข้าไปแก้ */}
       <Modal
