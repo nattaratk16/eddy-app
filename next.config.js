@@ -1,6 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  /*
+   * ตั้ง BUILD_DIST_DIR เพื่อให้ build เขียนลงโฟลเดอร์อื่นแทน .next
+   *
+   *   BUILD_DIST_DIR=.next-check npx next build
+   *
+   * มีไว้เพราะ `next build` เฉยๆ จะล้าง .next แล้วเขียนไฟล์ production ทับ
+   * ถ้าตอนนั้น dev server รันอยู่ มันจะหาไฟล์ของตัวเองไม่เจอทันทีและตอบ Internal Server Error
+   * (dev server ไม่ได้ crash แต่กู้เองไม่ได้ ต้อง npm run dev:clean สตาร์ทใหม่)
+   *
+   * เวลาจะ build เพื่อ "ตรวจว่าโค้ดคอมไพล์ผ่านไหม" ให้ใส่ตัวแปรนี้เสมอ
+   * ส่วนการ build จริงตอน deploy ไม่ต้องใส่ - ปล่อยให้ลง .next ตามปกติ
+   */
+  ...(process.env.BUILD_DIST_DIR ? { distDir: process.env.BUILD_DIST_DIR } : {}),
 };
 
 /*

@@ -4,6 +4,8 @@
 # next.js
 /.next/
 /out/
+# โฟลเดอร์ build ชั่วคราวจาก BUILD_DIST_DIR (ดู next.config.js) - ใช้ตอนตรวจว่าโค้ดคอมไพล์ผ่านไหม
+/.next-*/
 
 # production
 /build
