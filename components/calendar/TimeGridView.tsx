@@ -150,7 +150,7 @@ export default function TimeGridView({
                       onClick={onEventClick ? () => onEventClick(ev) : undefined}
                       className={`flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-left font-body text-[11px] font-medium ${
                         onEventClick ? '' : 'cursor-default'
-                      } ${color ? color.chipClass : 'bg-eddy-100 text-ink-muted'}`}
+                      } ${color ? color.eventClass : 'bg-eddy-100 text-ink-muted'}`}
                     >
                       <span className="truncate">{ev.title}</span>
                     </button>
@@ -208,7 +208,7 @@ export default function TimeGridView({
                         onClick={onEventClick ? (e) => { e.stopPropagation(); onEventClick(ev); } : undefined}
                         className={`absolute overflow-hidden rounded-md text-left shadow-clay-sm transition-all duration-150 hover:z-20 hover:-translate-y-px hover:shadow-clay-pop ${
                           onEventClick ? '' : 'cursor-default'
-                        } ${color ? color.chipClass : 'bg-eddy-100 text-ink-muted'}`}
+                        } ${color ? color.eventClass : 'bg-eddy-100 text-ink-muted'}`}
                         style={{
                           top,
                           height,
