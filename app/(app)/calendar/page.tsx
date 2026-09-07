@@ -15,7 +15,7 @@ import {
   subMonths,
   subWeeks,
 } from 'date-fns';
-import { Sparkles, CalendarDays, Check, Repeat } from 'lucide-react';
+import { CalendarDays, Check, Repeat } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
@@ -23,12 +23,12 @@ import Modal from '@/components/Modal';
 import Popover from '@/components/Popover';
 import CategoryManager from '@/components/CategoryManager';
 import EventFormModal from '@/components/EventFormModal';
-import EddyMascot from '@/components/EddyMascot';
 import CalendarToolbar from '@/components/calendar/CalendarToolbar';
 import MiniCalendar from '@/components/calendar/MiniCalendar';
 import MonthView from '@/components/calendar/MonthView';
 import DayTimeline from '@/components/calendar/DayTimeline';
 import TimeGridView from '@/components/calendar/TimeGridView';
+import WeeklySummaryPanel from '@/components/calendar/WeeklySummaryPanel';
 import RecurringManager from '@/components/RecurringManager';
 import { buildWeeklySummary } from '@/lib/aiMock';
 import { expandRecurring } from '@/lib/recurring';
@@ -224,25 +224,42 @@ function CalendarPageContent() {
 
   const localWeeklySummary = useMemo(() => buildWeeklySummary(weekEvents, categories), [weekEvents, categories]);
   const [aiWeeklySummary, setAiWeeklySummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const summaryRequestSeq = useRef(0);
 
   useEffect(() => {
     setAiWeeklySummary(null);
-    if (weekEvents.length === 0) return;
+    if (weekEvents.length === 0) {
+      setSummaryLoading(false);
+      return;
+    }
+    // เดินเลขคิวทันทีตั้งแต่ยังไม่ยิง - คำขอที่ค้างอยู่จะกลายเป็นของเก่าทันทีที่เปลี่ยนสัปดาห์
+    // (ถ้าไปเดินเลขข้างใน setTimeout คำขอเก่าที่เพิ่งกลับมาจะยังนับว่าเป็นคำขอปัจจุบันอยู่
+    //  แล้วเอาสรุปของสัปดาห์ก่อนมาแปะทับสัปดาห์ใหม่ในช่วง 400ms ที่รออยู่)
     const seq = ++summaryRequestSeq.current;
-    (async () => {
-      try {
-        const res = await fetch('/api/ai/weekly-summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weekEvents, categories }),
-        });
-        const data = await res.json();
-        if (seq === summaryRequestSeq.current && data.summary) setAiWeeklySummary(data.summary);
-      } catch {
-        // เงียบไว้ - ใช้ localWeeklySummary ต่อไป
-      }
-    })();
+    setSummaryLoading(true);
+
+    // หน่วง 400ms ก่อนยิงจริง - กดลูกศรเลื่อนสัปดาห์รัวๆ จะเรียก Gemini แค่ครั้งเดียวตอนหยุดกด
+    const timer = setTimeout(() => {
+      (async () => {
+        try {
+          const res = await fetch('/api/ai/weekly-summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ weekEvents, categories }),
+          });
+          const data = await res.json();
+          if (seq === summaryRequestSeq.current && data.summary) setAiWeeklySummary(data.summary);
+        } catch {
+          // เงียบไว้ - ใช้ localWeeklySummary ต่อไป
+        } finally {
+          // เช็ค seq ด้วย ไม่งั้นคำขอเก่าที่เพิ่งกลับมาจะไปปิดสถานะ "กำลังโหลด" ของคำขอใหม่
+          if (seq === summaryRequestSeq.current) setSummaryLoading(false);
+        }
+      })();
+    }, 400);
+
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekEvents, categories]);
 
@@ -366,9 +383,11 @@ function CalendarPageContent() {
     <div className="px-4 md:px-10">
       <Topbar userName={userName} />
 
-      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-        {/* ---------- Sidebar ซ้าย (โล่ง: มินิปฏิทิน + หมวดหมู่) ---------- */}
-        <aside className="flex flex-col gap-5">
+      {/* minmax(0,1fr) กันคอลัมน์ปฏิทินดันกริดจนล้นจอ (1fr เฉยๆ ยอมให้ลูกกว้างเกินช่องได้) */}
+      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+        {/* ---------- Sidebar ซ้าย (โล่ง: มินิปฏิทิน + หมวดหมู่) ----------
+            ตรึงไว้ตอนเลื่อนหน้า - ปฏิทินฝั่งขวาสูงกว่าเสมอ ถ้าปล่อยให้เลื่อนตามจะเหลือช่องว่างยาวๆ ข้างล่าง */}
+        <aside className="flex flex-col gap-5 lg:sticky lg:top-6">
           <Card className="!p-4">
             <MiniCalendar selectedDate={anchor} events={displayEvents} onSelectDate={setAnchor} />
           </Card>
@@ -392,83 +411,8 @@ function CalendarPageContent() {
 
         {/* ---------- ส่วนปฏิทินหลัก ---------- */}
         <div className="flex flex-col gap-4">
-          {/* แถบเครื่องมือรอง: สรุป AI / Loop / Google (เก็บเป็น popover ให้หน้าโล่ง) */}
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {/* สรุปสัปดาห์ด้วย AI */}
-            <Popover label="สรุปสัปดาห์" icon={<Sparkles size={14} />} width="w-80">
-              <div className="flex items-start gap-3">
-                <EddyMascot character="nova" mood="think" size={44} float={false} />
-                <div>
-                  <p className="font-display text-sm font-bold text-ink">เอ็ดดี้สรุปสัปดาห์นี้</p>
-                  <p className="mt-1 font-body text-xs text-ink-muted">{weeklySummary}</p>
-                </div>
-              </div>
-            </Popover>
-
-            {/* Loop ชีวิต (ตารางประจำ) */}
-            <Popover label="Loop ประจำ" icon={<Repeat size={14} />} badge={recurring.length} width="w-80">
-              <RecurringManager categories={categories} onChange={loadRecurring} />
-            </Popover>
-
-            {/* เชื่อม Google Calendar (อ่านอย่างเดียว) */}
-            <Popover
-              label="Google"
-              icon={<CalendarDays size={14} />}
-              dotClass={
-                googleStatus === 'connected'
-                  ? 'bg-emerald-500'
-                  : googleStatus === 'account-error'
-                  ? 'bg-amber-500'
-                  : 'bg-ink-muted/40'
-              }
-              width="w-72"
-            >
-              <div className="flex items-center gap-2">
-                <CalendarDays size={16} className="text-eddy-600" />
-                <h2 className="font-display text-sm font-bold text-ink">Google Calendar</h2>
-              </div>
-              {googleStatus === 'connected' ? (
-                <>
-                  <p className="mt-1 flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
-                    <Check size={13} /> เชื่อมต่อแล้ว
-                  </p>
-                  <label className="mt-2 flex cursor-pointer items-center gap-2 font-body text-xs text-ink-soft">
-                    <input
-                      type="checkbox"
-                      checked={showGoogle}
-                      onChange={(e) => setShowGoogle(e.target.checked)}
-                      className="h-4 w-4 accent-eddy-500"
-                    />
-                    แสดงกิจกรรมจาก Google ({googleEvents.length})
-                  </label>
-                </>
-              ) : googleStatus === 'account-error' ? (
-                <div className="mt-1">
-                  <p className="flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
-                    <Check size={13} /> เชื่อมบัญชี Google แล้ว
-                  </p>
-                  <p className="mt-1 font-body text-xs text-eddy-700">
-                    แต่ยังดึงปฏิทินไม่ได้ — ต้องเปิดใช้ &quot;Google Calendar API&quot; ในโปรเจกต์ Google Cloud ก่อน แล้วรอ 1-2 นาที
-                  </p>
-                </div>
-              ) : googleStatus === 'off' ? (
-                <>
-                  <p className="mt-1 font-body text-xs text-ink-muted">
-                    เชื่อมเพื่อดึงกิจกรรมจากปฏิทิน Google มาแสดงในที่เดียว
-                  </p>
-                  <button
-                    onClick={() => signIn('google')}
-                    className="mt-2 rounded-full bg-ink px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
-                  >
-                    เชื่อม Google Calendar
-                  </button>
-                </>
-              ) : (
-                <p className="mt-1 font-body text-xs text-ink-muted">กำลังตรวจสอบ...</p>
-              )}
-            </Popover>
-          </div>
-
+          {/* Loop / Google เคยเป็นแถวปุ่มลอยแยกอีกแถวเหนือ toolbar - ยุบมาไว้ในแถวเดียวกันแล้ว
+              ส่วนสรุปสัปดาห์ย้ายไปแสดงค้างไว้เต็มความกว้างใต้ปฏิทิน ไม่ต้องกดเปิดเอง */}
           <CalendarToolbar
             view={view}
             title={toolbarTitle(view, anchor)}
@@ -477,6 +421,72 @@ function CalendarPageContent() {
             onNext={goNext}
             onToday={goToday}
             onAdd={() => openAddModal()}
+            extra={
+              <>
+                {/* Loop ชีวิต (ตารางประจำ) */}
+                <Popover label="Loop ประจำ" icon={<Repeat size={14} />} badge={recurring.length} width="w-80">
+                  <RecurringManager categories={categories} onChange={loadRecurring} />
+                </Popover>
+
+                {/* เชื่อม Google Calendar (อ่านอย่างเดียว) */}
+                <Popover
+                  label="Google"
+                  icon={<CalendarDays size={14} />}
+                  dotClass={
+                    googleStatus === 'connected'
+                      ? 'bg-emerald-500'
+                      : googleStatus === 'account-error'
+                      ? 'bg-amber-500'
+                      : 'bg-ink-muted/40'
+                  }
+                  width="w-72"
+                >
+                  <div className="flex items-center gap-2">
+                    <CalendarDays size={16} className="text-eddy-600" />
+                    <h2 className="font-display text-sm font-bold text-ink">Google Calendar</h2>
+                  </div>
+                  {googleStatus === 'connected' ? (
+                    <>
+                      <p className="mt-1 flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
+                        <Check size={13} /> เชื่อมต่อแล้ว
+                      </p>
+                      <label className="mt-2 flex cursor-pointer items-center gap-2 font-body text-xs text-ink-soft">
+                        <input
+                          type="checkbox"
+                          checked={showGoogle}
+                          onChange={(e) => setShowGoogle(e.target.checked)}
+                          className="h-4 w-4 accent-eddy-500"
+                        />
+                        แสดงกิจกรรมจาก Google ({googleEvents.length})
+                      </label>
+                    </>
+                  ) : googleStatus === 'account-error' ? (
+                    <div className="mt-1">
+                      <p className="flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
+                        <Check size={13} /> เชื่อมบัญชี Google แล้ว
+                      </p>
+                      <p className="mt-1 font-body text-xs text-eddy-700">
+                        แต่ยังดึงปฏิทินไม่ได้ — ต้องเปิดใช้ &quot;Google Calendar API&quot; ในโปรเจกต์ Google Cloud ก่อน แล้วรอ 1-2 นาที
+                      </p>
+                    </div>
+                  ) : googleStatus === 'off' ? (
+                    <>
+                      <p className="mt-1 font-body text-xs text-ink-muted">
+                        เชื่อมเพื่อดึงกิจกรรมจากปฏิทิน Google มาแสดงในที่เดียว
+                      </p>
+                      <button
+                        onClick={() => signIn('google')}
+                        className="mt-2 rounded-full bg-ink px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
+                      >
+                        เชื่อม Google Calendar
+                      </button>
+                    </>
+                  ) : (
+                    <p className="mt-1 font-body text-xs text-ink-muted">กำลังตรวจสอบ...</p>
+                  )}
+                </Popover>
+              </>
+            }
           />
 
           <AnimatePresence mode="wait">
@@ -509,6 +519,18 @@ function CalendarPageContent() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* สรุปสัปดาห์จากเอ็ดดี้ - วางนอกกริดให้กว้างเต็มหน้า (คร่อมใต้ทั้งแถบซ้ายและปฏิทิน)
+          สรุปสัปดาห์ที่คร่อมวันที่กำลังดูอยู่เสมอ ไม่ว่าจะเปิดมุมมองวัน/สัปดาห์/เดือน */}
+      <div className="mt-6">
+        <WeeklySummaryPanel
+          summary={weeklySummary}
+          rangeLabel={toolbarTitle('week', anchor)}
+          weekEvents={weekEvents}
+          categories={displayCategories}
+          loading={summaryLoading}
+        />
+      </div>
 
       {/* ไทม์ไลน์ของวันที่คลิกในมุมมองเดือน - ดูก่อนว่ามีอะไร แล้วค่อยกดเข้าไปแก้ */}
       <Modal

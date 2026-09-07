@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { CalendarView } from '@/lib/types';
@@ -12,6 +13,8 @@ interface CalendarToolbarProps {
   onNext: () => void;
   onToday: () => void;
   onAdd: () => void;
+  /** ปุ่มเสริมฝั่งขวา (Loop ประจำ / Google) - รับเป็น slot เพื่อไม่ต้องมีแถวปุ่มลอยอีกแถวเหนือ toolbar */
+  extra?: ReactNode;
 }
 
 const viewLabels: Record<CalendarView, string> = {
@@ -28,6 +31,7 @@ export default function CalendarToolbar({
   onNext,
   onToday,
   onAdd,
+  extra,
 }: CalendarToolbarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -57,7 +61,10 @@ export default function CalendarToolbar({
         <h2 className="ml-1 font-display text-h3 text-ink">{title}</h2>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {extra}
+        {extra && <span className="mx-0.5 hidden h-6 w-px bg-eddy-100 sm:block" />}
+
         {/* ตัวสลับมุมมอง วัน/สัปดาห์/เดือน (segmented control - pill เลื่อนลื่นด้วย layoutId) */}
         <div className="relative flex rounded-clay-sm bg-eddy-50 p-1">
           {(Object.keys(viewLabels) as CalendarView[]).map((v) => {
