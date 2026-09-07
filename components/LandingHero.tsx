@@ -66,7 +66,7 @@ export default function LandingHero({ isSafari = false }: { isSafari?: boolean }
         initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: 'easeOut' }}
-        className="relative z-20 mx-auto mt-6 flex w-[min(92vw,60rem)] items-center justify-between rounded-full border border-white/80 bg-white/90 px-5 py-2.5 shadow-clay backdrop-blur sm:px-7"
+        className="relative z-20 mx-auto mt-6 flex w-[min(92vw,60rem)] items-center justify-between rounded-full border border-surface/80 bg-surface/90 px-5 py-2.5 shadow-clay backdrop-blur sm:px-7"
       >
         <span className="flex items-center gap-2">
           <Image src="/mascot/eddy-a-128.png" alt="" width={36} height={40} className="h-8 w-auto" />
@@ -75,7 +75,7 @@ export default function LandingHero({ isSafari = false }: { isSafari?: boolean }
 
         <Link
           href="/login"
-          className="rounded-full bg-ink px-5 py-2 font-brand text-sm font-semibold text-white transition-all hover:bg-black active:scale-95 sm:px-6"
+          className="rounded-full bg-inverse px-5 py-2 font-brand text-sm font-semibold text-white transition-all hover:bg-black active:scale-95 sm:px-6"
         >
           เข้าสู่ระบบ
         </Link>
@@ -109,7 +109,7 @@ export default function LandingHero({ isSafari = false }: { isSafari?: boolean }
         <motion.div variants={item} className="mt-5">
           <Link
             href="/login"
-            className="inline-flex items-center rounded-full bg-ink px-10 py-3.5 font-brand text-base font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.03] hover:bg-black active:scale-95"
+            className="inline-flex items-center rounded-full bg-inverse px-10 py-3.5 font-brand text-base font-semibold text-white shadow-clay-pop transition-all duration-200 hover:scale-[1.03] hover:bg-black active:scale-95"
           >
             Get Started
           </Link>

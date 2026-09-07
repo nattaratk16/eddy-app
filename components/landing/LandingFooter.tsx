@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 export default function LandingFooter() {
   return (
-    <footer className="border-t border-eddy-100 bg-white px-5 py-8">
+    <footer className="border-t border-eddy-100 bg-surface px-5 py-8">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
         <Image src="/mascot/eddy-wordmark.png" alt="EDDY" width={900} height={411} className="h-6 w-auto opacity-80" />
         <p className="font-body text-xs text-ink-muted">

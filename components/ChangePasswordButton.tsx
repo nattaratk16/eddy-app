@@ -14,7 +14,7 @@ export default function ChangePasswordButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-full border border-eddy-200 bg-white px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
+        className="flex w-full items-center justify-center gap-2 rounded-full border border-eddy-200 bg-surface px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
       >
         <KeyRound size={16} /> เปลี่ยนรหัสผ่าน
       </button>

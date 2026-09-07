@@ -52,7 +52,7 @@ function KindToggle({ value, onChange }: { value: CategoryKind; onChange: (k: Ca
               ? opt.value === 'academic'
                 ? 'bg-kind-academic text-white'
                 : 'bg-kind-nonAcademic text-white'
-              : 'bg-white text-ink-muted shadow-clay-inset',
+              : 'bg-surface text-ink-muted shadow-clay-inset',
           )}
         >
           {opt.label}
@@ -116,7 +116,7 @@ export default function CategoryManager({
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="mb-2 w-full rounded-clay-sm bg-white px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
+                className="mb-2 w-full rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
                 autoFocus
               />
               <ColorPicker value={editColor} onChange={setEditColor} />
@@ -133,7 +133,7 @@ export default function CategoryManager({
                 </button>
                 <button
                   onClick={() => setEditingId(null)}
-                  className="flex items-center gap-1 rounded-clay-sm bg-white px-3 py-1.5 font-display text-xs font-semibold text-ink-muted"
+                  className="flex items-center gap-1 rounded-clay-sm bg-surface px-3 py-1.5 font-display text-xs font-semibold text-ink-muted"
                 >
                   <X size={14} /> ยกเลิก
                 </button>
@@ -180,7 +180,7 @@ export default function CategoryManager({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="ชื่อหมวดหมู่ เช่น ปฏิทินการเรียน"
-            className="mb-2 w-full rounded-clay-sm bg-white px-3 py-2 font-body text-sm text-ink shadow-clay-inset placeholder:text-ink-muted focus:outline-none"
+            className="mb-2 w-full rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink shadow-clay-inset placeholder:text-ink-muted focus:outline-none"
             autoFocus
           />
           <ColorPicker value={newColor} onChange={setNewColor} />
@@ -193,7 +193,7 @@ export default function CategoryManager({
             </button>
             <button
               onClick={() => setAdding(false)}
-              className="flex items-center gap-1 rounded-clay-sm bg-white px-3 py-1.5 font-display text-xs font-semibold text-ink-muted"
+              className="flex items-center gap-1 rounded-clay-sm bg-surface px-3 py-1.5 font-display text-xs font-semibold text-ink-muted"
             >
               <X size={14} /> ยกเลิก
             </button>

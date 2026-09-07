@@ -59,7 +59,7 @@ export default function TimePicker({ value, onChange, id, placeholder = 'เล�
       </button>
 
       {open && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-20 max-h-56 w-full min-w-[120px] overflow-y-auto rounded-clay-sm bg-white p-1.5 shadow-clay">
+        <div className="absolute left-0 top-[calc(100%+6px)] z-20 max-h-56 w-full min-w-[120px] overflow-y-auto rounded-clay-sm bg-surface p-1.5 shadow-clay">
           <div ref={listRef} className="flex flex-col gap-0.5">
             <button
               type="button"

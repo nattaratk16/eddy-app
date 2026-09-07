@@ -63,7 +63,7 @@ export default function OnboardingWizard() {
           {/* จุดบอกสเตป */}
           <div className="mb-6 flex justify-center gap-2">
             {[0, 1, 2].map((i) => (
-              <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-ink' : 'w-1.5 bg-eddy-200'}`} />
+              <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-inverse' : 'w-1.5 bg-eddy-200'}`} />
             ))}
           </div>
 
@@ -85,7 +85,7 @@ export default function OnboardingWizard() {
                 </p>
                 <button
                   onClick={() => setStep(1)}
-                  className="mt-7 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 font-display font-semibold text-white transition-all hover:scale-[1.03] hover:bg-black active:scale-95"
+                  className="mt-7 inline-flex items-center gap-2 rounded-full bg-inverse px-7 py-3 font-display font-semibold text-white transition-all hover:scale-[1.03] hover:bg-black active:scale-95"
                 >
                   เริ่มตั้งค่า <ArrowRight size={18} />
                 </button>
@@ -114,7 +114,7 @@ export default function OnboardingWizard() {
                         key={r}
                         onClick={() => setRole(r)}
                         className={`flex items-center gap-4 rounded-clay border p-4 text-left transition-all ${
-                          active ? 'border-ink bg-eddy-50 ring-2 ring-ink/10' : 'border-eddy-200 bg-white hover:border-eddy-300'
+                          active ? 'border-ink bg-eddy-50 ring-2 ring-ink/10' : 'border-eddy-200 bg-surface hover:border-eddy-300'
                         }`}
                       >
                         <span className="text-3xl">{ROLE_EMOJI[r]}</span>
@@ -135,7 +135,7 @@ export default function OnboardingWizard() {
                   <button
                     onClick={() => setStep(2)}
                     disabled={!role}
-                    className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 font-display text-sm font-semibold text-white transition-all hover:bg-black active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center gap-2 rounded-full bg-inverse px-6 py-2.5 font-display text-sm font-semibold text-white transition-all hover:bg-black active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ถัดไป <ArrowRight size={16} />
                   </button>
@@ -159,7 +159,7 @@ export default function OnboardingWizard() {
                   {TIPS.map((t) => {
                     const Icon = t.icon;
                     return (
-                      <div key={t.title} className="flex items-start gap-3 rounded-clay border border-eddy-100 bg-white p-3">
+                      <div key={t.title} className="flex items-start gap-3 rounded-clay border border-eddy-100 bg-surface p-3">
                         <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-eddy-700">
                           <Icon size={18} />
                         </span>
@@ -179,7 +179,7 @@ export default function OnboardingWizard() {
                   <button
                     onClick={finish}
                     disabled={loading}
-                    className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-2.5 font-display text-sm font-semibold text-white transition-all hover:scale-[1.03] hover:bg-black active:scale-95 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-full bg-inverse px-7 py-2.5 font-display text-sm font-semibold text-white transition-all hover:scale-[1.03] hover:bg-black active:scale-95 disabled:opacity-60"
                   >
                     {loading ? 'กำลังเริ่ม...' : 'เริ่มใช้งาน'} <ArrowRight size={16} />
                   </button>

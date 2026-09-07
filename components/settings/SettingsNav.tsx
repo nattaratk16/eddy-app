@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Clock, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { User, Clock, ShieldCheck, Palette, type LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 
 export interface SettingsNavItem {
@@ -21,6 +21,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: 'โปรไฟล์',
     description: 'ชื่อ อวาตาร์ และข้อมูลที่คนอื่นเห็น',
     icon: User,
+  },
+  {
+    href: '/settings/appearance',
+    label: 'การแสดงผล',
+    description: 'ธีมสว่าง/มืด ของแอป',
+    icon: Palette,
   },
   {
     href: '/settings/work',
@@ -52,7 +58,7 @@ export default function SettingsNav() {
             aria-current={active ? 'page' : undefined}
             className={clsx(
               'flex flex-shrink-0 items-center gap-3 rounded-clay-sm px-3.5 py-3 transition-colors duration-150 lg:flex-shrink',
-              active ? 'bg-white shadow-clay-sm ring-1 ring-eddy-200' : 'hover:bg-white/70',
+              active ? 'bg-surface shadow-clay-sm ring-1 ring-eddy-200' : 'hover:bg-surface/70',
             )}
           >
             <span

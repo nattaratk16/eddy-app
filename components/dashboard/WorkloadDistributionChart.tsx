@@ -119,7 +119,7 @@ export default function WorkloadDistributionChart({ daily, className }: Workload
 
         {hoverIdx !== null && (
           <div
-            className="pointer-events-none absolute z-20 w-max max-w-[200px] -translate-x-1/2 -translate-y-full rounded-clay-sm bg-ink px-3 py-2 text-left shadow-clay-sm"
+            className="pointer-events-none absolute z-20 w-max max-w-[200px] -translate-x-1/2 -translate-y-full rounded-clay-sm bg-inverse px-3 py-2 text-left shadow-clay-sm"
             style={{ left: `${(xCenter(hoverIdx) / WIDTH) * 100}%`, top: `${(yAt(daily[hoverIdx].requiredMin) / HEIGHT) * 100 - 4}%` }}
           >
             <p className="font-display text-xs font-bold text-white">

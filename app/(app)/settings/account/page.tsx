@@ -76,7 +76,7 @@ export default async function SettingsAccountPage() {
         </p>
         <Link
           href="/privacy"
-          className="mt-4 flex w-fit items-center gap-2 rounded-full border border-eddy-200 bg-white px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
+          className="mt-4 flex w-fit items-center gap-2 rounded-full border border-eddy-200 bg-surface px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
         >
           <ShieldCheck size={16} /> อ่านนโยบายความเป็นส่วนตัว
         </Link>

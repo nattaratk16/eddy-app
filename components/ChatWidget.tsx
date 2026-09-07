@@ -169,7 +169,7 @@ export default function ChatWidget() {
       {/* ปุ่มลอยเปิดแชท - การ์ดขาวเงาลึกให้เข้าชุดกับการ์ดอื่นในแอป (เดิมเป็นวงกลมดำทึบ หนักกว่าทั้งหน้า) */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-24 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full border border-white bg-white shadow-clay-pop ring-1 ring-eddy-100 transition-transform hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-24 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full border border-surface bg-surface shadow-clay-pop ring-1 ring-eddy-100 transition-transform hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
         aria-label={open ? 'ปิดแชทกับเอ็ดดี้' : 'เปิดแชทกับเอ็ดดี้'}
       >
         {open ? <X size={24} className="text-ink" /> : <EddyMascot size={44} float={false} />}
@@ -185,13 +185,13 @@ export default function ChatWidget() {
             style={{ transformOrigin: 'bottom right' }}
             // จอใหญ่ขยายทั้งกว้างและสูง (มือถือ 400x560 -> เดสก์ท็อป 460x640 -> จอกว้าง 520x720)
             // max-h ผูกกับ 100vh ไว้เสมอ กันกล่องล้นจอบนโน้ตบุ๊กจอเตี้ย
-            className="fixed bottom-44 right-4 z-40 flex h-[560px] max-h-[calc(100vh-13rem)] w-[92vw] max-w-[400px] flex-col overflow-hidden rounded-clay-lg border border-eddy-100 bg-white shadow-clay-pop md:bottom-28 md:right-8 md:h-[640px] md:max-h-[calc(100vh-11rem)] md:max-w-[460px] lg:h-[720px] lg:max-w-[520px]"
+            className="fixed bottom-44 right-4 z-40 flex h-[560px] max-h-[calc(100vh-13rem)] w-[92vw] max-w-[400px] flex-col overflow-hidden rounded-clay-lg border border-eddy-100 bg-surface shadow-clay-pop md:bottom-28 md:right-8 md:h-[640px] md:max-h-[calc(100vh-11rem)] md:max-w-[460px] lg:h-[720px] lg:max-w-[520px]"
           >
             {/* ---------- หัวแชท ---------- */}
             <div className="flex items-center gap-3 border-b border-eddy-100 px-4 py-3">
               <span className="relative flex-shrink-0">
                 <EddyMascot size={34} float={false} />
-                <span className="absolute -bottom-0.5 -right-1 h-2.5 w-2.5 rounded-full bg-brand-green ring-2 ring-white" />
+                <span className="absolute -bottom-0.5 -right-1 h-2.5 w-2.5 rounded-full bg-brand-green ring-2 ring-surface" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="font-display text-body font-semibold text-ink">เอ็ดดี้</p>
@@ -236,7 +236,7 @@ export default function ChatWidget() {
                         className={`max-w-[78%] px-3.5 py-2.5 font-body text-body ${
                           eddy
                             ? 'rounded-[18px] rounded-bl-[6px] bg-eddy-50 text-ink'
-                            : 'rounded-[18px] rounded-br-[6px] bg-ink text-white'
+                            : 'rounded-[18px] rounded-br-[6px] bg-inverse text-white'
                         }`}
                       >
                         {m.text}
@@ -245,9 +245,9 @@ export default function ChatWidget() {
 
                     {/* การ์ดเสนอเพิ่มกิจกรรม/สิ่งที่ต้องทำ จากข้อความที่ Gemini แปลงได้ */}
                     {m.draft && (
-                      <div className="ml-9 mt-2 max-w-[86%] overflow-hidden rounded-clay-sm border border-eddy-100 bg-white shadow-clay-sm">
+                      <div className="ml-9 mt-2 max-w-[86%] overflow-hidden rounded-clay-sm border border-eddy-100 bg-surface shadow-clay-sm">
                         <div className="flex items-center gap-2 border-b border-eddy-100 bg-eddy-50/60 px-3 py-2">
-                          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-eddy-600 shadow-clay-sm">
+                          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-surface text-eddy-600 shadow-clay-sm">
                             {m.draft.intent === 'event' ? <CalendarPlus size={13} /> : <ListPlus size={13} />}
                           </span>
                           <p className="font-display text-micro font-semibold tracking-wide text-ink-soft">
@@ -282,7 +282,7 @@ export default function ChatWidget() {
                                       <button
                                         key={`${sg.date}-${sg.startTime}`}
                                         onClick={() => addDraftToCalendar(m.draft!, sg)}
-                                        className="flex items-center gap-1 rounded-full border border-eddy-200 bg-white px-2.5 py-1 font-display text-micro font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
+                                        className="flex items-center gap-1 rounded-full border border-eddy-200 bg-surface px-2.5 py-1 font-display text-micro font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
                                       >
                                         <Clock size={11} /> {sg.label}
                                       </button>
@@ -326,7 +326,7 @@ export default function ChatWidget() {
                     <button
                       key={s}
                       onClick={() => sendMessage(s)}
-                      className="rounded-full border border-eddy-200 bg-white px-3 py-1.5 font-body text-caption text-eddy-700 transition-colors hover:bg-eddy-50"
+                      className="rounded-full border border-eddy-200 bg-surface px-3 py-1.5 font-body text-caption text-eddy-700 transition-colors hover:bg-eddy-50"
                     >
                       {s}
                     </button>

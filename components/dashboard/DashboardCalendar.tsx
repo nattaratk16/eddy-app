@@ -135,7 +135,7 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
                   'flex min-h-[112px] min-w-0 flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 text-left transition-colors hover:bg-eddy-50/60',
                   // เส้นขอบขวาของคอลัมน์เสาร์ และเส้นล่างของแถวสุดท้าย ซ้ำกับกรอบนอก
                   '[&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0',
-                  !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-white',
+                  !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-surface',
                 )}
               >
                 <span

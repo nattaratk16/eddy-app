@@ -161,7 +161,7 @@ export default function EditTaskModal({ open, task, onClose, onSave }: EditTaskM
 
         {/* เปลี่ยนกำหนดส่งไม่ได้ย้ายแผนของขั้นตอนย่อยให้เอง - บอกไว้ก่อนจะได้ไม่เข้าใจผิด */}
         {dueChanged && plannedSubs > 0 && (
-          <p className="flex items-start gap-1.5 rounded-clay-sm bg-pastel-yellow/60 px-3 py-2 font-body text-[11px] text-ink">
+          <p className="flex items-start gap-1.5 rounded-clay-sm bg-pastel-yellow/60 px-3 py-2 font-body text-[11px] text-ink dark:bg-pastel-yellow-dark/20 dark:text-pastel-yellow-dark">
             <Info size={12} className="mt-0.5 flex-shrink-0" />
             งานนี้มีขั้นตอนย่อยที่วางวันไว้แล้ว {plannedSubs} ข้อ — เปลี่ยนกำหนดส่งแล้ววันของขั้นตอนจะยังอยู่ที่เดิม
             กด &ldquo;ให้ EDDY จัดลงปฏิทินให้&rdquo; ที่แถวงานเพื่อจัดใหม่ได้

@@ -97,7 +97,7 @@ function SortableSubtaskItem({
           aria-label="ติ๊กรายการย่อยว่าทำเสร็จแล้ว"
           className={clsx(
             'h-4 w-4 flex-shrink-0 rounded-full border-2 transition-colors',
-            subtask.done ? 'border-eddy-500 bg-eddy-500' : 'border-eddy-300 bg-white'
+            subtask.done ? 'border-eddy-500 bg-eddy-500' : 'border-eddy-300 bg-surface'
           )}
         />
         <p className={clsx('min-w-0 flex-1 font-body text-sm', subtask.done ? 'text-ink-muted line-through' : 'text-ink')}>
@@ -147,7 +147,7 @@ function SortableSubtaskItem({
 
       {/* แถวแก้ไขวัน/เวลา */}
       {editing && (
-        <div className="ml-8 flex flex-wrap items-center gap-1.5 rounded-clay-sm bg-white px-2 py-1.5">
+        <div className="ml-8 flex flex-wrap items-center gap-1.5 rounded-clay-sm bg-surface px-2 py-1.5">
           <input
             type="date"
             value={date}

@@ -147,7 +147,7 @@ export default function CompletedTasksModal({
                     onClick={() => onRestore(task)}
                     aria-label="เอากลับมาเป็นงานที่ยังไม่เสร็จ"
                     title="เอากลับมาทำต่อ"
-                    className="flex flex-shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1.5 font-display text-[11px] font-semibold text-eddy-700 hover:bg-eddy-100"
+                    className="flex flex-shrink-0 items-center gap-1 rounded-full bg-surface px-2.5 py-1.5 font-display text-[11px] font-semibold text-eddy-700 hover:bg-eddy-100"
                   >
                     <RotateCcw size={12} /> เอากลับมา
                   </button>

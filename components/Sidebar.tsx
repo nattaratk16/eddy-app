@@ -26,7 +26,7 @@ export default function Sidebar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="sticky top-0 z-20 hidden h-screen w-[76px] flex-col items-center gap-1 border-r border-eddy-100 bg-white/70 py-4 backdrop-blur-xl md:flex">
+    <aside className="sticky top-0 z-20 hidden h-screen w-[76px] flex-col items-center gap-1 border-r border-eddy-100 bg-surface/70 py-4 backdrop-blur-xl md:flex">
       {/* โลโก้ - เป็นรูปโลโก้จริงแล้ว (ไม่ใช่ badge ไอคอนเหมือนเดิม) เลยไม่ต้องมีพื้นหลังไล่สีคลุมอีก */}
       <Link
         href="/dashboard"
@@ -50,7 +50,7 @@ export default function Sidebar() {
               {active && (
                 <motion.span
                   layoutId="sidebar-active-bar"
-                  className="absolute inset-y-0 left-0 my-auto h-7 w-1 rounded-r-full bg-ink"
+                  className="absolute inset-y-0 left-0 my-auto h-7 w-1 rounded-r-full bg-inverse"
                   transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                 />
               )}
@@ -88,7 +88,7 @@ export default function Sidebar() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={user.image} alt={displayName} className="h-9 w-9 rounded-full object-cover ring-2 ring-eddy-100" />
           ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-bold text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-inverse font-display text-sm font-bold text-white">
               {initial}
             </span>
           )}

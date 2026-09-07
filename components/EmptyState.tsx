@@ -35,7 +35,7 @@ function ActionButton({ action, variant }: { action: EmptyStateAction; variant: 
   const className =
     variant === 'primary'
       ? 'inline-flex h-10 items-center gap-1.5 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-5 font-display text-caption font-semibold text-white shadow-clay-sm transition-all hover:brightness-110 active:scale-[0.97]'
-      : 'inline-flex h-10 items-center gap-1.5 rounded-full border border-eddy-200 bg-white px-5 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50';
+      : 'inline-flex h-10 items-center gap-1.5 rounded-full border border-eddy-200 bg-surface px-5 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50';
 
   if (action.href) {
     return (

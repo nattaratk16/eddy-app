@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
           </Link>
         </div>
 
-        <div className="rounded-[24px] border border-white/80 bg-white/90 p-6 shadow-clay backdrop-blur-md sm:p-8">
+        <div className="rounded-[24px] border border-surface/80 bg-surface/90 p-6 shadow-clay backdrop-blur-md sm:p-8">
           <h1 className="font-display text-h1 text-ink">นโยบายความเป็นส่วนตัว</h1>
           <PrivacyPolicyContent />
         </div>

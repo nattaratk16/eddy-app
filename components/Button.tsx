@@ -9,9 +9,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variantClasses: Record<string, string> = {
   // ธีม Genie: ปุ่มหลักเป็น pill สีดำ
   primary:
-    'bg-ink text-white hover:bg-black hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-eddy-400/50',
+    'bg-inverse text-white hover:bg-black hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-eddy-400/50',
   secondary:
-    'border border-eddy-200 bg-white text-ink hover:bg-eddy-50 hover:border-eddy-300',
+    'border border-eddy-200 bg-surface text-ink hover:bg-eddy-50 hover:border-eddy-300',
   ghost: 'bg-transparent text-ink-soft hover:bg-eddy-50 hover:text-ink',
 };
 

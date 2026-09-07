@@ -93,13 +93,13 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
 
               {/* จุดบนเส้นไทม์ไลน์ - หมุดกำหนดส่งใช้ไอคอนธงแทนจุดกลม ให้แยกออกจาก event/งานจริงตั้งแต่แรกเห็น */}
               {ev.isDeadline ? (
-                <span className="relative z-10 mt-2.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-pastel-pink ring-2 ring-white">
+                <span className="relative z-10 mt-2.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-pastel-pink ring-2 ring-surface">
                   <Flag size={9} className="text-eddy-700" />
                 </span>
               ) : (
                 <span
                   className={clsx(
-                    'relative z-10 mt-3 h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white',
+                    'relative z-10 mt-3 h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-surface',
                     color ? color.dotClass : 'bg-eddy-300',
                   )}
                   aria-hidden
@@ -119,7 +119,7 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate font-body text-sm text-ink">{ev.title}</span>
                   {locked ? (
-                    <span className="flex flex-shrink-0 items-center gap-1 rounded-full bg-white px-2 py-0.5 font-body text-[10px] text-ink-muted">
+                    <span className="flex flex-shrink-0 items-center gap-1 rounded-full bg-surface px-2 py-0.5 font-body text-[10px] text-ink-muted">
                       <Lock size={9} /> {locked}
                     </span>
                   ) : (

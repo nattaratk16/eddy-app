@@ -93,7 +93,7 @@ export default function TimeGridView({
   const gridHeight = 24 * HOUR_HEIGHT;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-clay-sm border border-eddy-100 bg-white">
+    <div className="flex flex-col overflow-hidden rounded-clay-sm border border-eddy-100 bg-surface">
       {/* ---------- หัวตาราง: ชื่อวัน + วันที่ ---------- */}
       <div className="flex border-b border-eddy-100">
         <div className="w-14 flex-shrink-0" />

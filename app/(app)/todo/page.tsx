@@ -954,7 +954,7 @@ export default function TodoPage() {
 
           {/* ผลการจัดงานลงปฏิทิน: ข้อความสั้นๆ / ข้อผิดพลาด */}
           {scheduleNotice && (
-            <p className="mt-3 rounded-clay-sm bg-pastel-mint/60 px-4 py-2 font-body text-xs text-ink">{scheduleNotice}</p>
+            <p className="mt-3 rounded-clay-sm bg-pastel-mint/60 px-4 py-2 font-body text-xs text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">{scheduleNotice}</p>
           )}
           {scheduleError && (
             <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-4 py-2 font-body text-xs text-eddy-700">{scheduleError}</p>
@@ -982,7 +982,7 @@ export default function TodoPage() {
                         <button
                           type="button"
                           onClick={() => postponeToToday(t.id)}
-                          className="rounded-full bg-white px-2.5 py-1 font-display text-[11px] font-semibold text-eddy-700 hover:bg-eddy-50"
+                          className="rounded-full bg-surface px-2.5 py-1 font-display text-[11px] font-semibold text-eddy-700 hover:bg-eddy-50"
                         >
                           เลื่อนเป็นวันนี้
                         </button>
@@ -1010,7 +1010,7 @@ export default function TodoPage() {
 
           {/* ตัวอย่างตารางที่เอ็ดดี้เสนอ - ต้องกดยืนยันก่อนถึงจะลงปฏิทินจริง */}
           {plan && (
-            <div className="mt-4 rounded-clay-sm border border-eddy-200 bg-white p-4">
+            <div className="mt-4 rounded-clay-sm border border-eddy-200 bg-surface p-4">
               <div className="flex items-start gap-2">
                 <EddyMascot character="nova" mood="think" size={32} float={false} />
                 <div className="flex-1">
@@ -1081,7 +1081,7 @@ export default function TodoPage() {
                             onClick={() => togglePlanItem(item.taskId)}
                             className={clsx(
                               'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-colors',
-                              checked ? 'border-eddy-500 bg-eddy-500 text-white' : 'border-eddy-300 bg-white'
+                              checked ? 'border-eddy-500 bg-eddy-500 text-white' : 'border-eddy-300 bg-surface'
                             )}
                           >
                             {checked && <Check size={12} strokeWidth={3} />}
@@ -1215,7 +1215,7 @@ export default function TodoPage() {
                         onClick={() => toggleSelected(task.id)}
                         className={clsx(
                           'grid h-5 w-5 flex-shrink-0 place-items-center rounded-md border-2 transition-colors',
-                          isSelected ? 'border-eddy-500 bg-eddy-500 text-white' : 'border-eddy-300 bg-white'
+                          isSelected ? 'border-eddy-500 bg-eddy-500 text-white' : 'border-eddy-300 bg-surface'
                         )}
                       >
                         {isSelected && <Check size={12} strokeWidth={3} />}
@@ -1233,7 +1233,7 @@ export default function TodoPage() {
                           ? 'border-eddy-500 bg-eddy-500'
                           : lockedBySubtasks
                             ? 'border-eddy-200 bg-eddy-50 text-eddy-400'
-                            : 'border-eddy-300 bg-white'
+                            : 'border-eddy-300 bg-surface'
                       )}
                     >
                       {lockedBySubtasks && <Lock size={11} />}
@@ -1293,7 +1293,7 @@ export default function TodoPage() {
                       </div>
                       {subtasks.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <div className="h-1.5 w-full max-w-[160px] overflow-hidden rounded-full bg-white">
+                          <div className="h-1.5 w-full max-w-[160px] overflow-hidden rounded-full bg-surface">
                             <div
                               className="h-full rounded-full bg-eddy-400 transition-all"
                               style={{ width: `${(subDone / subtasks.length) * 100}%` }}
@@ -1331,7 +1331,7 @@ export default function TodoPage() {
 
                     {/* ทุกการกระทำอยู่นอกเมนูหมด กดทีเดียวถึง
                         ปุ่มลบมีเส้นคั่นกับกลุ่มอื่นและ hover เป็นสีเตือน */}
-                    <div className="flex flex-shrink-0 items-center gap-0.5 rounded-full border border-eddy-100 bg-white/80 p-0.5">
+                    <div className="flex flex-shrink-0 items-center gap-0.5 rounded-full border border-eddy-100 bg-surface/80 p-0.5">
                       <RowAction
                         icon={Pencil}
                         label="แก้ไขงาน (ชื่อ · ความสำคัญ · วันที่)"
@@ -1381,13 +1381,13 @@ export default function TodoPage() {
 
                   {/* ข้อ 4: บอกเหตุผลตรงจุดที่ผู้ใช้กด ว่าทำไมยังปิดงานไม่ได้ */}
                   {blockedTaskId === task.id && lockedBySubtasks && (
-                    <p className="ml-9 mt-2 flex items-center gap-1.5 rounded-clay-sm bg-pastel-yellow/60 px-3 py-1.5 font-body text-[11px] text-ink">
+                    <p className="ml-9 mt-2 flex items-center gap-1.5 rounded-clay-sm bg-pastel-yellow/60 px-3 py-1.5 font-body text-[11px] text-ink dark:bg-pastel-yellow-dark/20 dark:text-pastel-yellow-dark">
                       <Lock size={11} className="flex-shrink-0" />
                       ยังเหลือขั้นตอนย่อยอีก {subtasks.length - subDone} ข้อ — ติ๊กให้ครบก่อนงานนี้ถึงจะย้ายไป &ldquo;เสร็จแล้ว&rdquo;
                     </p>
                   )}
                   {breakdownNotice[task.id] && (
-                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-mint/50 px-3 py-1.5 font-body text-[11px] text-ink">
+                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-mint/50 px-3 py-1.5 font-body text-[11px] text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">
                       {breakdownNotice[task.id]}
                     </p>
                   )}
@@ -1435,7 +1435,7 @@ export default function TodoPage() {
                           value={subtaskDrafts[task.id] ?? ''}
                           onChange={(e) => setSubtaskDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))}
                           placeholder="+ เพิ่มรายการย่อย"
-                          className="flex-1 rounded-clay-sm bg-white px-3 py-1.5 font-body text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300"
+                          className="flex-1 rounded-clay-sm bg-surface px-3 py-1.5 font-body text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300"
                         />
                       </form>
                     </div>

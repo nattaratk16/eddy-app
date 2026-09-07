@@ -198,20 +198,20 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
                       src={m.image}
                       alt={m.name}
                       title={m.name}
-                      className="h-8 w-8 rounded-full border-2 border-white object-cover"
+                      className="h-8 w-8 rounded-full border-2 border-surface object-cover"
                     />
                   ) : (
                     <span
                       key={m.id}
                       title={m.name}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-ink font-display text-xs font-bold text-white"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-inverse font-display text-xs font-bold text-white"
                     >
                       {m.name.charAt(0).toUpperCase()}
                     </span>
                   ),
                 )}
                 {accepted.length > 4 && (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-eddy-100 font-display text-[10px] font-bold text-eddy-700">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-eddy-100 font-display text-[10px] font-bold text-eddy-700">
                     +{accepted.length - 4}
                   </span>
                 )}
@@ -279,14 +279,14 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
             ส่งรหัสนี้ให้เพื่อน แล้วให้กด &quot;เข้าร่วมกลุ่ม&quot; ในหน้ากลุ่ม
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <span className="flex-1 rounded-clay-sm bg-white px-4 py-2.5 text-center font-display text-xl font-bold tracking-[0.3em] text-ink">
+            <span className="flex-1 rounded-clay-sm bg-surface px-4 py-2.5 text-center font-display text-xl font-bold tracking-[0.3em] text-ink">
               {joinCode ?? (codeBusy ? '••••••' : '—')}
             </span>
             <button
               onClick={copyCode}
               disabled={!joinCode}
               aria-label="คัดลอกรหัสกลุ่ม"
-              className="flex items-center gap-1 rounded-clay-sm bg-ink px-3 py-2.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+              className="flex items-center gap-1 rounded-clay-sm bg-inverse px-3 py-2.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
             >
               {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
             </button>
@@ -331,7 +331,7 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
             onKeyDown={(e) => e.key === 'Enter' && invite()}
             placeholder="friend@example.com"
             autoFocus
-            className="flex-1 rounded-clay-sm border border-eddy-200 bg-white px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
+            className="flex-1 rounded-clay-sm border border-eddy-200 bg-surface px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
           />
           <Button onClick={invite} disabled={inviting} className="!py-2.5">
             <span className="flex items-center justify-center gap-1.5">
@@ -343,7 +343,9 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
           <p
             className={clsx(
               'mt-3 rounded-clay-sm px-3 py-2 font-body text-xs',
-              inviteMsg.ok ? 'bg-pastel-mint/60 text-ink' : 'bg-pastel-pink/60 text-eddy-700',
+              inviteMsg.ok
+                ? 'bg-pastel-mint/60 text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark'
+                : 'bg-pastel-pink/60 text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark',
             )}
           >
             {inviteMsg.text}

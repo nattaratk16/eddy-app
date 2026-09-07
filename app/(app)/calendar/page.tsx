@@ -432,12 +432,12 @@ function CalendarPageContent() {
                 {/* Loop ชีวิต (ตารางประจำ) - เปิดเป็น modal กลางจอ ฟอร์มกรอกยาวเกินกว่าจะอยู่ใน popover ไหว */}
                 <button
                   onClick={() => setLoopOpen(true)}
-                  className="flex items-center gap-1.5 rounded-full border border-eddy-200 bg-white px-3.5 py-2 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
+                  className="flex items-center gap-1.5 rounded-full border border-eddy-200 bg-surface px-3.5 py-2 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
                 >
                   <Repeat size={14} />
                   Loop ประจำ
                   {recurring.length > 0 && (
-                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold text-white">
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-inverse px-1 text-[10px] font-bold text-white">
                       {recurring.length}
                     </span>
                   )}
@@ -491,7 +491,7 @@ function CalendarPageContent() {
                       </p>
                       <button
                         onClick={() => signIn('google')}
-                        className="mt-2 rounded-full bg-ink px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
+                        className="mt-2 rounded-full bg-inverse px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
                       >
                         เชื่อม Google Calendar
                       </button>

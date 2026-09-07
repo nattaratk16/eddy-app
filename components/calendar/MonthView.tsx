@@ -99,7 +99,7 @@ export default function MonthView({
               // min-w-0 + overflow-hidden สำคัญมาก: ถ้าไม่ใส่ ชื่อกิจกรรมยาวๆ จะดันคอลัมน์นั้นให้กว้าง
               // แล้วคอลัมน์ที่เหลือ (โดยเฉพาะอาทิตย์ที่อยู่ซ้ายสุด) จะถูกบีบจนเลขวันที่เบียดกัน
               className={`group flex min-h-[112px] min-w-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 hover:bg-eddy-50/40 ${
-                !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-white'
+                !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-surface'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -143,7 +143,7 @@ export default function MonthView({
                         e.stopPropagation();
                         onEventClick(ev);
                       }}
-                      className={`flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left font-body text-[11px] transition-colors hover:bg-white ${
+                      className={`flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left font-body text-[11px] transition-colors hover:bg-surface ${
                         ev.isDeadline ? 'font-semibold text-eddy-700' : 'text-ink'
                       }`}
                     >

@@ -113,7 +113,7 @@ export default async function DashboardPage() {
       <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* การ์ดโฟกัสวันนี้ (เด่น) */}
         <Reveal className="sm:col-span-2">
-          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-white/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-7 text-ink shadow-clay">
+          <div className="relative flex h-full items-center gap-4 overflow-hidden rounded-clay border border-surface/70 bg-gradient-to-br from-pastel-blue via-[#E4EAFB] to-pastel-lilac p-7 text-chip-ink shadow-clay">
             <div className="relative z-10 flex-1">
               <p className="font-body text-caption font-semibold uppercase tracking-[0.06em] text-eddy-600">โฟกัสวันนี้</p>
               <p className="mt-1.5 font-display text-h2 text-ink">
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
             <div className="relative z-10 hidden shrink-0 sm:block">
               <EddyMascot size={104} />
             </div>
-            <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/40 blur-2xl" />
+            <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-surface/40 blur-2xl" />
           </div>
         </Reveal>
 
@@ -220,7 +220,7 @@ export default async function DashboardPage() {
                       key={task.id}
                       className="flex items-center gap-3 rounded-clay-sm bg-eddy-50 px-4 py-3 transition-colors hover:bg-eddy-100"
                     >
-                      <span className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-eddy-300 bg-white" />
+                      <span className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-eddy-300 bg-surface" />
                       <p className="min-w-0 flex-1 truncate font-body text-body text-ink">{task.title}</p>
                       {overdue && (
                         <span className="flex-shrink-0 rounded-full bg-pastel-coral px-3 py-1 font-body text-caption font-semibold text-eddy-700">

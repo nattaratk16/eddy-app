@@ -38,7 +38,7 @@ export default function CalendarToolbar({
       <div className="flex items-center gap-2">
         <button
           onClick={onToday}
-          className="rounded-full border border-eddy-200 bg-white px-4 py-2 font-display text-caption font-semibold text-eddy-700 transition-all hover:bg-eddy-50 active:scale-95"
+          className="rounded-full border border-eddy-200 bg-surface px-4 py-2 font-display text-caption font-semibold text-eddy-700 transition-all hover:bg-eddy-50 active:scale-95"
         >
           วันนี้
         </button>
@@ -80,7 +80,7 @@ export default function CalendarToolbar({
                 {activeV && (
                   <motion.span
                     layoutId="calendar-view-pill"
-                    className="absolute inset-0 rounded-[6px] bg-white shadow-clay-sm"
+                    className="absolute inset-0 rounded-[6px] bg-surface shadow-clay-sm"
                     transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                   />
                 )}

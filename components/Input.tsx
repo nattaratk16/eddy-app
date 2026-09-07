@@ -25,7 +25,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={id}
             className={clsx(
-              'w-full rounded-clay-sm border border-eddy-200 bg-white px-3.5 py-2.5 text-sm text-ink transition-colors',
+              'w-full rounded-clay-sm border border-eddy-200 bg-surface px-3.5 py-2.5 text-sm text-ink transition-colors',
               'placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25',
               icon && 'pl-10',
               rightSlot && 'pr-10',

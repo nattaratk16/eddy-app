@@ -38,7 +38,7 @@ export default function AuthLayout({ children, topRight, maxWidth = 'max-w-sm' }
     // พื้นหลังเทาอ่อนรอบนอก + การ์ดขอบมนใหญ่คลุมทั้งสองฝั่ง - ให้ความรู้สึก "อยู่ในกรอบ" แบบภาพต้นแบบ
     // แทนที่จะเต็มจอไปเลย (เดิม) ไม่งั้นมุมโค้งและเงาของการ์ดจะไม่มีที่ให้เห็น
     <div className="flex min-h-screen items-center justify-center bg-[#EDEFF2] p-3 sm:p-6 lg:p-10">
-      <div className="flex w-full max-w-6xl flex-col overflow-hidden rounded-[28px] bg-white shadow-clay-pop lg:h-[calc(100vh-5rem)] lg:max-h-[840px] lg:flex-row">
+      <div className="flex w-full max-w-6xl flex-col overflow-hidden rounded-[28px] bg-surface shadow-clay-pop lg:h-[calc(100vh-5rem)] lg:max-h-[840px] lg:flex-row">
       {/* ---------- ฝั่งภาพประกอบ - จอกว้างเท่านั้น ---------- */}
       <div className="relative hidden overflow-hidden bg-gradient-to-b from-[#CDE7FB] via-[#E9F4FD] to-[#F3F9FF] lg:flex lg:h-full lg:w-[45%] lg:flex-shrink-0 lg:flex-col">
         <SkyBackground />

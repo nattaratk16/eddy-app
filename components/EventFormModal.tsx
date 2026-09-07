@@ -25,7 +25,7 @@ interface EventFormModalProps {
 }
 
 const inputClass =
-  'w-full rounded-clay-sm border border-eddy-200 bg-white px-4 py-2.5 font-body text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
+  'w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-2.5 font-body text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
 const labelClass = 'mb-1.5 block font-display text-sm font-semibold text-ink-soft';
 
 export default function EventFormModal({
@@ -174,7 +174,7 @@ export default function EventFormModal({
       <div>
         <label className={labelClass} htmlFor="ev-category">หมวดหมู่</label>
         {categories.length === 0 ? (
-          <p className="rounded-clay-sm bg-pastel-yellow/50 px-3 py-2 font-body text-xs text-ink-soft">
+          <p className="rounded-clay-sm bg-pastel-yellow/50 px-3 py-2 font-body text-xs text-ink-soft dark:bg-pastel-yellow-dark/20 dark:text-pastel-yellow-dark">
             ยังไม่มีหมวดหมู่ — เพิ่มหมวดหมู่ปฏิทินทางด้านซ้ายก่อนนะ
           </p>
         ) : (

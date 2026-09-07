@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { IBM_Plex_Sans_Thai, Mitr } from 'next/font/google';
 import Providers from './providers';
 import GlowBackground from '@/components/backgrounds/GlowBackground';
+import ThemeScript from '@/components/theme/ThemeScript';
 import './globals.css';
 
 // IBM Plex Sans Thai: ฟอนต์โมเดิร์นทันสมัย อ่านง่าย รองรับภาษาไทยครบทุกวรรณยุกต์
@@ -37,7 +38,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th">
+    // suppressHydrationWarning: ThemeScript เติมคลาส .dark ให้ <html> ก่อน React hydrate
+    // markup ฝั่งเซิร์ฟเวอร์จึงไม่ตรงกับ DOM จริงโดยตั้งใจ
+    <html lang="th" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className={`${plex.variable} ${brandFont.variable} font-body`}>
         <GlowBackground />
         <Providers>{children}</Providers>

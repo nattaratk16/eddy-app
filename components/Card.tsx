@@ -9,7 +9,7 @@ interface CardProps {
 
 // โทนขาว = เส้นขอบบางสีฟ้าจาง (คลีนพรีเมียม); โทนพาสเทล = ขอบสีเดียวกับพื้นให้ดูเนียน
 const toneClasses: Record<string, string> = {
-  white: 'bg-white border-eddy-100',
+  white: 'bg-surface border-eddy-100',
   pink: 'bg-pastel-pink border-pastel-pink-dark/30',
   yellow: 'bg-pastel-yellow border-pastel-yellow-dark/30',
   mint: 'bg-pastel-mint border-pastel-mint-dark/30',

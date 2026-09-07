@@ -110,7 +110,7 @@ export default function BurndownChart({ series, className }: BurndownChartProps)
 
         {hoverIdx !== null && (
           <div
-            className="pointer-events-none absolute z-20 w-max -translate-x-1/2 -translate-y-full rounded-clay-sm bg-ink px-3 py-2 text-left shadow-clay-sm"
+            className="pointer-events-none absolute z-20 w-max -translate-x-1/2 -translate-y-full rounded-clay-sm bg-inverse px-3 py-2 text-left shadow-clay-sm"
             style={{ left: `${(xAt(hoverIdx) / WIDTH) * 100}%`, top: `${(yAt(ideal[hoverIdx].minutes / 60) / HEIGHT) * 100 - 4}%` }}
           >
             <p className="font-display text-xs font-bold text-white">

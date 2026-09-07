@@ -17,7 +17,7 @@ export default function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-clay border border-eddy-100 bg-white/90 px-2 py-2 shadow-clay backdrop-blur-md md:hidden">
+    <nav className="fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-clay border border-eddy-100 bg-surface/90 px-2 py-2 shadow-clay backdrop-blur-md md:hidden">
       {navItems.map((item) => {
         const active = pathname?.startsWith(item.href);
         const Icon = item.icon;

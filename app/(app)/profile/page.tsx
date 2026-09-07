@@ -15,7 +15,7 @@ const monthNames = [
 
 function StatChip({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
   return (
-    <span className="flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 font-body text-xs font-medium text-ink-soft shadow-clay-sm">
+    <span className="flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1.5 font-body text-xs font-medium text-ink-soft shadow-clay-sm">
       <Icon size={13} className="text-eddy-600" />
       <span className="font-display font-bold text-ink">{value}</span> {label}
     </span>
@@ -79,7 +79,7 @@ export default async function ProfilePage() {
           <Link
             href="/settings"
             aria-label="ตั้งค่า"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-eddy-200 bg-white text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-eddy-200 bg-surface text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
           >
             <Settings size={17} />
           </Link>
@@ -93,8 +93,8 @@ export default async function ProfilePage() {
             {/* แบนเนอร์ยื่นชนขอบการ์ด (ยกเลิก padding p-6 ของ Card) */}
             <div className="-mx-6 -mt-6 h-28 overflow-hidden bg-gradient-to-r from-eddy-500 via-accent-500 to-pastel-lilac-dark sm:h-32">
               <div className="relative h-full w-full">
-                <div className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
-                <div className="pointer-events-none absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+                <div className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-surface/20 blur-2xl" />
+                <div className="pointer-events-none absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-surface/15 blur-2xl" />
               </div>
             </div>
 
@@ -104,11 +104,11 @@ export default async function ProfilePage() {
                 <img
                   src={user.image}
                   alt={userName}
-                  className="h-24 w-24 flex-shrink-0 rounded-full object-cover shadow-clay-sm ring-4 ring-white"
+                  className="h-24 w-24 flex-shrink-0 rounded-full object-cover shadow-clay-sm ring-4 ring-surface"
                 />
               ) : (
                 <div
-                  className={`flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ring-4 ring-white ${color.chipClass}`}
+                  className={`flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ring-4 ring-surface ${color.chipClass}`}
                 >
                   {user.avatarEmoji || previewInitial}
                 </div>
@@ -166,7 +166,7 @@ export default async function ProfilePage() {
               </div>
               <Link
                 href="/settings/account"
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-eddy-200 bg-white px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-eddy-200 bg-surface px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
               >
                 <Settings size={15} /> จัดการบัญชีและรหัสผ่าน
               </Link>
@@ -191,7 +191,7 @@ export default async function ProfilePage() {
               </div>
               <Link
                 href="/settings/work"
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-eddy-200 bg-white px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-eddy-200 bg-surface px-4 py-2.5 font-display text-sm font-semibold text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
               >
                 <Pencil size={15} /> แก้ไขการตั้งค่าเวลา
               </Link>

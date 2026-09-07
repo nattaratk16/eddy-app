@@ -161,7 +161,7 @@ export default function ScheduleTaskModal({ open, task, onClose, onConfirm, onAu
           <div key={row.subtaskId ?? 'task'} className="rounded-clay-sm bg-eddy-50 px-3 py-2.5">
             <div className="flex items-center gap-2">
               {isSubtaskMode && (
-                <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white font-display text-[10px] font-bold text-eddy-700">
+                <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-surface font-display text-[10px] font-bold text-eddy-700">
                   {i + 1}
                 </span>
               )}
@@ -173,7 +173,7 @@ export default function ScheduleTaskModal({ open, task, onClose, onConfirm, onAu
                 value={row.date}
                 onChange={(e) => patchRow(i, { date: e.target.value })}
                 aria-label={`วันที่ของ ${row.title}`}
-                className="rounded bg-white px-2 py-1.5 font-body text-xs text-ink shadow-clay-inset focus:outline-none focus:ring-1 focus:ring-eddy-300"
+                className="rounded bg-surface px-2 py-1.5 font-body text-xs text-ink shadow-clay-inset focus:outline-none focus:ring-1 focus:ring-eddy-300"
               />
               <input
                 type="time"
@@ -186,7 +186,7 @@ export default function ScheduleTaskModal({ open, task, onClose, onConfirm, onAu
                   patchRow(i, { startTime: e.target.value, endTime: addMinutes(e.target.value, dur) });
                 }}
                 aria-label={`เวลาเริ่มของ ${row.title}`}
-                className="rounded bg-white px-2 py-1.5 font-body text-xs text-ink shadow-clay-inset focus:outline-none focus:ring-1 focus:ring-eddy-300"
+                className="rounded bg-surface px-2 py-1.5 font-body text-xs text-ink shadow-clay-inset focus:outline-none focus:ring-1 focus:ring-eddy-300"
               />
               <span className="font-body text-xs text-ink-muted">-</span>
               <input
@@ -195,7 +195,7 @@ export default function ScheduleTaskModal({ open, task, onClose, onConfirm, onAu
                 onChange={(e) => patchRow(i, { endTime: e.target.value })}
                 aria-label={`เวลาจบของ ${row.title}`}
                 className={clsx(
-                  'rounded bg-white px-2 py-1.5 font-body text-xs shadow-clay-inset focus:outline-none focus:ring-1',
+                  'rounded bg-surface px-2 py-1.5 font-body text-xs shadow-clay-inset focus:outline-none focus:ring-1',
                   row.endTime <= row.startTime ? 'text-eddy-700 ring-1 ring-pastel-pink' : 'text-ink focus:ring-eddy-300'
                 )}
               />

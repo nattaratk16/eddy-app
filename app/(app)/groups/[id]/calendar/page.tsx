@@ -78,7 +78,7 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setWeekStart(startOfWeek(new Date()))}
-            className="rounded-full border border-eddy-100 bg-white px-3.5 py-2 font-display text-xs font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
+            className="rounded-full border border-eddy-100 bg-surface px-3.5 py-2 font-display text-xs font-semibold text-eddy-700 transition-colors hover:bg-eddy-50"
           >
             สัปดาห์นี้
           </button>
@@ -96,7 +96,7 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
           <button
             onClick={togglePrivacy}
             disabled={savingPrivacy}
-            className="flex items-center gap-2 rounded-full border border-eddy-200 bg-white px-3.5 py-2 font-display text-xs font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
+            className="flex items-center gap-2 rounded-full border border-eddy-200 bg-surface px-3.5 py-2 font-display text-xs font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
           >
             {me.showEventTitles ? <Eye size={15} /> : <EyeOff size={15} />}
             {me.showEventTitles ? 'เพื่อนเห็นชื่อกิจกรรมของฉัน' : 'เพื่อนเห็นแค่ว่าฉัน "ไม่ว่าง"'}

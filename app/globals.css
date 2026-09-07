@@ -2,16 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ================= ธีมสว่าง / ธีมมืด =================
+ * ค่าสีทั้งหมดอยู่ตรงนี้ที่เดียว ส่วน tailwind.config.js แค่ชี้มาที่ตัวแปรพวกนี้
+ * คอมโพเนนต์จึงไม่ต้องแก้อะไรเลย - bg-surface / text-ink / border-eddy-100 ที่เขียนไว้แล้ว
+ * เปลี่ยนสีตามโหมดให้เอง รวมถึง variant ทุกแบบ (hover:, focus:, /70, stroke-, ring-)
+ *
+ * เขียนเป็นเลข RGB คั่นด้วยช่องว่าง (ไม่ใช่ #hex) เพราะ config ห่อด้วย rgb(var(--x) / <alpha-value>)
+ * ซึ่งเป็นวิธีเดียวที่ทำให้คลาสแบบ bg-surface/80 หรือ text-ink-muted/70 ยังทำงานได้
+ *
+ * สีที่ "ไม่พลิก" ตามโหมดโดยตั้งใจ (อยู่ใน tailwind.config.js เป็น hex ตรงๆ):
+ *   - pastel-*      สีหมวดหมู่ที่ผู้ใช้เลือกเอง เป็นป้ายสีสว่างทั้งสองโหมด (เหมือน Google Calendar)
+ *   - chip-ink      ตัวอักษรบนชิปพาสเทล จึงต้องเข้มเสมอ
+ *   - white / black text-white บนปุ่มไล่สีต้องขาวเสมอ
+ *   - load / kind / eisenhower  สีสื่อความหมายในกราฟ ผ่าน validator มาแล้ว
+ * ====================================================
+ */
+:root {
+  --c-eddy-50: 239 245 255;
+  --c-eddy-100: 220 232 254;
+  --c-eddy-200: 189 213 253;
+  --c-eddy-300: 143 186 251;
+  --c-eddy-400: 90 151 246;
+  --c-eddy-500: 10 93 235;
+  --c-eddy-600: 10 76 196;
+  --c-eddy-700: 12 63 158;
+  --c-eddy-800: 15 53 126;
+  --c-eddy-900: 15 42 95;
+
+  --c-accent-50: 236 251 255;
+  --c-accent-100: 213 245 255;
+  --c-accent-200: 174 236 255;
+  --c-accent-300: 100 215 255;
+  --c-accent-400: 47 194 242;
+  --c-accent-500: 14 127 168;
+  --c-accent-600: 11 112 153;
+  --c-accent-700: 13 107 142;
+
+  --c-ink: 31 39 51;
+  --c-ink-soft: 86 96 114;
+  --c-ink-muted: 138 151 168;
+
+  --c-surface: 255 255 255;
+  --c-inverse: 31 39 51;
+
+  /* พื้นหลังหน้าเว็บ + องค์ประกอบที่ไม่ได้ผ่าน Tailwind (การ์ด .clay-card, แถบเลื่อน) */
+  --c-page-top: #e4f0fc;
+  --c-page-mid: #f1f8fe;
+  --c-page-bottom: #fbfdff;
+  --c-page-base: #eef5fc;
+  --c-card-border: #dceaf7;
+  --c-card-shadow: 59 110 180;
+  --c-scrollbar: #b7d0ea;
+
+  color-scheme: light;
+}
+
+.dark {
+  /* ฟ้าถูกดันให้สว่างขึ้นทั้งแถบ เพราะบทบาทมันกลับด้าน:
+     50-200 เคยเป็น "พื้นอ่อน/เส้นขอบ" บนพื้นขาว ตอนนี้ต้องเป็น "พื้นสว่างขึ้นเล็กน้อย" บนพื้นมืด
+     600-900 เคยเป็น "ตัวอักษรเน้นสีเข้ม" ตอนนี้ต้องอ่านออกบนพื้นมืด จึงต้องสว่างกว่าพื้น */
+  --c-eddy-50: 28 38 55;
+  --c-eddy-100: 40 53 74;
+  --c-eddy-200: 55 72 98;
+  --c-eddy-300: 78 102 138;
+  --c-eddy-400: 110 150 220;
+  /* 500 เป็นพื้นปุ่มที่มี text-white ทับ - ต้องเข้มพอให้ตัวอักษรขาวผ่าน AA (#2563EB = 5.17:1) */
+  --c-eddy-500: 37 99 235;
+  --c-eddy-600: 96 165 250;
+  --c-eddy-700: 147 197 253;
+  --c-eddy-800: 178 214 255;
+  --c-eddy-900: 209 231 255;
+
+  --c-accent-50: 12 42 56;
+  --c-accent-100: 16 58 78;
+  --c-accent-200: 22 86 112;
+  --c-accent-300: 100 215 255;
+  --c-accent-400: 71 200 240;
+  /* ปลาย gradient ของปุ่ม - ตัวอักษรขาวทับเหมือนกัน จึงคงความเข้มไว้ */
+  --c-accent-500: 14 127 168;
+  --c-accent-600: 11 112 153;
+  --c-accent-700: 125 220 250;
+
+  --c-ink: 232 238 246;
+  --c-ink-soft: 165 178 196;
+  --c-ink-muted: 124 138 158;
+
+  --c-surface: 22 30 44;
+  /* ไม่ได้พลิกเป็นสีอ่อน - เป็นพื้นมืดที่ "ยกระดับ" ขึ้นมา เพื่อให้ text-white ที่คู่กันอยู่ยังอ่านออก
+     (ถ้าพลิกเป็นสีอ่อนตาม ink จะกลายเป็นกล่องขาวตัวอักษรขาวทันทีทั้ง tooltip กราฟและฟองแชท) */
+  --c-inverse: 47 58 77;
+
+  --c-page-top: #0b111c;
+  --c-page-mid: #0e1626;
+  --c-page-bottom: #121c2e;
+  --c-page-base: #0b111c;
+  --c-card-border: #28354a;
+  --c-card-shadow: 0 0 0;
+  --c-scrollbar: #33455f;
+
+  color-scheme: dark;
+}
+
 html,
 body {
-  color: #14202e;
+  color: rgb(var(--c-ink));
 }
 
 /* ธีม Genie: พื้นหลังฟ้าอ่อนไล่เฉด (ท้องฟ้าโปร่ง) ตรึงไว้ตอนสกรอลล์ */
 body {
   min-height: 100vh;
-  background-color: #eef5fc;
-  background-image: linear-gradient(180deg, #E4F0FC 0%, #F1F8FE 45%, #FBFDFF 100%);
+  background-color: var(--c-page-base);
+  background-image: linear-gradient(180deg, var(--c-page-top) 0%, var(--c-page-mid) 45%, var(--c-page-bottom) 100%);
   background-attachment: fixed;
 }
 
@@ -19,12 +121,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* การ์ดแบบ Genie: ขาว มุมมนขึ้น เส้นขอบฟ้าจาง เงานุ่มลอย */
+/* การ์ดแบบ Genie: มุมมนขึ้น เส้นขอบฟ้าจาง เงานุ่มลอย */
 .clay-card {
-  background: #ffffff;
+  background: rgb(var(--c-surface));
   border-radius: 18px;
-  border: 1px solid #dceaf7;
-  box-shadow: 0 6px 20px -8px rgba(59, 110, 180, 0.16), 0 1px 3px rgba(31, 39, 51, 0.04);
+  border: 1px solid var(--c-card-border);
+  box-shadow: 0 6px 20px -8px rgb(var(--c-card-shadow) / 0.16), 0 1px 3px rgba(31, 39, 51, 0.04);
 }
 
 .clay-button {
@@ -38,7 +140,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #b7d0ea;
+  background: var(--c-scrollbar);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {

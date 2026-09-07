@@ -26,7 +26,7 @@ export default async function LandingPage() {
       <ScrollProgressBar />
       <LandingHero isSafari={isSafari} />
 
-      <div className="bg-white">
+      <div className="bg-surface">
         <FeatureSection
           icon="/icons/clipboard-check.png"
           title="แตกงานใหญ่เป็นขั้นตอนย่อยให้อัตโนมัติ"
@@ -119,7 +119,7 @@ export default async function LandingPage() {
         >
           <Card className="mx-auto flex w-full max-w-sm flex-col gap-2">
             <div className="self-end rounded-clay-sm bg-eddy-500 px-3 py-2 font-body text-xs text-white">พรุ่งนี้ว่างไหม</div>
-            <div className="self-start rounded-clay-sm bg-pastel-blue px-3 py-2 font-body text-xs text-ink">
+            <div className="self-start rounded-clay-sm bg-pastel-blue px-3 py-2 font-body text-xs text-chip-ink">
               ว่างช่วงบ่ายค่ะ 14:00-17:00 เลย!
             </div>
           </Card>

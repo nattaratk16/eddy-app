@@ -258,7 +258,7 @@ function MemberRow({
         <span
           className={clsx(
             'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white',
-            pending ? 'bg-ink-muted' : 'bg-ink',
+            pending ? 'bg-ink-muted' : 'bg-inverse',
           )}
         >
           {m.name.charAt(0).toUpperCase()}

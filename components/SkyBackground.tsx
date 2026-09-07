@@ -5,10 +5,10 @@ function Cloud({ className = '', scale = 1 }: { className?: string; scale?: numb
   return (
     <div className={`absolute ${className}`} style={{ transform: `scale(${scale})` }} aria-hidden="true">
       <div className="relative">
-        <div className="h-14 w-32 rounded-full bg-white" />
-        <div className="absolute -top-7 left-5 h-20 w-20 rounded-full bg-white" />
-        <div className="absolute -top-5 right-4 h-16 w-16 rounded-full bg-white" />
-        <div className="absolute -top-2 left-1/2 h-14 w-24 -translate-x-1/2 rounded-full bg-white" />
+        <div className="h-14 w-32 rounded-full bg-surface" />
+        <div className="absolute -top-7 left-5 h-20 w-20 rounded-full bg-surface" />
+        <div className="absolute -top-5 right-4 h-16 w-16 rounded-full bg-surface" />
+        <div className="absolute -top-2 left-1/2 h-14 w-24 -translate-x-1/2 rounded-full bg-surface" />
       </div>
     </div>
   );

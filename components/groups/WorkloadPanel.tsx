@@ -191,7 +191,7 @@ export default function WorkloadPanel({ groupId, rows, refreshKey = 0, className
 
                   {/* รายละเอียดตอนชี้เมาส์ */}
                   {open && (
-                    <div className="absolute -top-2 left-1/2 z-20 w-max max-w-[240px] -translate-x-1/2 -translate-y-full rounded-clay-sm bg-ink px-3 py-2 text-left shadow-clay-sm">
+                    <div className="absolute -top-2 left-1/2 z-20 w-max max-w-[240px] -translate-x-1/2 -translate-y-full rounded-clay-sm bg-inverse px-3 py-2 text-left shadow-clay-sm">
                       <p className="font-display text-xs font-bold text-white">{m.name}</p>
                       {hasKindData && (
                         <>
@@ -203,7 +203,7 @@ export default function WorkloadPanel({ groupId, rows, refreshKey = 0, className
                         งานค้างที่ยังไม่ได้ลงปฏิทิน {formatHours(m.pendingMinutes ?? 0)}
                       </p>
                       <p className="font-body text-[11px] text-white/80">เวลาว่างที่เหลือ {formatHours(m.freeMinutes)}</p>
-                      <p className="mt-1.5 border-t border-white/15 pt-1.5 font-body text-[11px] text-white/60">
+                      <p className="mt-1.5 border-t border-surface/15 pt-1.5 font-body text-[11px] text-white/60">
                         คะแนน = งานที่มี ÷ เวลาว่าง = {m.score === null ? 'ไม่เหลือเวลาว่าง' : m.score.toFixed(2)}
                       </p>
                     </div>

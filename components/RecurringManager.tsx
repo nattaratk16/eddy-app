@@ -170,7 +170,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
   };
 
   const inputCls =
-    'w-full rounded-clay-sm border border-eddy-200 bg-white px-3.5 py-2.5 font-body text-body text-ink placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
+    'w-full rounded-clay-sm border border-eddy-200 bg-surface px-3.5 py-2.5 font-body text-body text-ink placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
   const labelCls = 'mb-1.5 block font-display text-caption font-semibold text-ink-soft';
 
   // ---------------- โหมดฟอร์ม ----------------
@@ -337,7 +337,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
           {items.map((it) => (
             <div
               key={it.id}
-              className="flex items-center gap-3 rounded-clay border border-eddy-100 bg-white px-3.5 py-3 transition-shadow hover:shadow-clay-sm"
+              className="flex items-center gap-3 rounded-clay border border-eddy-100 bg-surface px-3.5 py-3 transition-shadow hover:shadow-clay-sm"
             >
               <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-clay-sm ${chipOf(it.categoryId)}`}>
                 {it.courseCode ? <GraduationCap size={17} /> : <Repeat size={16} />}

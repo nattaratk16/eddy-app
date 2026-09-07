@@ -111,7 +111,7 @@ export default function WeeklySummaryPanel({ summary, rangeLabel, weekEvents, ca
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-clay border border-eddy-100 bg-white shadow-clay">
+    <section className="relative overflow-hidden rounded-clay border border-eddy-100 bg-surface shadow-clay">
       {/* แสงพาสเทลจางๆ กันกล่องดูแบน - อยู่หลังเนื้อหาและไม่รับคลิก */}
       <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-accent-100/60 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 -left-12 h-56 w-56 rounded-full bg-pastel-lilac/40 blur-3xl" />
@@ -147,7 +147,7 @@ export default function WeeklySummaryPanel({ summary, rangeLabel, weekEvents, ca
             // เส้นคั่นบางๆ ได้จาก gap-px บนพื้นสีฟ้าอ่อน แล้วให้แต่ละช่องเป็นพื้นขาวทับ
             <dl className="grid grid-cols-1 gap-px self-start overflow-hidden rounded-clay-sm border border-eddy-100 bg-eddy-100 sm:grid-cols-2 lg:grid-cols-1">
               {facts.map((f) => (
-                <div key={f.label} className="flex items-center justify-between gap-3 bg-white px-3 py-2">
+                <div key={f.label} className="flex items-center justify-between gap-3 bg-surface px-3 py-2">
                   <dt className="flex flex-shrink-0 items-center gap-1.5 font-body text-micro text-ink-muted">
                     {f.icon}
                     {f.label}

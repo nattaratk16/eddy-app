@@ -133,7 +133,7 @@ export default function GroupsPage() {
               setJoinedName('');
               setJoining(true);
             }}
-            className="flex items-center gap-1.5 rounded-full border border-eddy-200 bg-white px-4 py-2.5 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
+            className="flex items-center gap-1.5 rounded-full border border-eddy-200 bg-surface px-4 py-2.5 font-display text-caption font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
           >
             <KeyRound size={16} /> เข้าร่วมกลุ่ม
           </button>
@@ -203,7 +203,7 @@ export default function GroupsPage() {
                     </div>
                     <button
                       onClick={() => respond(inv, true)}
-                      className="flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
+                      className="flex items-center gap-1 rounded-full bg-inverse px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
                     >
                       <Check size={14} /> รับคำเชิญ
                     </button>
@@ -279,7 +279,7 @@ export default function GroupsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="เช่น กลุ่มโปรเจกต์ Capstone"
-              className="w-full rounded-clay-sm border border-eddy-200 bg-white px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
+              className="w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
               autoFocus
             />
           </div>
@@ -289,7 +289,7 @@ export default function GroupsPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="กลุ่มนี้เกี่ยวกับอะไร"
-              className="w-full rounded-clay-sm border border-eddy-200 bg-white px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
+              className="w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
             />
           </div>
           <div>
@@ -308,7 +308,7 @@ export default function GroupsPage() {
               ))}
             </div>
           </div>
-          {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>}
+          {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}
           <div className="mt-1 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setCreating(false)}>
               ยกเลิก
@@ -336,13 +336,13 @@ export default function GroupsPage() {
           placeholder="เช่น K7M2QD"
           maxLength={8}
           autoFocus
-          className="mt-3 w-full rounded-clay-sm border border-eddy-200 bg-white px-4 py-3 text-center font-display text-xl font-bold uppercase tracking-[0.3em] text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
+          className="mt-3 w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-3 text-center font-display text-xl font-bold uppercase tracking-[0.3em] text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
         />
         {joinError && (
           <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-eddy-700">{joinError}</p>
         )}
         {joinedName && (
-          <p className="mt-3 rounded-clay-sm bg-pastel-mint/60 px-3 py-2 font-body text-xs text-ink">{joinedName}</p>
+          <p className="mt-3 rounded-clay-sm bg-pastel-mint/60 px-3 py-2 font-body text-xs text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">{joinedName}</p>
         )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setJoining(false)}>
@@ -378,7 +378,7 @@ function StatCard({
           ? 'border-transparent bg-pastel-yellow/70'
           : tone === 'accent'
           ? 'border-transparent bg-pastel-mint/60'
-          : 'border-eddy-100 bg-white',
+          : 'border-eddy-100 bg-surface',
       )}
     >
       <p className="font-display text-2xl font-bold leading-none text-ink">{value}</p>
@@ -419,19 +419,19 @@ function GroupCard({ group }: { group: GroupInfo }) {
                     key={i}
                     src={a.image}
                     alt={a.name}
-                    className="h-7 w-7 rounded-full border-2 border-white object-cover"
+                    className="h-7 w-7 rounded-full border-2 border-surface object-cover"
                   />
                 ) : (
                   <span
                     key={i}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-ink font-display text-[10px] font-bold text-white"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface bg-inverse font-display text-[10px] font-bold text-white"
                   >
                     {a.name.charAt(0).toUpperCase()}
                   </span>
                 ),
               )}
               {group.memberCount > avatars.length && (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-eddy-100 font-display text-[10px] font-bold text-eddy-700">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface bg-eddy-100 font-display text-[10px] font-bold text-eddy-700">
                   +{group.memberCount - avatars.length}
                 </span>
               )}

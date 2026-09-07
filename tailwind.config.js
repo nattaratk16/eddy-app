@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // โหมดมืดสั่งด้วยคลาส .dark บน <html> (ตั้งค่าโดย ThemeScript ใน app/layout.tsx)
+  darkMode: 'class',
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -10,18 +12,28 @@ module.exports = {
       colors: {
         // สีแบรนด์หลัก - ไล่จาก #0A5DEB ในพาเลตของมาสคอต
         // 50–300 = ฟ้าอ่อน (พื้นผิว/เส้นขอบ/hover), 400–900 = น้ำเงินแบรนด์ (ปุ่ม/ตัวอักษรเน้น)
+        // ค่าจริงอยู่ที่ตัวแปร CSS ใน app/globals.css (ชุดสว่าง :root / ชุดมืด .dark)
+        // เขียนเป็น rgb(var(--x) / <alpha-value>) เพื่อให้คลาสแบบ text-ink-muted/70 ยังใช้ได้
         eddy: {
-          50: '#EFF5FF',
-          100: '#DCE8FE',
-          200: '#BDD5FD',
-          300: '#8FBAFB',
-          400: '#5A97F6',
-          500: '#0A5DEB', // สีหลักจากพาเลต
-          600: '#0A4CC4',
-          700: '#0C3F9E',
-          800: '#0F357E',
-          900: '#0F2A5F',
+          50: 'rgb(var(--c-eddy-50) / <alpha-value>)',
+          100: 'rgb(var(--c-eddy-100) / <alpha-value>)',
+          200: 'rgb(var(--c-eddy-200) / <alpha-value>)',
+          300: 'rgb(var(--c-eddy-300) / <alpha-value>)',
+          400: 'rgb(var(--c-eddy-400) / <alpha-value>)',
+          500: 'rgb(var(--c-eddy-500) / <alpha-value>)',
+          600: 'rgb(var(--c-eddy-600) / <alpha-value>)',
+          700: 'rgb(var(--c-eddy-700) / <alpha-value>)',
+          800: 'rgb(var(--c-eddy-800) / <alpha-value>)',
+          900: 'rgb(var(--c-eddy-900) / <alpha-value>)',
         },
+        // พื้นการ์ด - เดิมเขียน bg-white ตรงๆ แต่ bg-white ต้องแยกจาก text-white
+        // (text-white บนปุ่มสีต้องขาวเสมอ ส่วนพื้นการ์ดต้องมืดลงในโหมดมืด)
+        surface: 'rgb(var(--c-surface) / <alpha-value>)',
+        // พื้นทึบคอนทราสต์สูง (tooltip กราฟ, ปุ่มเน้น, ฟองแชทของผู้ใช้) - เดิมคือ bg-ink
+        // โหมดมืดไม่ได้พลิกเป็นสีอ่อน แต่เป็น "พื้นมืดที่ยกระดับขึ้น" เพื่อให้ text-white ยังอ่านออก
+        inverse: 'rgb(var(--c-inverse) / <alpha-value>)',
+        // ตัวอักษรบนชิปพาสเทล - ชิปเป็นพื้นสว่างเสมอทั้งสองโหมด สีนี้จึงไม่พลิกตาม
+        'chip-ink': '#0C3F9E',
         // Pastel accent palette - functional (user-chosen category colors).
         // First 6 are original values, kept byte-for-byte so existing categories never recolor.
         // The next 10 were generated + CVD-validated with the dataviz skill to fill hue gaps.
@@ -89,17 +101,14 @@ module.exports = {
         },
         // สีรอง - ฟ้าสว่าง #64D7FF จากพาเลต ใช้คู่กับ eddy blue ทำ gradient (น้ำเงิน -> ฟ้า)
         accent: {
-          50: '#ECFBFF',
-          100: '#D5F5FF',
-          200: '#AEECFF',
-          300: '#64D7FF', // สีฟ้าสว่างจากพาเลต
-          400: '#2FC2F2',
-          // 500 ถูกใช้เป็นปลาย gradient ของปุ่มที่มีตัวอักษรสีขาว (from-eddy-500 to-accent-500)
-          // จึงต้องเข้มพอให้ตัวอักษรขาวอ่านออก - #0E7FA8 ให้คอนทราสต์ 4.55:1 ผ่านเกณฑ์ WCAG AA
-          // (ฟ้าสว่าง #64D7FF จากพาเลตอยู่ที่ระดับ 300 ใช้เป็นพื้น/ไฮไลต์แทน)
-          500: '#0E7FA8',
-          600: '#0B7099',
-          700: '#0D6B8E',
+          50: 'rgb(var(--c-accent-50) / <alpha-value>)',
+          100: 'rgb(var(--c-accent-100) / <alpha-value>)',
+          200: 'rgb(var(--c-accent-200) / <alpha-value>)',
+          300: 'rgb(var(--c-accent-300) / <alpha-value>)',
+          400: 'rgb(var(--c-accent-400) / <alpha-value>)',
+          500: 'rgb(var(--c-accent-500) / <alpha-value>)',
+          600: 'rgb(var(--c-accent-600) / <alpha-value>)',
+          700: 'rgb(var(--c-accent-700) / <alpha-value>)',
         },
         // ระดับภาระงาน (Workload Score) - เขียว = ยังว่าง, ส้ม = เริ่มแน่น, แดง = แน่นมาก
         // ผ่าน validator ของ dataviz skill ครบทุกข้อ (lightness band / chroma / CVD / contrast >= 3:1)
@@ -139,11 +148,11 @@ module.exports = {
           green: '#2FB344',      // ตัวอักษรเข้มบนพื้นนี้ 5.48:1 ผ่าน AA
           'orange-ink': '#D95B14', // ส้มเข้มพอที่จะใช้เป็นตัวอักษรบนพื้นฟ้าอ่อนได้ (3.17:1)
         },
-        // ธีม Genie: ตัวอักษรดำอมฟ้าเย็น (cool near-black) เข้ากับพื้นฟ้า
+        // ตัวอักษรหลัก/รอง/จาง - พลิกเป็นโทนสว่างในโหมดมืด (ดู globals.css)
         ink: {
-          DEFAULT: '#1F2733',
-          soft: '#566072',
-          muted: '#8A97A8',
+          DEFAULT: 'rgb(var(--c-ink) / <alpha-value>)',
+          soft: 'rgb(var(--c-ink-soft) / <alpha-value>)',
+          muted: 'rgb(var(--c-ink-muted) / <alpha-value>)',
         },
       },
       fontFamily: {

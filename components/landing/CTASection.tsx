@@ -18,13 +18,13 @@ export default function CTASection() {
         {/* แสงเรืองลอยตกแต่ง - เพิ่มความรู้สึก "พิเศษ" ให้การ์ดปิดท้าย */}
         <motion.span
           aria-hidden
-          className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-2xl"
+          className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full bg-surface/15 blur-2xl"
           animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0.8, 0.5] }}
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.span
           aria-hidden
-          className="pointer-events-none absolute -bottom-16 -right-10 h-44 w-44 rounded-full bg-white/10 blur-2xl"
+          className="pointer-events-none absolute -bottom-16 -right-10 h-44 w-44 rounded-full bg-surface/10 blur-2xl"
           animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
         />
@@ -43,7 +43,7 @@ export default function CTASection() {
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }} className="relative mt-2">
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 font-brand text-base font-semibold text-eddy-700 shadow-clay transition-shadow hover:shadow-clay-pop"
+            className="inline-flex items-center gap-2 rounded-full bg-surface px-8 py-3.5 font-brand text-base font-semibold text-eddy-700 shadow-clay transition-shadow hover:shadow-clay-pop"
           >
             Get Started <ArrowRight size={18} />
           </Link>

@@ -28,10 +28,10 @@ import type { GroupInfo, GroupMemberInfo, GroupTaskInfo } from '@/lib/types';
 
 // คุมความสูงทุกช่องให้เท่ากัน (h-11) เพื่อให้ input/select/date อยู่ในแนวเดียวกันเป๊ะ
 const fieldClass =
-  'h-11 w-full rounded-clay-sm border border-eddy-200 bg-white px-4 font-body text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
+  'h-11 w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 font-body text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25';
 const fieldLabel = 'mb-1 block font-display text-xs font-semibold text-ink-soft';
 const smallField =
-  'h-8 rounded-clay-sm border border-eddy-200 bg-white px-2 font-body text-xs text-ink focus:border-eddy-400 focus:outline-none';
+  'h-8 rounded-clay-sm border border-eddy-200 bg-surface px-2 font-body text-xs text-ink focus:border-eddy-400 focus:outline-none';
 const DURATIONS = [
   { v: '30', label: '30 นาที' },
   { v: '45', label: '45 นาที' },
@@ -466,12 +466,12 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
                       value={s.title}
                       onChange={(e) => updateStep(i, { title: e.target.value })}
                       placeholder="ชื่อขั้นตอน"
-                      className="h-9 flex-1 rounded-clay-sm border border-eddy-200 bg-white px-3 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none"
+                      className="h-9 flex-1 rounded-clay-sm border border-eddy-200 bg-surface px-3 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none"
                     />
                     <button
                       onClick={() => removeStep(i)}
                       aria-label="ลบขั้นตอนนี้"
-                      className="flex-shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-white hover:text-eddy-700"
+                      className="flex-shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-surface hover:text-eddy-700"
                     >
                       <X size={16} />
                     </button>
@@ -606,20 +606,20 @@ function TaskRow({
               <span className="ml-auto flex items-center gap-1.5">
                 <button
                   onClick={() => onRespond(a.id, true)}
-                  className="flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 font-display text-[11px] font-semibold text-white transition-colors hover:bg-black"
+                  className="flex items-center gap-1 rounded-full bg-inverse px-2.5 py-1 font-display text-[11px] font-semibold text-white transition-colors hover:bg-black"
                 >
                   <Check size={12} /> ยืนยันลงปฏิทิน
                 </button>
                 <button
                   onClick={() => setPickingTime((v) => !v)}
-                  className="flex items-center gap-1 rounded-full border border-eddy-200 px-2.5 py-1 font-display text-[11px] font-semibold text-ink-soft transition-colors hover:bg-white hover:text-eddy-700"
+                  className="flex items-center gap-1 rounded-full border border-eddy-200 px-2.5 py-1 font-display text-[11px] font-semibold text-ink-soft transition-colors hover:bg-surface hover:text-eddy-700"
                 >
                   <CalendarClock size={12} /> เลือกเวลาอื่น
                 </button>
                 <button
                   onClick={() => onRespond(a.id, false)}
                   aria-label="ปฏิเสธงานนี้"
-                  className="flex items-center justify-center rounded-full border border-eddy-200 p-1 text-ink-muted transition-colors hover:bg-white hover:text-eddy-700"
+                  className="flex items-center justify-center rounded-full border border-eddy-200 p-1 text-ink-muted transition-colors hover:bg-surface hover:text-eddy-700"
                 >
                   <X size={13} />
                 </button>
@@ -663,7 +663,7 @@ function TaskRow({
             {a.isMine && a.status === 'approved' && (
               <button
                 onClick={() => onRespond(a.id, false)}
-                className="ml-auto flex items-center gap-1 rounded-full border border-eddy-200 px-2.5 py-1 font-display text-[11px] font-semibold text-ink-soft transition-colors hover:bg-white"
+                className="ml-auto flex items-center gap-1 rounded-full border border-eddy-200 px-2.5 py-1 font-display text-[11px] font-semibold text-ink-soft transition-colors hover:bg-surface"
               >
                 <X size={12} /> เอาออกจากปฏิทิน
               </button>
