@@ -60,7 +60,10 @@ const files = [];
 })(join(ROOT, 'components'));
 files.push(join(ROOT, 'lib/colors.ts'));
 
-const PAGE = MODE === 'dark' ? hex2rgb('#182335') : hex2rgb('#f1f8fe');
+// สีพื้นหน้าเว็บ อ่านจาก globals.css โดยตรง (ใช้ผสมกับพื้นที่กึ่งโปร่งใส)
+// ห้าม hardcode - เปลี่ยนโทนธีมเมื่อไหร่ตัวเลขคอนทราสต์จะเพี้ยนทันทีโดยไม่มีใครรู้
+const pageBlock = MODE === 'dark' ? css.slice(css.indexOf('.dark {')) : css.slice(css.indexOf(':root {'), css.indexOf('.dark {'));
+const PAGE = hex2rgb(pageBlock.match(/--c-page-mid:\s*(#[0-9a-fA-F]{6})/)[1]);
 const rows = new Map();
 for (const f of files) {
   const src = readFileSync(f, 'utf8');
