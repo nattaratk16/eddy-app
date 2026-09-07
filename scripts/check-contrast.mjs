@@ -23,6 +23,8 @@ const FLAT = { white: [255, 255, 255], black: [0, 0, 0] };
 const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 for (const m of cfg.matchAll(/'?([\w-]+)'?:\s*'(#[0-9A-Fa-f]{6})'/g)) FLAT[m[1]] = hex2rgb(m[2]);
 // pastel.* ต้องแยก namespace - ชื่อ pink/yellow/coral ชนกับ brand.*/gold ในไฟล์เดียวกัน
+const calBlock = cfg.slice(cfg.indexOf('cal: {'), cfg.indexOf('pastel: {'));
+for (const m of calBlock.matchAll(/'?([\w-]+)'?:\s*'(#[0-9A-Fa-f]{6})'/g)) FLAT['cal-' + m[1]] = hex2rgb(m[2]);
 const pastelBlock = cfg.slice(cfg.indexOf('pastel: {'), cfg.indexOf('// สีรอง'));
 for (const m of pastelBlock.matchAll(/'?([\w-]+)'?:\s*'(#[0-9A-Fa-f]{6})'/g)) FLAT['pastel-' + m[1]] = hex2rgb(m[2]);
 

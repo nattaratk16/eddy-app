@@ -33,7 +33,8 @@ module.exports = {
         // โหมดมืดไม่ได้พลิกเป็นสีอ่อน แต่เป็น "พื้นมืดที่ยกระดับขึ้น" เพื่อให้ text-white ยังอ่านออก
         inverse: 'rgb(var(--c-inverse) / <alpha-value>)',
         // ตัวอักษรบนชิปพาสเทล - ชิปเป็นพื้นสว่างเสมอทั้งสองโหมด สีนี้จึงไม่พลิกตาม
-        'chip-ink': '#0C3F9E',
+        // ตัวอักษรเข้มบนชิปสีสว่าง - ไม่พลิกตามโหมดเพราะชิปเป็นพื้นสว่างเสมอ
+        'chip-ink': '#1F2733',
         // Pastel accent palette - functional (user-chosen category colors).
         // First 6 are original values, kept byte-for-byte so existing categories never recolor.
         // The next 10 were generated + CVD-validated with the dataviz skill to fill hue gaps.
@@ -47,6 +48,39 @@ module.exports = {
         //   deep (L 0.53) - needs `text-white` on the chip instead (contrast 5.0-5.8)
         // Every one is >= ΔE 10 from all 16 originals and from each other, and the worst pair in
         // the full 24 is still the pre-existing blue/indigo, i.e. nothing got harder to tell apart.
+        // สีหมวดหมู่ปฏิทิน - โทนสดแบบ Apple Calendar (ชิปสีทึบ ตัวอักษรตัดกัน)
+        // แยก scale ออกจาก pastel-* เพราะ pastel-* ยังถูกใช้ตกแต่งที่อื่น (การ์ดฮีโร่ กล่องแจ้งเตือน
+        // ป้ายระดับความสำคัญ) ซึ่งควรอ่อนเหมือนเดิม - เปลี่ยนแค่สีที่ผู้ใช้เลือกให้หมวดหมู่
+        //
+        // คุมความสว่างเป็น 3 ชั้นโดยตั้งใจ: 16 สีเดิมสว่างสุด / mustard,azure,jade,orchid ชั้นกลาง /
+        // bronze,grape,pine,wine เข้มสุด - เพราะหลายคู่มีเฉดห่างกันไม่ถึง 5 องศา (mint 164 vs jade 161)
+        // ถ้าปล่อยให้สดที่ความสว่างเดียวกันหมดจะแยกไม่ออก (ลองแล้วเหลือ ΔE 1.1)
+        cal: {
+          pink: '#FF65A9',
+          yellow: '#D3B701',
+          mint: '#02D89A',
+          blue: '#049EFF',
+          peach: '#FF8506',
+          lilac: '#A672FE',
+          amber: '#F6A401',
+          lime: '#B0C500',
+          olive: '#6CD44B',
+          teal: '#06D4BC',
+          sky: '#02CFE0',
+          indigo: '#6688FE',
+          violet: '#DF80FF',
+          plum: '#FD78DF',
+          coral: '#FE5975',
+          rose: '#FD622D',
+          mustard: '#8C7200',
+          azure: '#007BBB',
+          jade: '#02875A',
+          orchid: '#B447BF',
+          bronze: '#745500',
+          grape: '#6634BD',
+          pine: '#026967',
+          wine: '#A90044',
+        },
         pastel: {
           pink: '#FFD3E2',
           'pink-dark': '#F7A9C4',
