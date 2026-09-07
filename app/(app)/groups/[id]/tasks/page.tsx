@@ -42,9 +42,9 @@ const DURATIONS = [
 ];
 
 const statusChip: Record<string, string> = {
-  suggested: 'bg-pastel-yellow text-eddy-700',
-  approved: 'bg-pastel-mint text-eddy-700',
-  rejected: 'bg-pastel-pink text-eddy-700',
+  suggested: 'bg-pastel-yellow text-chip-ink',
+  approved: 'bg-pastel-mint text-chip-ink',
+  rejected: 'bg-pastel-pink text-chip-ink',
 };
 const statusText: Record<string, string> = {
   suggested: 'รอยืนยัน',
@@ -697,7 +697,7 @@ function TaskRow({
       <button
         onClick={() => onRemove(task.id)}
         aria-label={`ลบงาน ${task.title}`}
-        className="flex-shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-eddy-700"
+        className="flex-shrink-0 rounded-full p-1.5 text-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark-muted transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
       >
         <Trash2 size={15} />
       </button>

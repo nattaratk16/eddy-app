@@ -137,7 +137,7 @@ export default function TimeGridView({
                       <span
                         key={ev.id}
                         title={ev.title}
-                        className="flex items-center gap-1 truncate rounded border border-dashed border-eddy-400 bg-pastel-pink/40 px-1.5 py-0.5 text-left font-body text-[11px] font-semibold text-eddy-700"
+                        className="flex items-center gap-1 truncate rounded border border-dashed border-eddy-400 bg-pastel-pink/40 px-1.5 py-0.5 text-left font-body text-[11px] font-semibold text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark"
                       >
                         <Flag size={10} className="flex-shrink-0" />
                         <span className="truncate">{ev.title}</span>
@@ -242,7 +242,7 @@ export default function TimeGridView({
                       className="pointer-events-none absolute inset-x-0.5 z-10 flex items-center gap-1"
                       style={{ top: (startMin / 60) * HOUR_HEIGHT }}
                     >
-                      <span className="flex flex-shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full bg-pastel-pink px-1.5 py-0.5 font-display text-[10px] font-bold text-eddy-700 shadow-clay-sm">
+                      <span className="flex flex-shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full bg-pastel-pink px-1.5 py-0.5 font-display text-[10px] font-bold text-chip-ink shadow-clay-sm">
                         <Flag size={9} className="flex-shrink-0" /> {ev.startTime}
                       </span>
                       <span className="h-px min-w-0 flex-1 border-t border-dashed border-eddy-400" />

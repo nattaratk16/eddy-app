@@ -144,7 +144,7 @@ export default async function ProfilePage() {
               {user.skills.length > 0 ? (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {user.skills.map((s) => (
-                    <span key={s} className="rounded-full bg-pastel-blue px-3 py-1 font-body text-xs text-eddy-700">
+                    <span key={s} className="rounded-full bg-pastel-blue px-3 py-1 font-body text-xs text-chip-ink">
                       {s}
                     </span>
                   ))}

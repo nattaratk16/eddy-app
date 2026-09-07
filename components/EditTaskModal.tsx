@@ -169,7 +169,7 @@ export default function EditTaskModal({ open, task, onClose, onSave }: EditTaskM
         )}
 
         {error && (
-          <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-eddy-700">{error}</p>
+          <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>
         )}
 
         <div className="mt-1 flex items-center gap-2">

@@ -345,7 +345,7 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
               'mt-3 rounded-clay-sm px-3 py-2 font-body text-xs',
               inviteMsg.ok
                 ? 'bg-pastel-mint/60 text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark'
-                : 'bg-pastel-pink/60 text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark',
+                : 'bg-pastel-pink/60 text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark',
             )}
           >
             {inviteMsg.text}

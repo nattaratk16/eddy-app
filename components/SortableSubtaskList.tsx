@@ -113,7 +113,7 @@ function SortableSubtaskItem({
               subtask.done
                 ? 'bg-eddy-50 text-ink-muted'
                 : subtask.onCalendar
-                  ? 'bg-pastel-lilac text-eddy-700'
+                  ? 'bg-pastel-lilac text-chip-ink'
                   : 'bg-eddy-50 text-ink-soft ring-1 ring-inset ring-eddy-200'
             )}
           >

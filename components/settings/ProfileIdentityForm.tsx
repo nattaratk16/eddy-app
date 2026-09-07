@@ -193,7 +193,7 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
         <p className="mt-1.5 text-right font-body text-xs text-ink-muted">{bio.length}/{BIO_MAX}</p>
       </div>
 
-      {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>}
+      {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}
 
       <div>
         <Button type="submit" disabled={saving} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 hover:!brightness-110">

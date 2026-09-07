@@ -69,7 +69,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
     >
       {saved ? (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-pastel-mint text-eddy-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-pastel-mint text-chip-ink">
             <Check size={22} />
           </span>
           <p className="font-body text-sm text-ink">เปลี่ยนรหัสผ่านเรียบร้อยแล้ว</p>
@@ -132,7 +132,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
             </div>
           </div>
 
-          {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>}
+          {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}
 
           <button
             type="submit"

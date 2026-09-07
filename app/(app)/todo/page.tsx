@@ -22,9 +22,9 @@ import { compareTasks } from '@/lib/priorityScore';
 import type { Subtask, Task, TaskPriority } from '@/lib/types';
 
 const priorityOptions: { value: TaskPriority; label: string; chipClass: string }[] = [
-  { value: 'high', label: 'สำคัญมาก', chipClass: 'bg-pastel-pink text-eddy-700' },
-  { value: 'medium', label: 'ปานกลาง', chipClass: 'bg-pastel-yellow text-eddy-700' },
-  { value: 'low', label: 'ทั่วไป', chipClass: 'bg-pastel-mint text-eddy-700' },
+  { value: 'high', label: 'สำคัญมาก', chipClass: 'bg-pastel-pink text-chip-ink' },
+  { value: 'medium', label: 'ปานกลาง', chipClass: 'bg-pastel-yellow text-chip-ink' },
+  { value: 'low', label: 'ทั่วไป', chipClass: 'bg-pastel-mint text-chip-ink' },
 ];
 
 // ผลลัพธ์จาก POST /api/tasks/schedule (เอ็ดดี้หาช่องว่างในปฏิทินแล้วเสนอเวลาให้)
@@ -85,9 +85,9 @@ function RowAction({
       className={clsx(
         'grid h-8 w-8 place-items-center rounded-full transition-colors disabled:opacity-40',
         active
-          ? 'bg-pastel-lilac text-eddy-700 hover:bg-pastel-lilac/70'
+          ? 'bg-pastel-lilac text-chip-ink hover:bg-pastel-lilac/70'
           : tone === 'danger'
-            ? 'text-ink-muted hover:bg-pastel-pink/70 hover:text-eddy-700'
+            ? 'text-ink-muted hover:bg-pastel-pink/70 hover:text-chip-ink'
             : 'text-ink-muted hover:bg-eddy-100 hover:text-eddy-700'
       )}
     >
@@ -957,7 +957,7 @@ export default function TodoPage() {
             <p className="mt-3 rounded-clay-sm bg-pastel-mint/60 px-4 py-2 font-body text-xs text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">{scheduleNotice}</p>
           )}
           {scheduleError && (
-            <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-4 py-2 font-body text-xs text-eddy-700">{scheduleError}</p>
+            <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-4 py-2 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{scheduleError}</p>
           )}
 
           {/* ข้อ 4: เตือนก่อนว่ามีงานเลยกำหนดส่งแล้วยังไม่ถูกติ๊ก - ถ้าปล่อยไว้จะถือเป็น "งานที่ถูกลืม" */}
@@ -1241,12 +1241,12 @@ export default function TodoPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         {isTopTask && (
-                          <span className="flex flex-shrink-0 items-center gap-0.5 rounded-full bg-pastel-peach px-2 py-0.5 font-display text-[10px] font-bold text-eddy-700">
+                          <span className="flex flex-shrink-0 items-center gap-0.5 rounded-full bg-pastel-peach px-2 py-0.5 font-display text-[10px] font-bold text-chip-ink">
                             <Flame size={11} /> ควรทำก่อน
                           </span>
                         )}
                         {isOverdue && (
-                          <span className="flex flex-shrink-0 items-center gap-0.5 rounded-full bg-pastel-pink px-2 py-0.5 font-display text-[10px] font-bold text-eddy-700">
+                          <span className="flex flex-shrink-0 items-center gap-0.5 rounded-full bg-pastel-pink px-2 py-0.5 font-display text-[10px] font-bold text-chip-ink">
                             <AlertTriangle size={11} /> เลยกำหนดแล้ว
                           </span>
                         )}
@@ -1275,7 +1275,7 @@ export default function TodoPage() {
                           </span>
                         )}
                         {task.scheduled && (
-                          <span className="flex items-center gap-1 rounded-full bg-pastel-lilac px-2 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
+                          <span className="flex items-center gap-1 rounded-full bg-pastel-lilac px-2 py-0.5 font-display text-[10px] font-semibold text-chip-ink">
                             <CalendarClock size={10} />
                             {formatThaiDay(task.scheduled.date)}
                             {task.scheduled.startTime ? ` ${task.scheduled.startTime}` : ''}
@@ -1392,7 +1392,7 @@ export default function TodoPage() {
                     </p>
                   )}
                   {breakdownError[task.id] && subtasks.length > 0 && (
-                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-pink/60 px-3 py-1.5 font-body text-[11px] text-eddy-700">
+                    <p className="ml-9 mt-2 rounded-clay-sm bg-pastel-pink/60 px-3 py-1.5 font-body text-[11px] text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
                       {breakdownError[task.id]}
                     </p>
                   )}
@@ -1419,7 +1419,7 @@ export default function TodoPage() {
                         </div>
                       )}
                       {breakdownError[task.id] && subtasks.length === 0 && (
-                        <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-1.5 font-body text-[11px] text-eddy-700">
+                        <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-1.5 font-body text-[11px] text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
                           {breakdownError[task.id]}
                         </p>
                       )}

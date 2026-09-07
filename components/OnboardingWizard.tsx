@@ -160,7 +160,7 @@ export default function OnboardingWizard() {
                     const Icon = t.icon;
                     return (
                       <div key={t.title} className="flex items-start gap-3 rounded-clay border border-eddy-100 bg-surface p-3">
-                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-eddy-700">
+                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-chip-ink">
                           <Icon size={18} />
                         </span>
                         <span className="min-w-0">

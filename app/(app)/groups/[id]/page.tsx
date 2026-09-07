@@ -202,7 +202,7 @@ export default function GroupOverviewPage(props: { params: Promise<{ id: string 
           {group.isOwner ? (
             <button
               onClick={deleteGroup}
-              className="flex items-center gap-1 rounded-full border border-pastel-pink-dark/40 px-3 py-1.5 font-display text-xs font-semibold text-eddy-700 transition-colors hover:bg-pastel-pink/40"
+              className="flex items-center gap-1 rounded-full border border-pastel-pink-dark/40 px-3 py-1.5 font-display text-xs font-semibold text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark transition-colors hover:bg-pastel-pink/40"
             >
               <Trash2 size={14} /> ลบกลุ่ม
             </button>
@@ -277,7 +277,7 @@ function MemberRow({
         <button
           onClick={() => onRemove(m.id)}
           aria-label={m.isMe ? 'ออกจากกลุ่ม' : `เอา ${m.name} ออกจากกลุ่ม`}
-          className="flex-shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-eddy-700"
+          className="flex-shrink-0 rounded-full p-1 text-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark-muted transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
         >
           <Trash2 size={14} />
         </button>

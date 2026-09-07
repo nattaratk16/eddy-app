@@ -53,7 +53,7 @@ export default function ConfirmDialog({
         <span
           className={clsx(
             'grid h-9 w-9 flex-shrink-0 place-items-center rounded-full',
-            tone === 'danger' ? 'bg-pastel-pink text-eddy-700' : 'bg-eddy-50 text-eddy-600'
+            tone === 'danger' ? 'bg-pastel-pink text-chip-ink' : 'bg-eddy-50 text-eddy-600'
           )}
         >
           <AlertTriangle size={18} />

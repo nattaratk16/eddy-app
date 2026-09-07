@@ -248,7 +248,7 @@ export default function WorkPreferencesForm(p: WorkPreferencesFormProps) {
         {skills.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {skills.map((s) => (
-              <span key={s} className="flex items-center gap-1 rounded-full bg-pastel-blue px-3 py-1 font-body text-xs text-eddy-700">
+              <span key={s} className="flex items-center gap-1 rounded-full bg-pastel-blue px-3 py-1 font-body text-xs text-chip-ink">
                 {s}
                 <button
                   type="button"
@@ -265,7 +265,7 @@ export default function WorkPreferencesForm(p: WorkPreferencesFormProps) {
         <p className="mt-1.5 font-body text-xs text-ink-muted">{skills.length}/{MAX_SKILLS}</p>
       </div>
 
-      {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>}
+      {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}
 
       <div>
         <Button type="submit" disabled={saving} className="!rounded-full !bg-gradient-to-r !from-eddy-500 !to-accent-500 hover:!brightness-110">

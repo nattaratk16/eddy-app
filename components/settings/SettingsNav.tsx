@@ -64,7 +64,7 @@ export default function SettingsNav() {
             <span
               className={clsx(
                 'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-clay-sm transition-colors',
-                active ? 'bg-pastel-blue text-eddy-700' : 'bg-eddy-50 text-ink-muted',
+                active ? 'bg-pastel-blue text-chip-ink' : 'bg-eddy-50 text-ink-muted',
               )}
             >
               <Icon size={18} />

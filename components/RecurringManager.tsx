@@ -70,7 +70,7 @@ function DayStrip({ days }: { days: number[] }) {
         <span
           key={d}
           className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 font-body text-[10px] font-semibold ${
-            days.includes(d) ? 'bg-eddy-500 text-white' : 'bg-eddy-50 text-ink-muted/50'
+            days.includes(d) ? 'bg-eddy-500 text-white' : 'bg-eddy-50 text-ink-muted'
           }`}
         >
           {label}
@@ -291,7 +291,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
           )}
 
           {error && (
-            <p className="flex items-center gap-2 rounded-clay-sm bg-pastel-coral/60 px-3.5 py-2.5 font-body text-caption font-semibold text-eddy-800">
+            <p className="flex items-center gap-2 rounded-clay-sm bg-pastel-coral/60 px-3.5 py-2.5 font-body text-caption font-semibold text-chip-ink dark:bg-pastel-coral-dark/20 dark:text-pastel-coral-dark">
               <AlertCircle size={15} className="flex-shrink-0" />
               {error}
             </p>
@@ -373,7 +373,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
                 <button
                   onClick={() => remove(it.id)}
                   aria-label={`ลบ ${it.title}`}
-                  className="rounded-full p-2 text-ink-muted transition-colors hover:bg-pastel-coral/50 hover:text-eddy-800"
+                  className="rounded-full p-2 text-ink dark:bg-pastel-coral-dark/20 dark:text-pastel-coral-dark-muted transition-colors hover:bg-pastel-coral/50 hover:text-chip-ink"
                 >
                   <Trash2 size={15} />
                 </button>

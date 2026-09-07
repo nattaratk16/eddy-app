@@ -141,12 +141,12 @@ export default function DayTimeline({ events, categories, onEventClick, onAdd, o
                     </span>
                   )}
                   {ev.isDeadline ? (
-                    <span className="flex items-center gap-1 rounded-full bg-pastel-pink px-2 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
+                    <span className="flex items-center gap-1 rounded-full bg-pastel-pink px-2 py-0.5 font-display text-[10px] font-semibold text-chip-ink">
                       <Flag size={9} /> กำหนดส่ง
                     </span>
                   ) : (
                     fromTodo && (
-                      <span className="rounded-full bg-pastel-lilac px-2 py-0.5 font-display text-[10px] font-semibold text-eddy-700">
+                      <span className="rounded-full bg-pastel-lilac px-2 py-0.5 font-display text-[10px] font-semibold text-chip-ink">
                         จากสิ่งที่ต้องทำ
                       </span>
                     )

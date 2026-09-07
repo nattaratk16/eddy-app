@@ -18,9 +18,9 @@ const BAND_STROKE: Record<BurnoutBandKey, string> = {
   high: 'stroke-load-full',
 };
 const BAND_CHIP: Record<BurnoutBandKey, string> = {
-  low: 'bg-pastel-mint text-eddy-700',
-  medium: 'bg-pastel-yellow text-eddy-700',
-  high: 'bg-pastel-pink text-eddy-700',
+  low: 'bg-pastel-mint text-chip-ink',
+  medium: 'bg-pastel-yellow text-chip-ink',
+  high: 'bg-pastel-pink text-chip-ink',
 };
 
 interface BurnoutGaugeProps {

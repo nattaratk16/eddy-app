@@ -208,7 +208,7 @@ export default function ScheduleTaskModal({ open, task, onClose, onConfirm, onAu
       </div>
 
       {error && (
-        <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-eddy-700">{error}</p>
+        <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>
       )}
 
       <div className="mt-4 flex items-center gap-2">

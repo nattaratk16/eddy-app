@@ -120,7 +120,7 @@ export default function CompletedTasksModal({
         {loading ? (
           <p className="py-6 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>
         ) : error ? (
-          <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-eddy-700">{error}</p>
+          <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>
         ) : tasks.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <EddyMascot mood="happy" size={56} float={false} />

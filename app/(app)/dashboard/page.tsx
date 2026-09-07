@@ -28,9 +28,9 @@ import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
 const priorityLabel: Record<string, string> = { high: 'สำคัญมาก', medium: 'ปานกลาง', low: 'ทั่วไป' };
 const priorityTone: Record<string, string> = {
-  high: 'bg-pastel-pink text-eddy-700',
-  medium: 'bg-pastel-yellow text-eddy-700',
-  low: 'bg-pastel-mint text-eddy-700',
+  high: 'bg-pastel-pink text-chip-ink',
+  medium: 'bg-pastel-yellow text-chip-ink',
+  low: 'bg-pastel-mint text-chip-ink',
 };
 
 function toISODate(d: Date) {
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
         {/* สถิติ: งานวันนี้ */}
         <Reveal delay={0.08} hover>
           <Card className="flex h-full items-center gap-4 transition-colors duration-200 hover:border-eddy-300">
-            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-eddy-700">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-clay-sm bg-pastel-blue text-chip-ink">
               <ListTodo size={26} />
             </span>
             <div>
@@ -223,7 +223,7 @@ export default async function DashboardPage() {
                       <span className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-eddy-300 bg-surface" />
                       <p className="min-w-0 flex-1 truncate font-body text-body text-ink">{task.title}</p>
                       {overdue && (
-                        <span className="flex-shrink-0 rounded-full bg-pastel-coral px-3 py-1 font-body text-caption font-semibold text-eddy-700">
+                        <span className="flex-shrink-0 rounded-full bg-pastel-coral px-3 py-1 font-body text-caption font-semibold text-chip-ink">
                           เลยกำหนด
                         </span>
                       )}
@@ -315,7 +315,7 @@ export default async function DashboardPage() {
       <section className="mt-5 grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
         <Reveal delay={0.4}>
           <Card className="flex h-full flex-col">
-            <InsightCardHeader icon={<Gauge size={20} />} tone="bg-pastel-peach text-eddy-700" title="ความเสี่ยงหมดไฟ" />
+            <InsightCardHeader icon={<Gauge size={20} />} tone="bg-pastel-peach text-chip-ink" title="ความเสี่ยงหมดไฟ" />
             {/* มาตรวัดครึ่งวงกลมแทนแท่งมิเตอร์เดิม - ขยายเต็มพื้นที่ตรงกลางที่เหลือของการ์ด (flex-1 +
                 justify-center) แทนที่จะปล่อยเป็นช่องว่างโล่งๆ ใต้แท่งมิเตอร์แคบๆ เหมือนก่อนหน้านี้ */}
             <div className="flex flex-1 flex-col items-center justify-center py-2">
@@ -332,7 +332,7 @@ export default async function DashboardPage() {
           <Card className="flex h-full flex-col">
             <InsightCardHeader
               icon={<PieChart size={20} />}
-              tone="bg-pastel-lilac text-eddy-700"
+              tone="bg-pastel-lilac text-chip-ink"
               title="งานด่วนวันนี้ สำคัญแค่ไหน"
               description="เมทริกซ์ไอเซนฮาวร์ - งานด่วนวันนี้ ระหว่างงานสำคัญกับงานทั่วไป"
             />
@@ -346,7 +346,7 @@ export default async function DashboardPage() {
           <Card className="flex h-full flex-col">
             <InsightCardHeader
               icon={<PieChart size={20} />}
-              tone="bg-pastel-sky text-eddy-700"
+              tone="bg-pastel-sky text-chip-ink"
               title="เวลาไปกับหมวดหมู่ไหนบ้าง"
               description="7 วันที่ผ่านมา - เวลาที่ลงปฏิทินแล้วแยกตามหมวดหมู่จริง"
             />
@@ -366,7 +366,7 @@ export default async function DashboardPage() {
           <Card className="flex h-full flex-col">
             <InsightCardHeader
               icon={<Gauge size={20} />}
-              tone="bg-pastel-blue text-eddy-700"
+              tone="bg-pastel-blue text-chip-ink"
               title="ภาระงาน 7 วันข้างหน้า"
               description="เทียบเวลาที่ถูกจองไว้แล้ว (แท่ง) กับกรอบเวลาที่คุณสะดวกทำงานจริง (เส้นประ) ในแต่ละวัน"
             />
@@ -378,7 +378,7 @@ export default async function DashboardPage() {
           <Card className="flex h-full flex-col">
             <InsightCardHeader
               icon={<TrendingDown size={20} />}
-              tone="bg-pastel-mint text-eddy-700"
+              tone="bg-pastel-mint text-chip-ink"
               title="จะทำงานทันสัปดาห์นี้ไหม"
               description="หลัก Burndown ของ Agile/Scrum - เทียบงานที่เหลือจริงกับเส้นอุดมคติ (งานที่มีกำหนดส่งสัปดาห์นี้)"
             />
@@ -390,7 +390,7 @@ export default async function DashboardPage() {
           <Card className="flex h-full flex-col">
             <InsightCardHeader
               icon={<Clock size={20} />}
-              tone="bg-pastel-amber text-eddy-700"
+              tone="bg-pastel-amber text-chip-ink"
               title="ช่วงเวลาที่คุณโปรดักทีฟที่สุด"
               description="วิเคราะห์จากเวลาที่ติ๊กงานเสร็จจริง (Time-of-Day Analysis) ด้วย Kernel Density Estimation"
             />

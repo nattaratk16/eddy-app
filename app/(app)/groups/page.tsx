@@ -308,7 +308,7 @@ export default function GroupsPage() {
               ))}
             </div>
           </div>
-          {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}
+          {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}
           <div className="mt-1 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setCreating(false)}>
               ยกเลิก
@@ -339,7 +339,7 @@ export default function GroupsPage() {
           className="mt-3 w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-3 text-center font-display text-xl font-bold uppercase tracking-[0.3em] text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
         />
         {joinError && (
-          <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-eddy-700">{joinError}</p>
+          <p className="mt-3 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{joinError}</p>
         )}
         {joinedName && (
           <p className="mt-3 rounded-clay-sm bg-pastel-mint/60 px-3 py-2 font-body text-xs text-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark">{joinedName}</p>
@@ -447,7 +447,7 @@ function GroupCard({ group }: { group: GroupInfo }) {
         </div>
 
         {(group.waitingForMeCount ?? 0) > 0 && (
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-pastel-yellow px-2.5 py-1 font-display text-[10px] font-bold text-eddy-700">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-pastel-yellow px-2.5 py-1 font-display text-[10px] font-bold text-chip-ink">
             <UserCheck size={11} /> รอคุณยืนยัน {group.waitingForMeCount} งาน
           </span>
         )}

@@ -301,7 +301,7 @@ export default function EventFormModal({
       </div>
 
       {error && (
-        <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-eddy-700">{error}</p>
+        <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>
       )}
 
       <div className="mt-2 flex items-center justify-between gap-3">
@@ -314,7 +314,7 @@ export default function EventFormModal({
                 onClose();
               }
             }}
-            className="flex items-center gap-1 rounded-clay-sm px-3 py-2 font-display text-sm font-semibold text-eddy-700 hover:bg-pastel-pink/40"
+            className="flex items-center gap-1 rounded-clay-sm px-3 py-2 font-display text-sm font-semibold text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark hover:bg-pastel-pink/40"
           >
             <Trash2 size={16} /> ลบกิจกรรม
           </button>
