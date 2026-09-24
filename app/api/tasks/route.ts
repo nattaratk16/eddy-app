@@ -94,8 +94,12 @@ export async function POST(req: NextRequest) {
     startDate = new Date(`${todayISOBangkok()}T00:00:00.000Z`);
   }
 
+  // 0/ติดลบไม่มีความหมาย (งานใช้เวลา 0 นาทีไม่จริง) ถือว่าไม่ได้ระบุแทน และเพดานไว้ 24 ชม. เหมือน
+  // app/api/groups/[id]/tasks/route.ts เพื่อกันค่าที่ทำให้ lib/freeTime.ts::placeTask พังจากช่วงเวลาติดลบ
   const estimatedMinutes =
-    typeof body.estimatedMinutes === 'number' && Number.isFinite(body.estimatedMinutes) ? body.estimatedMinutes : null;
+    typeof body.estimatedMinutes === 'number' && Number.isFinite(body.estimatedMinutes) && body.estimatedMinutes > 0
+      ? Math.min(Math.round(body.estimatedMinutes), 24 * 60)
+      : null;
 
   // เวลาส่ง (ไม่บังคับ) - ใส่ได้เฉพาะเมื่อมีวันกำหนดส่ง
   if (body.dueTime && !TIME_RE.test(String(body.dueTime))) {

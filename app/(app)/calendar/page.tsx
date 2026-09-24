@@ -301,16 +301,18 @@ function CalendarPageContent() {
   }
 
   // ---- Category handlers ----
-  async function addCategory(name: string, color: PastelColor) {
+  /** คืนข้อความ error ถ้าเพิ่มไม่สำเร็จ (เช่น ชื่อซ้ำ) หรือ null ถ้าสำเร็จ - CategoryManager โชว์ inline ต่อ */
+  async function addCategory(name: string, color: PastelColor): Promise<string | null> {
     const res = await fetch('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, color }),
     });
-    const data = await res.json();
-    if (!res.ok) return;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return data.error ?? 'เพิ่มหมวดหมู่ไม่สำเร็จ ลองใหม่อีกครั้งนะ';
     setCategories((prev) => [...prev, data.category]);
     setVisibleIds((prev) => new Set(prev).add(data.category.id));
+    return null;
   }
 
   async function updateCategory(id: string, changes: Partial<CalendarCategory>) {

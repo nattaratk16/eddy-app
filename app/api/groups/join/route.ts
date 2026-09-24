@@ -6,6 +6,7 @@
  * --------------------------------------------------------------
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { serializeGroup } from '@/lib/groups';
@@ -45,11 +46,23 @@ export async function POST(req: NextRequest) {
   if (existing) {
     await prisma.groupMember.update({ where: { id: existing.id }, data: { status: 'accepted' } });
   } else {
-    // showEventTitles ไม่ใส่ตรงนี้ - ปล่อยให้ใช้ค่า default (false) ของ schema เหมือนตอนถูกเชิญปกติ
-    // (ปฏิทินรวมของกลุ่มควรเห็นแค่ "ว่าง/ไม่ว่าง" เป็นค่าเริ่มต้นเสมอ ไม่ว่าจะเข้ากลุ่มด้วยรหัสหรือถูกเชิญ)
-    await prisma.groupMember.create({
-      data: { groupId: group.id, userId, role: 'member', status: 'accepted' },
-    });
+    try {
+      // showEventTitles ไม่ใส่ตรงนี้ - ปล่อยให้ใช้ค่า default (false) ของ schema เหมือนตอนถูกเชิญปกติ
+      // (ปฏิทินรวมของกลุ่มควรเห็นแค่ "ว่าง/ไม่ว่าง" เป็นค่าเริ่มต้นเสมอ ไม่ว่าจะเข้ากลุ่มด้วยรหัสหรือถูกเชิญ)
+      await prisma.groupMember.create({
+        data: { groupId: group.id, userId, role: 'member', status: 'accepted' },
+      });
+    } catch (err) {
+      // สอง request กดเข้าร่วมพร้อมกัน (เช่น 2 แท็บ) - unique constraint [groupId,userId] กันซ้ำไว้แล้ว
+      // แต่ request ที่แพ้ race จะได้ P2002 ดิบๆ ถ้าไม่จับไว้ - ตอบแบบเดียวกับ "เป็นสมาชิกอยู่แล้ว" แทน
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return NextResponse.json({
+          group: serializeGroup(group, userId, { memberCount: group.members.length }),
+          alreadyMember: true,
+        });
+      }
+      throw err;
+    }
   }
 
   return NextResponse.json({

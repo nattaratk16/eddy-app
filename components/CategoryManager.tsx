@@ -11,7 +11,8 @@ interface CategoryManagerProps {
   categories: CalendarCategory[];
   visibleIds: Set<string>;
   onToggleVisible: (id: string) => void;
-  onAdd: (name: string, color: PastelColor) => void;
+  /** คืนข้อความ error ถ้าเพิ่มไม่สำเร็จ (เช่น ชื่อซ้ำ) หรือ null ถ้าสำเร็จ - ใช้โชว์ inline ในฟอร์ม */
+  onAdd: (name: string, color: PastelColor) => Promise<string | null>;
   onUpdate: (id: string, changes: Partial<CalendarCategory>) => void;
   onDelete: (id: string) => void;
   onShare?: (id: string) => void;
@@ -74,6 +75,8 @@ export default function CategoryManager({
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState<PastelColor>('blue');
+  const [addError, setAddError] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -94,12 +97,23 @@ export default function CategoryManager({
     setEditingId(null);
   }
 
-  function confirmAdd() {
+  async function confirmAdd() {
     const name = newName.trim();
-    if (!name) return;
-    onAdd(name, newColor);
+    if (!name) {
+      setAddError('กรุณาตั้งชื่อหมวดหมู่');
+      return;
+    }
+    setAddBusy(true);
+    setAddError('');
+    const err = await onAdd(name, newColor);
+    setAddBusy(false);
+    if (err) {
+      setAddError(err);
+      return; // เหลือฟอร์มไว้ให้แก้ ไม่ล้าง/ปิดถ้ายังไม่สำเร็จ
+    }
     setNewName('');
     setNewColor('blue');
+    setAddError('');
     setAdding(false);
   }
 
@@ -184,15 +198,20 @@ export default function CategoryManager({
             autoFocus
           />
           <ColorPicker value={newColor} onChange={setNewColor} />
+          {addError && <p className="mt-2 font-body text-xs text-pastel-pink-dark">{addError}</p>}
           <div className="mt-3 flex gap-2">
             <button
               onClick={confirmAdd}
-              className="flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-1.5 font-display text-xs font-semibold text-white"
+              disabled={addBusy}
+              className="flex items-center gap-1 rounded-clay-sm bg-eddy-500 px-3 py-1.5 font-display text-xs font-semibold text-white disabled:opacity-60"
             >
-              <Check size={14} /> เพิ่ม
+              <Check size={14} /> {addBusy ? 'กำลังเพิ่ม...' : 'เพิ่ม'}
             </button>
             <button
-              onClick={() => setAdding(false)}
+              onClick={() => {
+                setAdding(false);
+                setAddError('');
+              }}
               className="flex items-center gap-1 rounded-clay-sm bg-surface px-3 py-1.5 font-display text-xs font-semibold text-ink-muted"
             >
               <X size={14} /> ยกเลิก

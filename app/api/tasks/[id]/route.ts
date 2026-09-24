@@ -86,10 +86,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
   }
 
+  // 0/ติดลบไม่มีความหมาย ถือว่าไม่ได้ระบุแทน และเพดานไว้ 24 ชม. เหมือน app/api/tasks/route.ts (POST)
   const estimatedMinutes =
     body.estimatedMinutes !== undefined
-      ? typeof body.estimatedMinutes === 'number' && Number.isFinite(body.estimatedMinutes)
-        ? body.estimatedMinutes
+      ? typeof body.estimatedMinutes === 'number' && Number.isFinite(body.estimatedMinutes) && body.estimatedMinutes > 0
+        ? Math.min(Math.round(body.estimatedMinutes), 24 * 60)
         : null
       : undefined;
 
