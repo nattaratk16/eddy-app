@@ -37,6 +37,7 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [invitations, setInvitations] = useState<GroupInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // สร้างกลุ่ม
   const [creating, setCreating] = useState(false);
@@ -54,12 +55,21 @@ export default function GroupsPage() {
   const [joinedName, setJoinedName] = useState('');
 
   async function load() {
-    const [gRes, iRes] = await Promise.all([fetch('/api/groups'), fetch('/api/groups/invitations')]);
-    const gData = await gRes.json();
-    const iData = await iRes.json();
-    setGroups(gData.groups ?? []);
-    setInvitations(iData.invitations ?? []);
-    setLoading(false);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [gRes, iRes] = await Promise.all([fetch('/api/groups'), fetch('/api/groups/invitations')]);
+      if (!gRes.ok || !iRes.ok) throw new Error('load failed');
+      const gData = await gRes.json();
+      const iData = await iRes.json();
+      setGroups(gData.groups ?? []);
+      setInvitations(iData.invitations ?? []);
+    } catch {
+      // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้น "กำลังโหลด..." จะค้างตลอดไปโดยไม่มีทางรู้ว่าพังแล้ว
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -250,6 +260,14 @@ export default function GroupsPage() {
         <h2 className="mb-3 font-display text-h3 text-ink">กลุ่มทั้งหมด</h2>
         {loading ? (
           <p className="py-10 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>
+        ) : loadError ? (
+          <EmptyState
+            size="full"
+            mood="think"
+            title="โหลดกลุ่มไม่สำเร็จ"
+            description="เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะ"
+            action={{ label: 'ลองใหม่', icon: <ArrowRight size={16} />, onClick: load }}
+          />
         ) : groups.length === 0 ? (
           <EmptyState
             size="full"
