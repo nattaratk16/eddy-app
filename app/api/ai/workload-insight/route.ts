@@ -4,10 +4,14 @@ import { prisma } from '@/lib/prisma';
 import { generateWorkloadInsight, buildUserProfileContext } from '@/lib/gemini';
 import { buildWorkloadInsight } from '@/lib/aiMock';
 import { computeBurnoutRisk, type BurnoutSignals } from '@/lib/burnoutRisk';
+import { getCachedAiText, hashCacheInput, setCachedAiText } from '@/lib/aiCache';
+
+const CACHE_KIND = 'workload-insight';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = session.user.id;
 
   const body = await req.json().catch(() => null);
   const signals: BurnoutSignals = {
@@ -21,21 +25,27 @@ export async function POST(req: NextRequest) {
   const risk = computeBurnoutRisk(signals);
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { role: true, bio: true, dayStart: true, dayEnd: true, timezone: true },
   });
+  const userProfile = user ? buildUserProfileContext(user) : undefined;
+
+  // เปิด/ปิดหน้าแดชบอร์ดซ้ำโดยภาระงานไม่เปลี่ยนเลย ไม่ควรต้องยิง Gemini ใหม่ทุกรอบ (ดู lib/aiCache.ts)
+  const cacheKey = hashCacheInput({ signals, band: risk.band, userProfile });
+  const cached = await getCachedAiText(userId, CACHE_KIND, cacheKey);
+  if (cached) return NextResponse.json({ insight: cached });
 
   let insight: string | null = null;
   try {
-    insight = await generateWorkloadInsight({
-      signals,
-      band: risk.band,
-      userProfile: user ? buildUserProfileContext(user) : undefined,
-    });
+    insight = await generateWorkloadInsight({ signals, band: risk.band, userProfile });
   } catch {
     insight = null;
   }
-  if (!insight) insight = buildWorkloadInsight(risk);
+  if (insight) {
+    await setCachedAiText(userId, CACHE_KIND, cacheKey, insight);
+  } else {
+    insight = buildWorkloadInsight(risk);
+  }
 
   return NextResponse.json({ insight });
 }

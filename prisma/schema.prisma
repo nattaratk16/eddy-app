@@ -52,6 +52,24 @@ model User {
   groupMemberships GroupMember[] @relation("GroupMemberships")
   // Loop ชีวิต (กิจกรรมประจำที่ซ้ำทุกสัปดาห์)
   recurringEvents  RecurringEvent[]
+  aiCache          AiCache[]
+}
+
+// ผลลัพธ์ข้อความจาก Gemini ที่ cache ไว้ต่อ user (เช่น สรุปภาพรวมสัปดาห์, ประโยควิเคราะห์ภาระงาน)
+// endpoint พวกนี้ถูกยิงอัตโนมัติทุกครั้งที่เปิดหน้าแดชบอร์ด/ปฏิทิน (ไม่ใช่แค่ตอนผู้ใช้กดขอ) ทำให้กิน
+// quota ฟรีของ Gemini ไปเปล่าๆ ถ้าข้อมูลตั้งต้นไม่ได้เปลี่ยนเลยระหว่างที่เปิดๆ ปิดๆ หน้าซ้ำ
+// cacheKey = hash ของ input ที่กำหนดคำตอบทั้งหมด (signals/events+categories+บริบทโปรไฟล์) -
+// input เปลี่ยนก็ cache miss เอง ไม่ต้องมี TTL แยก
+model AiCache {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // "workload-insight" | "weekly-summary"
+  cacheKey  String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, kind, cacheKey])
 }
 
 // Loop ชีวิตพื้นฐาน - บล็อกเวลาที่ซ้ำทุกสัปดาห์ (ตารางเรียนประจำ / เวลาทำงาน)
