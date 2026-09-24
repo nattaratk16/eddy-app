@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
 import { PASTEL_COLORS } from '@/lib/colors';
 import { NOT_DEADLINE_EVENT } from '@/lib/eventFilters';
+import { todayISOBangkok } from '@/lib/thaiTime';
 
 // GET /api/groups/[id]/calendar?start=YYYY-MM-DD
 // คืน event ของสมาชิกทุกคน (accepted) ในสัปดาห์นั้น แยกสีต่อคน + mask ชื่อตามความเป็นส่วนตัว
@@ -24,9 +25,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   if (startParam && /^\d{4}-\d{2}-\d{2}$/.test(startParam)) {
     start = new Date(`${startParam}T00:00:00.000Z`);
   } else {
-    const now = new Date();
-    const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - now.getUTCDay());
-    start = new Date(utc);
+    // ใช้ "วันนี้ตามเวลาไทย" เป็นฐาน ไม่ใช่ new Date() + getUTCDay() ตรงๆ - ช่วง 00:00-06:59 น. เวลาไทย
+    // ยังเป็นเมื่อวานใน UTC ทำให้ getUTCDay() อ่านวันในสัปดาห์ผิด แล้วได้ start ของสัปดาห์ที่แล้วแทน
+    // (เที่ยงคืน UTC ของวันที่ตามเวลาไทยตรงกับที่ Event.date เก็บอยู่แล้ว - เหมือน lib/weeklyBurndown.ts)
+    const todayAnchor = new Date(`${todayISOBangkok()}T00:00:00.000Z`);
+    start = new Date(todayAnchor.getTime() - todayAnchor.getUTCDay() * 86400000);
   }
   const end = new Date(start.getTime() + 7 * 86400000);
 
