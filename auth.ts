@@ -14,6 +14,7 @@ import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { checkRateLimit } from '@/lib/rateLimit';
 import authConfig from './auth.config';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -71,6 +72,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const identifier = typeof credentials?.identifier === 'string' ? credentials.identifier.trim().toLowerCase() : null;
         const password = credentials?.password;
         if (!identifier || typeof password !== 'string') return null;
+
+        // กัน brute-force เดารหัสผ่านของบัญชีเดียวกันรัวๆ - ไม่มีอะไรจำกัดตรงนี้มาก่อนเลย
+        // จำกัดต่อ identifier (ไม่ใช่ต่อ IP) เพราะเป้าหมายคือกันคนเดา "บัญชีนี้" ไม่ใช่กันคนคนเดียวล็อกอินถี่ๆ
+        if (!checkRateLimit(`login:${identifier}`, 10, 5 * 60_000)) return null;
 
         // มี @ ถือว่าพิมพ์อีเมลมา ไม่งั้นถือว่าเป็น username (username validate ไว้แล้วว่าห้ามมี @)
         const user = await prisma.user.findUnique({

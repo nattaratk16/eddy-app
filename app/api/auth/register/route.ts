@@ -3,8 +3,14 @@ import bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { USERNAME_RE, EMAIL_RE, isStrongPassword, domainHasMx, MIN_PASSWORD_LENGTH } from '@/lib/validation';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
+  // กันสแปมสมัครบัญชีรัวๆ จาก IP เดียว - ไม่มีอะไรจำกัดตรงนี้มาก่อนเลย
+  if (!checkRateLimit(`register:${getClientIp(req)}`, 5, 10 * 60_000)) {
+    return NextResponse.json({ error: 'สมัครบ่อยเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง' }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: 'ข้อมูลไม่ถูกต้อง' }, { status: 400 });
 
