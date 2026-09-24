@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Trash2, ChevronDown, ChevronRight, Flame, CalendarClock,
-  X, Check, ListChecks, AlertTriangle, Lock, Wand2, CheckCircle2, Pencil,
+  X, Check, ListChecks, AlertTriangle, Lock, Wand2, CheckCircle2, Pencil, RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
@@ -131,6 +131,8 @@ export default function TodoPage() {
   const router = useRouter();
   const userName = session?.user?.name || session?.user?.email || 'เพื่อน';
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksLoadError, setTasksLoadError] = useState(false);
   // งานที่เสร็จแล้วออกจากลิสต์หลักไปอยู่ในป๊อปอัปแทน (ลิสต์หลักเหลือแต่งานที่ยังต้องทำ)
   const [showDone, setShowDone] = useState(false);
   // จำนวนงานที่เสร็จแล้วทั้งหมด (ไม่ใช่แค่ที่โหลดมา) - งานที่เสร็จแล้วไม่ถูกส่งมาใน GET /api/tasks อีกต่อไป
@@ -180,36 +182,52 @@ export default function TodoPage() {
   const [forgottenAcked, setForgottenAcked] = useState(false);
   const [breakdownNotice, setBreakdownNotice] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    (async () => {
+  async function loadTasks() {
+    setTasksLoading(true);
+    let loaded: Task[] = [];
+    try {
       const res = await fetch('/api/tasks');
+      if (!res.ok) throw new Error('load failed');
       const data = await res.json();
-      const loaded: Task[] = data.tasks ?? [];
+      loaded = data.tasks ?? [];
       setTasks(loaded);
       setDoneCount(data.doneCount ?? 0);
       setDoneCountThisMonth(data.doneCountThisMonth ?? 0);
+      setTasksLoadError(false);
+    } catch {
+      // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้นลิสต์ว่างเปล่าจะหน้าตาเหมือน "ยังไม่มีสิ่งที่ต้องทำ" เป๊ะ
+      // ทั้งที่จริงๆ โหลดพัง ผู้ใช้ไม่รู้ว่าต้องลองใหม่
+      setTasksLoadError(true);
+      setTasksLoading(false);
+      return;
+    }
+    setTasksLoading(false);
 
-      // ข้อ 5: งานที่ยังไม่ได้กำหนดวัน มักถูกดองไว้เรื่อยๆ
-      // ถ้ามีงานแบบนั้นค้างอยู่ ให้เอ็ดดี้ลองหาช่องว่างมาเสนอตั้งแต่เปิดหน้า (ยังไม่บันทึกอะไร)
-      const hasUndated = loaded.some((t) => !t.done && !t.dueDate && !t.scheduled);
-      if (!hasUndated) return;
-      try {
-        const sugRes = await fetch('/api/tasks/schedule', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dryRun: true, onlyUndated: true }),
-        });
-        const sug = await sugRes.json();
-        const proposals: SchedulePlanItem[] = sug.scheduled ?? [];
-        if (sugRes.ok && proposals.length > 0) {
-          setPlanKind('undated');
-          setPlan({ scheduled: proposals, skipped: sug.skipped ?? [] });
-          setSelectedPlanIds(new Set(proposals.map((pr) => pr.taskId)));
-        }
-      } catch {
-        // ข้อเสนอเป็นของแถม - เงียบไว้ ไม่ต้องรบกวนผู้ใช้ถ้าเรียกไม่สำเร็จ
+    // ข้อ 5: งานที่ยังไม่ได้กำหนดวัน มักถูกดองไว้เรื่อยๆ
+    // ถ้ามีงานแบบนั้นค้างอยู่ ให้เอ็ดดี้ลองหาช่องว่างมาเสนอตั้งแต่เปิดหน้า (ยังไม่บันทึกอะไร)
+    const hasUndated = loaded.some((t) => !t.done && !t.dueDate && !t.scheduled);
+    if (!hasUndated) return;
+    try {
+      const sugRes = await fetch('/api/tasks/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true, onlyUndated: true }),
+      });
+      const sug = await sugRes.json();
+      const proposals: SchedulePlanItem[] = sug.scheduled ?? [];
+      if (sugRes.ok && proposals.length > 0) {
+        setPlanKind('undated');
+        setPlan({ scheduled: proposals, skipped: sug.skipped ?? [] });
+        setSelectedPlanIds(new Set(proposals.map((pr) => pr.taskId)));
       }
-    })();
+    } catch {
+      // ข้อเสนอเป็นของแถม - เงียบไว้ ไม่ต้องรบกวนผู้ใช้ถ้าเรียกไม่สำเร็จ
+    }
+  }
+
+  useEffect(() => {
+    loadTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ลำดับล็อกไว้: ใกล้กำหนดส่งก่อน แล้วค่อยความสำคัญ (ดู compareTasks ใน lib/priorityScore.ts)
@@ -1169,13 +1187,24 @@ export default function TodoPage() {
 
           {/* Task list */}
           <div className="mt-5 flex flex-col gap-3">
-            {visibleTasks.length === 0 && (
+            {tasksLoading ? (
+              <p className="py-10 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>
+            ) : tasksLoadError ? (
               <EmptyState
-                mood={doneCount > 0 ? 'celebrate' : 'happy'}
-                title={doneCount > 0 && tasks.length === 0 ? 'เคลียร์งานหมดแล้ว เก่งมาก!' : 'ยังไม่มีสิ่งที่ต้องทำ — เพิ่มงานแรกได้เลย'}
+                mood="think"
+                title="โหลดสิ่งที่ต้องทำไม่สำเร็จ"
+                description="เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะ"
+                action={{ label: 'ลองใหม่', icon: <RefreshCw size={16} />, onClick: loadTasks }}
               />
+            ) : (
+              visibleTasks.length === 0 && (
+                <EmptyState
+                  mood={doneCount > 0 ? 'celebrate' : 'happy'}
+                  title={doneCount > 0 && tasks.length === 0 ? 'เคลียร์งานหมดแล้ว เก่งมาก!' : 'ยังไม่มีสิ่งที่ต้องทำ — เพิ่มงานแรกได้เลย'}
+                />
+              )
             )}
-            {visibleTasks.map((task) => {
+            {!tasksLoading && !tasksLoadError && visibleTasks.map((task) => {
               const priority = priorityOptions.find((p) => p.value === task.priority)!;
               const subtasks = task.subtasks ?? [];
               const subDone = subtasks.filter((s) => s.done).length;

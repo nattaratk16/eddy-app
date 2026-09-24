@@ -96,6 +96,7 @@ function CalendarPageContent() {
 
   const [categories, setCategories] = useState<CalendarCategory[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [eventsLoadError, setEventsLoadError] = useState(false);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const [modalState, setModalState] = useState<ModalState>({ open: false });
   // วันที่กำลังเปิดดูไทม์ไลน์ (จากการคลิกช่องวันในมุมมองเดือน) - null = ปิดอยู่
@@ -112,16 +113,26 @@ function CalendarPageContent() {
   const [googleStatus, setGoogleStatus] = useState<'loading' | 'connected' | 'account-error' | 'off'>('loading');
 
   // โหลดหมวดหมู่และกิจกรรมจริงจาก /api/categories และ /api/events (Prisma + PostgreSQL)
-  useEffect(() => {
-    (async () => {
+  async function loadCalendarData() {
+    try {
       const [catRes, evRes] = await Promise.all([fetch('/api/categories'), fetch('/api/events')]);
+      if (!catRes.ok || !evRes.ok) throw new Error('load failed');
       const catData = await catRes.json();
       const evData = await evRes.json();
       const loadedCategories: CalendarCategory[] = catData.categories ?? [];
       setCategories(loadedCategories);
       setEvents(evData.events ?? []);
       setVisibleIds(new Set(loadedCategories.map((c) => c.id)));
-    })();
+      setEventsLoadError(false);
+    } catch {
+      // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้นปฏิทินจะโชว์ว่างเปล่าเงียบๆ เหมือน "ไม่มีกิจกรรม" ทั้งที่จริงๆ โหลดพัง
+      setEventsLoadError(true);
+    }
+  }
+
+  useEffect(() => {
+    loadCalendarData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // รับกิจกรรมที่ Eddy ช่วยแปลงจากแชท (quick-add) ผ่าน query param แล้วเปิด modal ให้ทันที
@@ -386,6 +397,19 @@ function CalendarPageContent() {
   return (
     <div className="px-4 md:px-10">
       <Topbar userName={userName} />
+
+      {eventsLoadError && (
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-clay-sm bg-pastel-pink/60 px-4 py-2.5 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
+          <span>โหลดปฏิทินไม่สำเร็จ เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะ</span>
+          <button
+            type="button"
+            onClick={loadCalendarData}
+            className="flex-shrink-0 rounded-full bg-white/50 px-3 py-1 font-display text-xs font-semibold hover:bg-white/80"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      )}
 
       {/* minmax(0,1fr) กันคอลัมน์ปฏิทินดันกริดจนล้นจอ (1fr เฉยๆ ยอมให้ลูกกว้างเกินช่องได้) */}
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
