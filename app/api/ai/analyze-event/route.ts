@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { analyzeEventSchedule, buildUserProfileContext, type ScheduleAnalysis } from '@/lib/gemini';
 import { checkScheduleConflict } from '@/lib/aiMock';
 import { expandRecurring, parseDays } from '@/lib/recurring';
+import { NOT_DEADLINE_EVENT } from '@/lib/eventFilters';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
@@ -29,8 +30,7 @@ export async function POST(req: NextRequest) {
   const [sameDayEventsRaw, categoriesRaw, user, recurringRaw] = await Promise.all([
     prisma.event.findMany({
       // eventId = กิจกรรมที่กำลังแก้ไขอยู่ (ถ้ามี) - ต้องไม่เอามาเทียบกับตัวเอง ไม่งั้นจะโดนมองว่า "ชนกับตัวเอง"
-      // isDeadline:false - หมุดกำหนดส่งมีระยะเวลา 0 นาที ไม่ถือเป็นเวลาที่ถูกจอง เพิ่มกิจกรรมทับได้ตามปกติ
-      where: { userId, date: { gte: dayStart, lt: dayEnd }, isDeadline: false, ...(eventId && { id: { not: eventId } }) },
+      where: { userId, date: { gte: dayStart, lt: dayEnd }, ...NOT_DEADLINE_EVENT, ...(eventId && { id: { not: eventId } }) },
     }),
     prisma.category.findMany({ where: { userId } }),
     prisma.user.findUnique({ where: { id: userId }, select: { role: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),

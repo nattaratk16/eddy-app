@@ -15,6 +15,7 @@ import { prisma } from './prisma';
 import { computeFreeSlots, type FreeSlot } from './freeTime';
 import { nowMinutesBangkok, todayISOBangkok } from './thaiTime';
 import { expandRecurring, parseDays } from './recurring';
+import { NOT_DEADLINE_EVENT } from './eventFilters';
 import type { RecurringEventInfo } from './types';
 
 // ฟังก์ชันเรื่องเวลาไทยย้ายไป lib/thaiTime.ts แล้ว (ฝั่งที่ไม่ต้องใช้ DB จะได้ไม่ต้องลาก Prisma ติดมา)
@@ -51,8 +52,7 @@ export async function freeSlotsForUsers(
       where: {
         userId: { in: userIds },
         date: { gte: windowStart, lt: windowEnd },
-        // หมุดกำหนดส่งไม่ใช่เวลาไม่ว่าง (ระยะเวลา 0 นาที ผู้ใช้ยังลงมือทำอย่างอื่นได้ตามปกติ)
-        isDeadline: false,
+        ...NOT_DEADLINE_EVENT,
         ...(options?.excludeEventIds && options.excludeEventIds.length > 0
           ? { id: { notIn: options.excludeEventIds } }
           : {}),

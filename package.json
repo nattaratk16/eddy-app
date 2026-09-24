@@ -12,6 +12,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "backfill:category-kind": "node scripts/backfill-category-kind.mjs",
+    "backfill:completed-at": "node scripts/backfill-completed-at.mjs",
     "dev:webpack": "next dev"
   },
   "dependencies": {

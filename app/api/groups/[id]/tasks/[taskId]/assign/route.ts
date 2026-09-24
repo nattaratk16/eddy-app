@@ -16,11 +16,40 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
 import { buildDateWindow, freeSlotsForUsers } from '@/lib/schedule';
-import { placeTask } from '@/lib/freeTime';
-import { minutesToTime } from '@/lib/calendarLayout';
+import { placeTask, type FreeSlot } from '@/lib/freeTime';
+import { minutesToTime, timeToMinutes } from '@/lib/calendarLayout';
 import type { GroupAssignmentInfo } from '@/lib/types';
 
 const WINDOW_DAYS = 7;
+
+/**
+ * ตัดช่วง "ไม่ว่าง" ที่มาจาก GroupTaskAssignment สถานะ suggested (ยังไม่ approve จึงยังไม่มี
+ * Event จริง - freeSlotsForUsers ด้านบนเลยไม่รู้จัก) ออกจากช่วงว่างอีกชั้น กันไม่ให้มอบหมายงาน
+ * สองชิ้นให้คนเดียวกันได้เวลาทับกัน เวลาเรียก endpoint นี้ติดกันหลายครั้ง (เช่น ยืนยันหลายขั้นตอน
+ * จากการแตกงานในคราวเดียว - ดู confirmSteps ใน app/(app)/groups/[id]/tasks/page.tsx)
+ */
+function subtractBusy(slots: FreeSlot[], busy: { date: string; startMin: number; endMin: number }[]): FreeSlot[] {
+  if (busy.length === 0) return slots;
+  const out: FreeSlot[] = [];
+  for (const slot of slots) {
+    let pieces: FreeSlot[] = [{ date: slot.date, startMin: slot.startMin, endMin: slot.endMin }];
+    for (const b of busy) {
+      if (b.date !== slot.date) continue;
+      const next: FreeSlot[] = [];
+      for (const p of pieces) {
+        if (b.endMin <= p.startMin || b.startMin >= p.endMin) {
+          next.push(p);
+          continue;
+        }
+        if (b.startMin > p.startMin) next.push({ date: p.date, startMin: p.startMin, endMin: b.startMin });
+        if (b.endMin < p.endMin) next.push({ date: p.date, startMin: b.endMin, endMin: p.endMin });
+      }
+      pieces = next;
+    }
+    out.push(...pieces.filter((p) => p.endMin > p.startMin));
+  }
+  return out;
+}
 
 export async function POST(
   req: NextRequest,
@@ -59,9 +88,21 @@ export async function POST(
 
   const due = task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null;
   const dates = buildDateWindow(WINDOW_DAYS);
-  const slotsByUser = await freeSlotsForUsers([targetUserId], dates);
+  const [slotsByUser, pendingAssignments] = await Promise.all([
+    freeSlotsForUsers([targetUserId], dates),
+    prisma.groupTaskAssignment.findMany({
+      where: { assignedToUserId: targetUserId, status: 'suggested', groupTaskId: { not: params.taskId } },
+      select: { date: true, startTime: true, endTime: true },
+    }),
+  ]);
+  const pendingBusy = pendingAssignments.map((a) => ({
+    date: a.date,
+    startMin: timeToMinutes(a.startTime)!,
+    endMin: timeToMinutes(a.endTime)!,
+  }));
+  const freeSlots = subtractBusy(slotsByUser.get(targetUserId) ?? [], pendingBusy);
   // buffer เป็นของเจ้าของปฏิทิน (คนที่รับงาน) ไม่ใช่ของคนที่กำลังมอบหมาย
-  const placed = placeTask(slotsByUser.get(targetUserId) ?? [], task.estimatedMinutes, due, targetUser?.bufferMinutes ?? 0);
+  const placed = placeTask(freeSlots, task.estimatedMinutes, due, targetUser?.bufferMinutes ?? 0);
   if (!placed) {
     return NextResponse.json(
       { error: 'หาช่วงว่างให้ไม่ทันก่อนกำหนดส่ง ลองเลือกคนอื่นหรือขยายกำหนดส่งดูนะ' },

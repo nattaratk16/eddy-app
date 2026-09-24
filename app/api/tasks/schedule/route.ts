@@ -124,6 +124,19 @@ export async function POST(req: NextRequest) {
   if (at && at.endTime <= at.startTime) {
     return NextResponse.json({ error: 'เวลาจบต้องอยู่หลังเวลาเริ่ม' }, { status: 400 });
   }
+  // เช็คว่าช่วงเวลาที่เลือกเองไม่ชนกิจกรรมอื่นในปฏิทิน - เหมือนกับ override ของ
+  // app/api/groups/[id]/assignments/[assignmentId]/respond/route.ts ที่เขียนลง Event ตารางเดียวกัน
+  if (at) {
+    const atStartMin = timeToMinutes(at.startTime)!;
+    const atEndMin = timeToMinutes(at.endTime)!;
+    const slotsByUser = await freeSlotsForUsers([userId], [at.date]);
+    const fits = (slotsByUser.get(userId) ?? []).some(
+      (s) => s.date === at.date && s.startMin <= atStartMin && s.endMin >= atEndMin,
+    );
+    if (!fits) {
+      return NextResponse.json({ error: 'ช่วงเวลานี้ชนกับกิจกรรมอื่นในปฏิทินของคุณ' }, { status: 409 });
+    }
+  }
 
   // งานที่จัดได้ = ยังไม่เสร็จ + ยังไม่เคยลงปฏิทิน
   const tasks = await prisma.task.findMany({
@@ -222,7 +235,7 @@ export async function POST(req: NextRequest) {
 
     let placed: { date: string; startMin: number; endMin: number } | null;
     if (at) {
-      // ผู้ใช้กำหนดมาเอง -> เชื่อผู้ใช้ ไม่ต้องเช็คว่าชนอะไรไหม
+      // ผู้ใช้กำหนดมาเอง - เช็คว่าชนอะไรไหมไปแล้วด้านบนก่อนเข้าลูปนี้ (at ใช้ได้กับงานเดียวเท่านั้น)
       placed = { date: at.date, startMin: timeToMinutes(at.startTime)!, endMin: timeToMinutes(at.endTime)! };
     } else if (due) {
       // มีกำหนดส่ง -> ลงวันกำหนดส่งเสมอ

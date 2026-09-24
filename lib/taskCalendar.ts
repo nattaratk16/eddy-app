@@ -13,6 +13,9 @@
  */
 import { prisma } from './prisma';
 import { colorForTask } from './colors';
+import type { Prisma } from '@prisma/client';
+
+type DbClient = typeof prisma | Prisma.TransactionClient;
 
 export const TASK_CATEGORY_NAME = 'สิ่งที่ต้องทำ';
 export const TASK_CATEGORY_COLOR = 'lilac';
@@ -305,13 +308,18 @@ export async function removeDeadlineEvent(taskId: string, userId: string): Promi
  * เผื่อ event เก่าที่สร้างก่อนมีคอลัมน์ sourceTaskId
  *
  * คืนจำนวน event ที่ลบไป
+ *
+ * รับ client แยกได้ (ไม่บังคับ - ค่าเริ่มต้นคือ prisma singleton) เพื่อให้ผู้เรียกที่ต้องลบ event
+ * แล้วลบ Task ต่อในจังหวะเดียวกัน (เช่น DELETE /api/tasks/[id]) ส่ง transaction client (tx) เข้ามา
+ * ให้ทั้งสองขั้นตอนเป็น atomic - กันไม่ให้มี event ใหม่ (จาก breakdown/subtask update ที่วิ่งพร้อมกัน)
+ * แทรกเข้ามาในช่วงกลางระหว่างลบ event เสร็จกับลบ Task จริง
  */
-export async function removeAllTaskEvents(taskId: string, userId: string): Promise<number> {
+export async function removeAllTaskEvents(taskId: string, userId: string, client: DbClient = prisma): Promise<number> {
   // 1) ตามที่มา - ครอบคลุมทั้ง event งานหลัก ขั้นตอนย่อย และหมุดกำหนดส่ง
-  const bySource = await prisma.event.deleteMany({ where: { userId, sourceTaskId: taskId } });
+  const bySource = await client.event.deleteMany({ where: { userId, sourceTaskId: taskId } });
 
   // 2) เก็บตกด้วยลิงก์เดิม (event เก่าที่ยังไม่มี sourceTaskId)
-  const task = await prisma.task.findUnique({
+  const task = await client.task.findUnique({
     where: { id: taskId },
     select: { scheduledEventId: true, deadlineEventId: true, subtasks: { select: { scheduledEventId: true } } },
   });
@@ -323,7 +331,7 @@ export async function removeAllTaskEvents(taskId: string, userId: string): Promi
 
   let legacy = 0;
   if (legacyIds.length > 0) {
-    legacy = (await prisma.event.deleteMany({ where: { userId, id: { in: legacyIds } } })).count;
+    legacy = (await client.event.deleteMany({ where: { userId, id: { in: legacyIds } } })).count;
   }
 
   return bySource.count + legacy;

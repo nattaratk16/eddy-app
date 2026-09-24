@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
 import { PASTEL_COLORS } from '@/lib/colors';
+import { NOT_DEADLINE_EVENT } from '@/lib/eventFilters';
 
 // GET /api/groups/[id]/calendar?start=YYYY-MM-DD
 // คืน event ของสมาชิกทุกคน (accepted) ในสัปดาห์นั้น แยกสีต่อคน + mask ชื่อตามความเป็นส่วนตัว
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const events = await prisma.event.findMany({
     // หมุดกำหนดส่งเป็นตัวช่วยวางแผนส่วนตัว ไม่ใช่ช่วงเวลาที่ไม่ว่างจริง
     // ไม่ควรโผล่ในปฏิทินกลุ่มเป็นแท่งสีทึบ (จะทำให้เพื่อนเข้าใจผิดว่าคนนั้นติดธุระ)
-    where: { userId: { in: memberUserIds }, date: { gte: start, lt: end }, isDeadline: false },
+    where: { userId: { in: memberUserIds }, date: { gte: start, lt: end }, ...NOT_DEADLINE_EVENT },
     orderBy: { date: 'asc' },
   });
 

@@ -25,9 +25,9 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 const TONE_STYLE: Record<ToastTone, { icon: typeof CheckCircle2; className: string }> = {
-  success: { icon: CheckCircle2, className: 'bg-pastel-mint text-chip-ink' },
-  error: { icon: XCircle, className: 'bg-pastel-pink text-chip-ink' },
-  info: { icon: Info, className: 'bg-pastel-blue text-chip-ink' },
+  success: { icon: CheckCircle2, className: 'bg-pastel-mint text-chip-ink dark:bg-pastel-mint-dark/20 dark:text-pastel-mint-dark' },
+  error: { icon: XCircle, className: 'bg-pastel-pink text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark' },
+  info: { icon: Info, className: 'bg-pastel-blue text-chip-ink dark:bg-pastel-blue-dark/20 dark:text-pastel-blue-dark' },
 };
 
 const AUTO_DISMISS_MS = 3500;

@@ -285,6 +285,13 @@ export default function TodoPage() {
           setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !next } : t)));
         }
         setBlockedTaskId(id);
+      } else if (next) {
+        // เลขที่ optimistic เพิ่มไปข้างบนอาจไม่ตรง "เดือนนี้" จริงถ้าติ๊กใกล้รอยต่อเที่ยงคืน
+        // ดึงเลขจริงจากเซิร์ฟเวอร์มาทับกัน drift เหมือนที่ restoreTask/deleteTaskConfirmed ทำ
+        const refreshed = await fetch('/api/tasks');
+        const data = await refreshed.json().catch(() => null);
+        if (typeof data?.doneCount === 'number') setDoneCount(data.doneCount);
+        if (typeof data?.doneCountThisMonth === 'number') setDoneCountThisMonth(data.doneCountThisMonth);
       }
     } catch {
       // เน็ตหลุด: ถ้าไม่ย้อนกลับ งานจะดูเหมือนเสร็จแล้วทั้งที่ไม่ได้บันทึกอะไรเลย
@@ -446,10 +453,16 @@ export default function TodoPage() {
    * GET /api/tasks ตอนนี้มีแต่งานที่ยังไม่เสร็จเท่านั้น ปล่อยรายการ done:true ค้างไว้
    * จะทำให้การ์ดสรุปความคืบหน้านับ tasks.length ผิด (นับงานที่เสร็จแล้วเป็นงานค้าง)
    */
-  function markTaskCompletedLocally(taskId: string) {
+  async function markTaskCompletedLocally(taskId: string) {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     setDoneCount((n) => n + 1);
     setDoneCountThisMonth((n) => n + 1);
+    // เลขที่ optimistic เพิ่มไปข้างบนอาจไม่ตรง "เดือนนี้" จริงถ้าปิดงานใกล้รอยต่อเที่ยงคืน
+    // ดึงเลขจริงจากเซิร์ฟเวอร์มาทับกัน drift เหมือนที่ restoreTask/deleteTaskConfirmed ทำ
+    const refreshed = await fetch('/api/tasks');
+    const data = await refreshed.json().catch(() => null);
+    if (typeof data?.doneCount === 'number') setDoneCount(data.doneCount);
+    if (typeof data?.doneCountThisMonth === 'number') setDoneCountThisMonth(data.doneCountThisMonth);
   }
 
   async function toggleSubtask(taskId: string, subtask: Subtask) {

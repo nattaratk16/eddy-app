@@ -13,6 +13,7 @@
  * --------------------------------------------------------------
  */
 import { prisma } from './prisma';
+import { NOT_DEADLINE_EVENT } from './eventFilters';
 import { todayISOBangkok } from './thaiTime';
 import { timeToMinutes } from './calendarLayout';
 import { DEFAULT_DURATION } from './freeTime';
@@ -70,7 +71,7 @@ export async function getEisenhowerToday(userId: string): Promise<EisenhowerSpli
   const todayEnd = new Date(todayStart.getTime() + 86400000);
 
   const events = await prisma.event.findMany({
-    where: { userId, date: { gte: todayStart, lt: todayEnd }, isDeadline: false, sourceTaskId: { not: null } },
+    where: { userId, date: { gte: todayStart, lt: todayEnd }, ...NOT_DEADLINE_EVENT, sourceTaskId: { not: null } },
     select: { startTime: true, endTime: true, sourceTaskId: true },
   });
   if (events.length === 0) return EMPTY_SPLIT;

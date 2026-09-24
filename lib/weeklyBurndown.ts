@@ -63,29 +63,35 @@ export function computeBurndownSeries(
  * กับ anchor ที่เป็น "เที่ยงคืน UTC ของวันที่ตามเวลาไทย" แทน ปลอดภัยกว่าและตรงกับที่ Event.date/
  * Task.dueDate เก็บกันอยู่แล้ว (เที่ยงคืน UTC = ป้ายกำกับวันที่ ไม่ใช่เวลาจริง)
  */
-function thisWeekDatesUTC(todayISO: string): { weekDates: string[]; weekEnd: Date } {
+function thisWeekDatesUTC(todayISO: string): { weekDates: string[]; weekStart: Date; weekEnd: Date } {
   const todayAnchor = new Date(`${todayISO}T00:00:00.000Z`);
   const dow = todayAnchor.getUTCDay(); // 0=อาทิตย์ .. 6=เสาร์
   const weekStart = new Date(todayAnchor.getTime() - dow * 86400000);
   const weekDates = Array.from({ length: 7 }, (_, i) => new Date(weekStart.getTime() + i * 86400000).toISOString().slice(0, 10));
   const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
-  return { weekDates, weekEnd };
+  return { weekDates, weekStart, weekEnd };
 }
 
 /** ดึงข้อมูลจริงจาก DB มาคำนวณ Burndown สัปดาห์นี้ของผู้ใช้คนหนึ่ง (รวมงานส่วนตัว + งานกลุ่ม) */
 export async function getWeeklyBurndown(userId: string): Promise<BurndownSeries> {
   const todayISO = todayISOBangkok();
-  const { weekDates, weekEnd } = thisWeekDatesUTC(todayISO);
+  const { weekDates, weekStart, weekEnd } = thisWeekDatesUTC(todayISO);
 
   // ขอบเขต: มีกำหนดส่งภายในสัปดาห์นี้เท่านั้น (รวมที่เลยกำหนดไปแล้วด้วย - ยังเป็นภาระค้างอยู่)
   // งานที่ไม่มีกำหนดส่งไม่มี "เดดไลน์" ให้ burndown เทียบด้วย เลยไม่นับเข้ามา
+  // งานที่ปิดไปแล้วก่อนสัปดาห์นี้ต้องไม่นับ - ไม่งั้น totalMinutes จะพอกพูนไปเรื่อยๆ ทุกสัปดาห์
+  // เพราะ completedAt ของมันไม่มีวันตกอยู่ใน weekDates ให้ actual line หักลบออกได้เลย
   const [tasks, assignments] = await Promise.all([
     prisma.task.findMany({
-      where: { userId, dueDate: { not: null, lte: weekEnd } },
+      where: { userId, dueDate: { not: null, lte: weekEnd }, OR: [{ done: false }, { completedAt: { gte: weekStart } }] },
       select: { estimatedMinutes: true, completedAt: true },
     }),
     prisma.groupTaskAssignment.findMany({
-      where: { assignedToUserId: userId, status: 'approved', groupTask: { dueDate: { not: null, lte: weekEnd } } },
+      where: {
+        assignedToUserId: userId,
+        status: 'approved',
+        groupTask: { dueDate: { not: null, lte: weekEnd }, OR: [{ done: false }, { completedAt: { gte: weekStart } }] },
+      },
       select: { groupTask: { select: { estimatedMinutes: true, completedAt: true } } },
     }),
   ]);

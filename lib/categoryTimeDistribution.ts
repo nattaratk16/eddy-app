@@ -13,6 +13,7 @@
  * --------------------------------------------------------------
  */
 import { prisma } from './prisma';
+import { NOT_DEADLINE_EVENT } from './eventFilters';
 import { todayISOBangkok } from './thaiTime';
 import { timeToMinutes } from './calendarLayout';
 import { DEFAULT_DURATION } from './freeTime';
@@ -46,7 +47,7 @@ export async function getCategoryTimeDistribution(userId: string): Promise<Categ
   const start = new Date(todayEnd.getTime() - LOOKBACK_DAYS * 86400000);
 
   const events = await prisma.event.findMany({
-    where: { userId, date: { gte: start, lt: todayEnd }, isDeadline: false },
+    where: { userId, date: { gte: start, lt: todayEnd }, ...NOT_DEADLINE_EVENT },
     select: { startTime: true, endTime: true, category: { select: { id: true, name: true, color: true } } },
   });
 

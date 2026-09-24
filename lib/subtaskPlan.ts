@@ -71,11 +71,14 @@ export function planSubtasks(steps: StepInput[], slots: FreeSlot[], dates: strin
     const daySlots = slotsByDate.get(date);
     if (!daySlots) return null;
     for (const slot of daySlots) {
-      const start = slot.startMin + bufferMin;
+      // slot.bufferedStart: กันบวก bufferMin ซ้ำถ้า slot นี้เคยถูกแกะไปแล้วในลูปนี้ (ดู lib/freeTime.ts::placeTask)
+      const leadBuffer = slot.bufferedStart ? 0 : bufferMin;
+      const start = slot.startMin + leadBuffer;
       const end = start + durationMin;
       if (end + bufferMin <= slot.endMin) {
         const placed = { startMin: start, endMin: end };
         slot.startMin = end + bufferMin;
+        slot.bufferedStart = true;
         return placed;
       }
     }

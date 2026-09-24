@@ -6,6 +6,7 @@ import { ROLE_AI_CONTEXT, isUserRole } from '@/lib/roles';
 import { parseEventFromText } from '@/lib/aiMock';
 import { buildSlotAdvice, DEFAULT_EVENT_MINUTES, type BusyItem } from '@/lib/slotAdvice';
 import { expandRecurring, parseDays } from '@/lib/recurring';
+import { NOT_DEADLINE_EVENT } from '@/lib/eventFilters';
 import type { CalendarCategory } from '@/lib/types';
 
 const mockReplies = [
@@ -126,7 +127,7 @@ async function adviseSlot(userId: string, date: string, startTime: string | null
   const [dayEvents, recurringRows, profile] = await Promise.all([
     prisma.event.findMany({
       // หมุดกำหนดส่งไม่ใช่เวลาไม่ว่าง ไม่ต้องเอามาเสนอเป็น "ชนกัน" หรือทำให้วันดูแน่นเกินจริง
-      where: { userId, date: { gte: from, lt: to }, isDeadline: false },
+      where: { userId, date: { gte: from, lt: to }, ...NOT_DEADLINE_EVENT },
       select: { title: true, date: true, startTime: true, endTime: true },
     }),
     prisma.recurringEvent.findMany({ where: { userId } }),

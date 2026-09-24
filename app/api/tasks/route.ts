@@ -52,6 +52,8 @@ export async function GET() {
   // หน้า To-do ดึงงานที่เสร็จแล้วแยกทีละเดือนจาก GET /api/tasks/done แทน (ดูไฟล์นั้น)
   // ตัวเลขเดือนปัจจุบัน ให้การ์ดสรุปความคืบหน้าในหน้า To-do ตัดตามเดือนเหมือนกล่อง "เสร็จแล้ว"
   // (currentMonthBangkok() คำนวณเองเสมอ ไม่มีทางได้ null กลับมาจาก monthRangeBangkok)
+  // นับจาก completedAt ไม่ใช่ done เฉยๆ - ถ้าเพิ่งเพิ่มคอลัมน์นี้ ต้องรัน `npm run backfill:completed-at`
+  // ก่อน ไม่งั้นงานที่ติ๊กเสร็จไปแล้วก่อนหน้านี้จะมี completedAt เป็น null และหายไปจากตัวเลขนี้
   const thisMonth = monthRangeBangkok(currentMonthBangkok())!;
   const [tasks, doneCount, doneCountThisMonth] = await Promise.all([
     prisma.task.findMany({

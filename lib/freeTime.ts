@@ -11,6 +11,10 @@ export interface FreeSlot {
   date: string; // "YYYY-MM-DD"
   startMin: number;
   endMin: number;
+  // ภายในเท่านั้น: placeTask ตั้งไว้หลัง "แกะ" ช่วงว่างนี้ไปครั้งแรก กันไม่ให้การแกะครั้งถัดๆ ไปใน
+  // slot เดียวกัน (มาจากงานอื่นที่วางลงช่องว่างเดียวกันในลูปเดียวกัน) บวก bufferMin ซ้ำเข้าไปอีก
+  // (slot.startMin ที่ถูกเลื่อนไปแล้วก็มี bufferMin ฝั่งท้ายของงานก่อนหน้ารวมอยู่ในตัวแล้ว)
+  bufferedStart?: boolean;
 }
 
 interface MemberEvent {
@@ -106,11 +110,13 @@ export function placeTask(
 ): { date: string; startMin: number; endMin: number } | null {
   for (const slot of slots) {
     if (dueDate && slot.date > dueDate) continue; // ข้ามวันที่เลย deadline (string YYYY-MM-DD เทียบตรงๆ ได้)
-    const start = slot.startMin + bufferMin;
+    const leadBuffer = slot.bufferedStart ? 0 : bufferMin;
+    const start = slot.startMin + leadBuffer;
     const end = start + durationMin;
     if (end + bufferMin <= slot.endMin) {
       const placed = { date: slot.date, startMin: start, endMin: end };
       slot.startMin = end + bufferMin;
+      slot.bufferedStart = true;
       return placed;
     }
   }

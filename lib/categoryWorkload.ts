@@ -16,6 +16,7 @@
  * --------------------------------------------------------------
  */
 import { prisma } from './prisma';
+import { NOT_DEADLINE_EVENT } from './eventFilters';
 import { availabilityWindow } from './freeTime';
 import { expandRecurring, parseDays } from './recurring';
 import { timeToMinutes } from './calendarLayout';
@@ -66,7 +67,7 @@ export async function rawBookedMinutesByKind(
 
   const [events, recurringRows] = await Promise.all([
     prisma.event.findMany({
-      where: { userId: { in: userIds }, date: { gte: windowStart, lt: windowEnd }, isDeadline: false },
+      where: { userId: { in: userIds }, date: { gte: windowStart, lt: windowEnd }, ...NOT_DEADLINE_EVENT },
       select: { userId: true, startTime: true, endTime: true, category: { select: { kind: true } } },
     }),
     prisma.recurringEvent.findMany({ where: { userId: { in: userIds } } }),

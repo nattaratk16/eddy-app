@@ -156,11 +156,15 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // ลบ event ทุกใบที่เกิดจากงานนี้ (งานหลัก + ขั้นตอนย่อย + หมุดกำหนดส่ง) ในทีเดียว
+  // ลบ event ทุกใบที่เกิดจากงานนี้ (งานหลัก + ขั้นตอนย่อย + หมุดกำหนดส่ง) แล้วลบงานเอง ในทรานแซกชันเดียว
   // สำคัญ: Subtask ถูก cascade ลบไปพร้อม Task แต่ event ของมันเป็นแถวแยกที่ไม่ได้ถูกลบตาม
-  // ต้องเก็บกวาดก่อนลบงาน ไม่งั้นจะเหลือ event ค้างอยู่ในปฏิทินตลอดไป
-  const removedEvents = await removeAllTaskEvents(params.id, session.user.id);
-  await prisma.task.delete({ where: { id: params.id } });
+  // ต้องเก็บกวาดก่อนลบงาน ไม่งั้นจะเหลือ event ค้างอยู่ในปฏิทินตลอดไป - ทำในทรานแซกชันเดียวกัน
+  // กันไม่ให้สองขั้นตอนนี้ถูกขัดจังหวะกลางคันโดยคำขออื่นที่แก้งานเดียวกันพร้อมกัน
+  const removedEvents = await prisma.$transaction(async (tx) => {
+    const removed = await removeAllTaskEvents(params.id, session.user.id, tx);
+    await tx.task.delete({ where: { id: params.id } });
+    return removed;
+  });
 
   return NextResponse.json({ ok: true, removedEvents });
 }
