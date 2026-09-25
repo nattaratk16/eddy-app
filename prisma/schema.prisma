@@ -109,6 +109,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -117,6 +118,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -271,6 +274,8 @@ model Group {
   updatedAt   DateTime      @updatedAt
   members     GroupMember[]
   tasks       GroupTask[]
+
+  @@index([ownerId])
 }
 
 // สมาชิกในกลุ่ม (รวมเจ้าของด้วย) + สถานะคำเชิญ + การตั้งค่าความเป็นส่วนตัว
@@ -313,6 +318,7 @@ model GroupTask {
 
   @@index([groupId])
   @@index([groupId, done])
+  @@index([createdById])
 }
 
 // ผลการมอบหมายงานกลุ่ม (AI เสนอ 1 งาน → 1 คน + ช่วงเวลา) รอสมาชิก approve ลงปฏิทินตัวเอง
