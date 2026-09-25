@@ -23,17 +23,19 @@ function apply(choice: Choice) {
 }
 
 export default function ThemeToggle() {
-  // เริ่มที่ 'system' เสมอตอน render ฝั่งเซิร์ฟเวอร์ แล้วค่อยอ่านค่าจริงใน effect
+  // เริ่มที่ 'light' เสมอตอน render ฝั่งเซิร์ฟเวอร์ แล้วค่อยอ่านค่าจริงใน effect
   // (อ่าน localStorage ตอน render ตรงๆ ไม่ได้ เพราะเซิร์ฟเวอร์ไม่มี แล้ว markup จะไม่ตรงกัน)
-  const [choice, setChoice] = useState<Choice>('system');
+  // 'light' ไม่ใช่ 'system' เพราะค่าเริ่มต้นของทั้งแอป (ยังไม่เคยเลือกอะไรเลย) คือสว่างเสมอแล้ว
+  // (ดู lib/theme.ts::resolveDark) ปุ่มนี้ต้องโชว์ตรงกับสิ่งที่จอแสดงจริง
+  const [choice, setChoice] = useState<Choice>('light');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === 'light' || saved === 'dark') setChoice(saved);
+      if (saved === 'light' || saved === 'dark' || saved === 'system') setChoice(saved);
     } catch {
-      /* อ่านไม่ได้ก็ถือว่าตามระบบ */
+      /* อ่านไม่ได้ก็ถือว่าเป็นค่าเริ่มต้น (สว่าง) */
     }
     setReady(true);
   }, []);
@@ -51,8 +53,10 @@ export default function ThemeToggle() {
     setChoice(next);
     apply(next);
     try {
-      if (next === 'system') localStorage.removeItem(THEME_STORAGE_KEY);
-      else localStorage.setItem(THEME_STORAGE_KEY, next);
+      // เก็บ 'system' เป็นค่าจริงในค่านี้ตรงๆ (ไม่ใช่ลบ key ทิ้งเหมือนเดิม) ให้ต่างจาก
+      // "ยังไม่เคยเลือกอะไรเลย" (ไม่มี key) ซึ่งตอนนี้หมายถึงค่าเริ่มต้น = สว่างเสมอแทน
+      // ไม่งั้นเลือก "ตามระบบ" ไปแล้วปิดเปิดแอปใหม่จะเห็นเป็นสว่างเงียบๆ เพราะแยกไม่ออกจาก "ไม่เคยเลือก"
+      localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
       /* เขียนไม่ได้ก็ยังเปลี่ยนธีมในหน้านี้ได้ แค่ไม่ถูกจำไว้รอบหน้า */
     }

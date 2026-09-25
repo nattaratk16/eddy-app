@@ -14,7 +14,14 @@ export const THEME_STORAGE_KEY = 'eddy-theme';
  */
 export const LIGHT_ONLY_PATHS = ['/', '/login', '/register', '/onboarding'];
 
-/** ธีมที่ควรใช้ตอนนี้ - ตรรกะเดียวกับที่ ThemeScript ฝังไว้เป็นสตริง */
+/**
+ * ธีมที่ควรใช้ตอนนี้ - ตรรกะเดียวกับที่ ThemeScript ฝังไว้เป็นสตริง
+ *
+ * ค่าเริ่มต้น (ยังไม่เคยกดเลือกธีมเองเลย = ไม่มีอะไรใน localStorage) คือ "สว่างเสมอ"
+ * ไม่ใช่ตามค่าระบบปฏิบัติการอีกต่อไป เพราะสีสว่างคือจุดขายของแอป - ต้องเลือก "ตามระบบ" เอง
+ * ผ่าน ThemeToggle เท่านั้นถึงจะให้ตามค่า OS (เก็บเป็นค่า 'system' ใน localStorage ตรงๆ
+ * ไม่ใช่การไม่มีค่าเหมือนเดิม กันสับสนกับ "ยังไม่เคยเลือก")
+ */
 export function resolveDark(pathname: string): boolean {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (LIGHT_ONLY_PATHS.includes(path)) return false;
@@ -22,8 +29,9 @@ export function resolveDark(pathname: string): boolean {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     if (saved === 'dark') return true;
     if (saved === 'light') return false;
+    if (saved === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
   } catch {
-    /* อ่าน localStorage ไม่ได้ -> ตกไปใช้ค่าของระบบ */
+    /* อ่าน localStorage ไม่ได้ -> ใช้ค่าเริ่มต้น (สว่าง) */
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return false;
 }

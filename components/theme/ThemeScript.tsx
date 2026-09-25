@@ -4,7 +4,9 @@
  * ต้องเป็น <script> ธรรมดาที่รันแบบ blocking ใน <head> - ถ้าไปตั้งใน useEffect
  * เบราว์เซอร์จะวาดธีมสว่างให้เห็นแวบหนึ่งก่อนแล้วค่อยกระพริบเป็นธีมมืด
  *
- * ลำดับการตัดสินใจ: หน้าที่บังคับสว่าง (LIGHT_ONLY_PATHS) > ค่าที่ผู้ใช้เลือกไว้ > ค่าของระบบ
+ * ลำดับการตัดสินใจ: หน้าที่บังคับสว่าง (LIGHT_ONLY_PATHS) > ค่าที่ผู้ใช้เลือกไว้ (รวม 'system' ถ้า
+ * เลือกไว้ตรงๆ) > ค่าเริ่มต้น (สว่าง - ยังไม่เคยเลือกอะไรเลย ไม่ตามค่าระบบปฏิบัติการอัตโนมัติ
+ * เพราะสีสว่างคือจุดขายของแอป)
  * เขียนเป็นสตริงเพราะโค้ดนี้ต้องรันบนเบราว์เซอร์ก่อน React จะ hydrate
  * --------------------------------------------------------------
  */
@@ -18,7 +20,7 @@ const script = `
     var saved = localStorage.getItem('${THEME_STORAGE_KEY}');
     var dark =
       lightOnly.indexOf(path) === -1 &&
-      (saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches));
+      (saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
     document.documentElement.classList.toggle('dark', dark);
   } catch (e) {
     /* โหมดส่วนตัว/ปิดคุกกี้ -> ใช้ธีมสว่างตามค่าเริ่มต้น ไม่ต้องทำอะไร */
