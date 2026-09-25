@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CalendarClock, Check, GripVertical, Pencil, X } from 'lucide-react';
 import clsx from 'clsx';
@@ -197,9 +197,12 @@ export default function SortableSubtaskList({
   onReorder,
   onPlanChange,
 }: SortableSubtaskListProps) {
+  // KeyboardSensor (AUD-11) - เดิมมีแค่ mouse/touch ทำให้สลับลำดับขั้นตอนย่อยด้วย keyboard ไม่ได้เลย
+  // pattern มาตรฐานของ @dnd-kit: Tab ไปที่ปุ่มลาก -> Space/Enter หยิบ -> ลูกศรขึ้น/ลงเลื่อนตำแหน่ง -> Space/Enter วาง
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   function handleDragEnd(e: DragEndEvent) {

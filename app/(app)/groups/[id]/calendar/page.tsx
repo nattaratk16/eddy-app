@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, use } from 'react';
+import { useCallback, useEffect, useRef, useState, use } from 'react';
 import { addDays, addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { ArrowRight, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import Card from '@/components/Card';
@@ -37,24 +37,31 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  // กันคำตอบเก่าทับคำตอบใหม่ (AUD-13) - กดเปลี่ยนสัปดาห์รัวๆ อาจมีหลาย request ค้างพร้อมกัน
+  // ถ้า response ของสัปดาห์เก่ากลับมาช้ากว่าสัปดาห์ล่าสุด จะได้ไม่เอาไปทับข้อมูลที่ถูกต้องอยู่แล้ว
+  // pattern เดียวกับ app/(app)/calendar/page.tsx และ WorkloadInsightText.tsx
+  const requestSeq = useRef(0);
 
   const load = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     setLoadError(false);
     try {
       const res = await fetch(`/api/groups/${params.id}/calendar?start=${format(weekStart, 'yyyy-MM-dd')}`);
+      if (seq !== requestSeq.current) return; // มี request ใหม่กว่ายิงไปแล้วระหว่างที่รอ - ทิ้งอันนี้
       if (!res.ok) {
         setNotFound(true);
         return;
       }
       const data = await res.json();
+      if (seq !== requestSeq.current) return;
       setMembers(data.members ?? []);
       setEvents(data.events ?? []);
     } catch {
       // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้นจะค้างที่ "กำลังโหลดตารางกลุ่ม..." ตลอดไป (บั๊กเดียวกับที่แก้ไปแล้วในหน้ารวมกลุ่ม)
-      setLoadError(true);
+      if (seq === requestSeq.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }, [params.id, weekStart]);
 
