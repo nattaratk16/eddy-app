@@ -44,15 +44,17 @@ export async function POST(
 
   // ---------- ปฏิเสธ ----------
   if (!approve) {
-    if (assignment.approvedEventId) {
-      await prisma.event.deleteMany({ where: { id: assignment.approvedEventId, userId } });
-    }
-    await prisma.groupTaskAssignment.update({
-      where: { id: assignment.id },
-      data: { status: 'rejected', approvedEventId: null },
+    await prisma.$transaction(async (tx) => {
+      if (assignment.approvedEventId) {
+        await tx.event.deleteMany({ where: { id: assignment.approvedEventId, userId } });
+      }
+      await tx.groupTaskAssignment.update({
+        where: { id: assignment.id },
+        data: { status: 'rejected', approvedEventId: null },
+      });
+      // งานที่เคยติ๊กว่าเสร็จ ไม่ควรค้างเป็น "เสร็จแล้ว" ทั้งที่เพิ่งถูกถอดออกจากปฏิทิน
+      await tx.groupTask.update({ where: { id: assignment.groupTaskId }, data: { done: false, completedAt: null } });
     });
-    // งานที่เคยติ๊กว่าเสร็จ ไม่ควรค้างเป็น "เสร็จแล้ว" ทั้งที่เพิ่งถูกถอดออกจากปฏิทิน
-    await prisma.groupTask.update({ where: { id: assignment.groupTaskId }, data: { done: false, completedAt: null } });
     return NextResponse.json({ ok: true, status: 'rejected' });
   }
 
@@ -104,31 +106,38 @@ export async function POST(
   }
 
   const group = assignment.groupTask.group;
-  // หมวดหมู่ปฏิทินของผู้ใช้สำหรับงานกลุ่มนี้ (ใช้ชื่อ+สีของกลุ่ม สร้างถ้ายังไม่มี)
-  let category = await prisma.category.findFirst({ where: { userId, name: group.name } });
-  if (!category) {
-    category = await prisma.category.create({ data: { userId, name: group.name, color: group.color } });
-  }
 
-  // มี event เดิมอยู่แล้ว (เช่นกำลังแก้เวลาของงานที่เคย approve ไปแล้ว) ก็อัปเดตแทนสร้างซ้ำ
-  const eventData = {
-    title: assignment.groupTask.title,
-    date: new Date(`${finalDate}T00:00:00.000Z`),
-    startTime: finalStart,
-    endTime: finalEnd,
-  };
-  const event = assignment.approvedEventId
-    ? await prisma.event.update({ where: { id: assignment.approvedEventId }, data: eventData }).catch(() => null)
-    : null;
-  const finalEvent =
-    event ??
-    (await prisma.event.create({
-      data: { ...eventData, description: `จากกลุ่ม "${group.name}"`, categoryId: category.id, userId },
-    }));
+  // หา/สร้างหมวดหมู่ + สร้าง(หรืออัปเดต)event + ผูกกลับเข้า assignment ทั้งหมดในทรานแซกชันเดียว
+  // กันเหลือ event ลอยไม่มี assignment ผูก หรือหมวดหมู่ซ้ำ ถ้า crash กลางคันระหว่างขั้นตอนเหล่านี้
+  const finalEvent = await prisma.$transaction(async (tx) => {
+    // หมวดหมู่ปฏิทินของผู้ใช้สำหรับงานกลุ่มนี้ (ใช้ชื่อ+สีของกลุ่ม สร้างถ้ายังไม่มี)
+    let category = await tx.category.findFirst({ where: { userId, name: group.name } });
+    if (!category) {
+      category = await tx.category.create({ data: { userId, name: group.name, color: group.color } });
+    }
 
-  await prisma.groupTaskAssignment.update({
-    where: { id: assignment.id },
-    data: { status: 'approved', approvedEventId: finalEvent.id, date: finalDate, startTime: finalStart, endTime: finalEnd },
+    // มี event เดิมอยู่แล้ว (เช่นกำลังแก้เวลาของงานที่เคย approve ไปแล้ว) ก็อัปเดตแทนสร้างซ้ำ
+    const eventData = {
+      title: assignment.groupTask.title,
+      date: new Date(`${finalDate}T00:00:00.000Z`),
+      startTime: finalStart,
+      endTime: finalEnd,
+    };
+    const event = assignment.approvedEventId
+      ? await tx.event.update({ where: { id: assignment.approvedEventId }, data: eventData }).catch(() => null)
+      : null;
+    const finalEvent =
+      event ??
+      (await tx.event.create({
+        data: { ...eventData, description: `จากกลุ่ม "${group.name}"`, categoryId: category.id, userId },
+      }));
+
+    await tx.groupTaskAssignment.update({
+      where: { id: assignment.id },
+      data: { status: 'approved', approvedEventId: finalEvent.id, date: finalDate, startTime: finalStart, endTime: finalEnd },
+    });
+
+    return finalEvent;
   });
 
   return NextResponse.json({ ok: true, status: 'approved', eventId: finalEvent.id });

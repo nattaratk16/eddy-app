@@ -288,35 +288,44 @@ export async function POST(req: NextRequest) {
   }
 
   // สร้าง event ทีละงานแล้วผูกกลับเข้า task (ต้องรู้ id ของ event จึง createMany ไม่ได้)
+  // แต่ละงานห่อเป็นทรานแซกชันของตัวเอง (ไม่ใช่ทั้ง loop เดียว) - ตั้งใจให้งานที่พังเป็นแค่รายชิ้น
+  // ไม่ลาม rollback งานอื่นที่สำเร็จไปแล้วในลูปเดียวกัน แต่ภายใน 1 งานต้อง atomic (สร้าง event + ผูก
+  // task + ตั้งหมุดใหม่ ต้องสำเร็จพร้อมกันหรือไม่สำเร็จเลย กันเหลือ event ลอยไม่มี task ผูกถ้า crash กลางคัน)
   const committed: Proposal[] = [];
   for (const p of proposals) {
-    const event = await prisma.event.create({
-      data: {
-        title: p.title,
-        date: new Date(`${p.date}T00:00:00.000Z`),
-        startTime: p.startTime,
-        endTime: p.endTime,
-        description: 'จากสิ่งที่ต้องทำ',
-        // แต่ละงานได้สีของตัวเอง (คำนวณจาก id คงที่) ไม่งั้นงานจาก To-do จะเป็นสีเดียวกันหมด
-        color: colorForTask(p.taskId),
-        sourceTaskId: p.taskId,
-        categoryId: category.id,
-        userId,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const event = await tx.event.create({
+        data: {
+          title: p.title,
+          date: new Date(`${p.date}T00:00:00.000Z`),
+          startTime: p.startTime,
+          endTime: p.endTime,
+          description: 'จากสิ่งที่ต้องทำ',
+          // แต่ละงานได้สีของตัวเอง (คำนวณจาก id คงที่) ไม่งั้นงานจาก To-do จะเป็นสีเดียวกันหมด
+          color: colorForTask(p.taskId),
+          sourceTaskId: p.taskId,
+          categoryId: category.id,
+          userId,
+        },
+      });
+      // updateMany + เช็ค userId อีกชั้น กันกรณี task ถูกลบไประหว่างทาง
+      const updated = await tx.task.updateMany({
+        where: { id: p.taskId, userId, scheduledEventId: null },
+        data: { scheduledEventId: event.id },
+      });
+      if (updated.count === 0) {
+        await tx.event.delete({ where: { id: event.id } });
+        return { ok: false as const };
+      }
+      // งานหลักเพิ่งถูกวางลงวันกำหนดส่ง -> วันนั้นไม่ว่างแล้ว หมุดต้องหายไป
+      await syncDeadlineEvent(p.taskId, userId, tx);
+      return { ok: true as const };
     });
-    // updateMany + เช็ค userId อีกชั้น กันกรณี task ถูกลบไประหว่างทาง
-    const updated = await prisma.task.updateMany({
-      where: { id: p.taskId, userId, scheduledEventId: null },
-      data: { scheduledEventId: event.id },
-    });
-    if (updated.count === 0) {
-      await prisma.event.delete({ where: { id: event.id } });
+    if (!result.ok) {
       skipped.push({ taskId: p.taskId, title: p.title, reason: 'งานนี้ถูกแก้ไข/ลบไปแล้ว' });
       continue;
     }
     committed.push(p);
-    // งานหลักเพิ่งถูกวางลงวันกำหนดส่ง -> วันนั้นไม่ว่างแล้ว หมุดต้องหายไป
-    await syncDeadlineEvent(p.taskId, userId);
   }
 
   return NextResponse.json({ scheduled: committed, skipped, committed: true });

@@ -142,11 +142,14 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
 
   // แทนที่การมอบหมายเดิม (ที่ยังไม่ approve) ด้วยชุดใหม่ - กันเผื่อไม่แตะ source: manual ซ้ำอีกชั้น
   // (แม้ taskIds จะกรอง task ที่ถูกมอบหมายเองออกไปแล้วตอนสร้าง `tasks` ด้านบน)
+  // ลบของเก่า+สร้างของใหม่ในทรานแซกชันเดียว กันเหลือกลุ่มไม่มีการมอบหมายเลยถ้า crash ระหว่างสองขั้นตอนนี้
   const taskIds = tasks.map((t) => t.id);
-  await prisma.groupTaskAssignment.deleteMany({
-    where: { groupTaskId: { in: taskIds }, status: { not: 'approved' }, source: { not: 'manual' } },
+  await prisma.$transaction(async (tx) => {
+    await tx.groupTaskAssignment.deleteMany({
+      where: { groupTaskId: { in: taskIds }, status: { not: 'approved' }, source: { not: 'manual' } },
+    });
+    if (toCreate.length > 0) await tx.groupTaskAssignment.createMany({ data: toCreate });
   });
-  if (toCreate.length > 0) await prisma.groupTaskAssignment.createMany({ data: toCreate });
 
   const assignedMinutesByUser = new Map<string, number>();
   for (const c of toCreate) {

@@ -21,10 +21,10 @@ export const TASK_CATEGORY_NAME = 'สิ่งที่ต้องทำ';
 export const TASK_CATEGORY_COLOR = 'lilac';
 
 /** หมวดหมู่ปฏิทินสำหรับงานจาก To-do (สร้างครั้งแรกครั้งเดียวต่อผู้ใช้) */
-export async function ensureTaskCategory(userId: string): Promise<string> {
-  const existing = await prisma.category.findFirst({ where: { userId, name: TASK_CATEGORY_NAME } });
+export async function ensureTaskCategory(userId: string, client: DbClient = prisma): Promise<string> {
+  const existing = await client.category.findFirst({ where: { userId, name: TASK_CATEGORY_NAME } });
   if (existing) return existing.id;
-  const created = await prisma.category.create({
+  const created = await client.category.create({
     data: { userId, name: TASK_CATEGORY_NAME, color: TASK_CATEGORY_COLOR },
   });
   return created.id;
@@ -234,8 +234,8 @@ export const DEADLINE_DESCRIPTION = 'กำหนดส่งจากสิ่�
  *
  * คืน id ของ event ที่ผูกอยู่ (null = ไม่มีหมุด)
  */
-export async function syncDeadlineEvent(taskId: string, userId: string): Promise<string | null> {
-  const task = await prisma.task.findUnique({
+export async function syncDeadlineEvent(taskId: string, userId: string, client: DbClient = prisma): Promise<string | null> {
+  const task = await client.task.findUnique({
     where: { id: taskId },
     include: {
       subtasks: { select: { plannedDate: true, scheduledEventId: true } },
@@ -246,8 +246,8 @@ export async function syncDeadlineEvent(taskId: string, userId: string): Promise
 
   const removeExisting = async () => {
     if (task.deadlineEventId) {
-      await prisma.event.deleteMany({ where: { id: task.deadlineEventId, userId } });
-      await prisma.task.updateMany({ where: { id: taskId, userId }, data: { deadlineEventId: null } });
+      await client.event.deleteMany({ where: { id: task.deadlineEventId, userId } });
+      await client.task.updateMany({ where: { id: taskId, userId }, data: { deadlineEventId: null } });
     }
     return null;
   };
@@ -281,13 +281,13 @@ export async function syncDeadlineEvent(taskId: string, userId: string): Promise
   };
 
   if (task.deadlineEventId) {
-    const updated = await prisma.event.updateMany({ where: { id: task.deadlineEventId, userId }, data: payload });
+    const updated = await client.event.updateMany({ where: { id: task.deadlineEventId, userId }, data: payload });
     if (updated.count > 0) return task.deadlineEventId;
   }
 
-  const categoryId = await ensureTaskCategory(userId);
-  const event = await prisma.event.create({ data: { ...payload, categoryId, userId } });
-  await prisma.task.updateMany({ where: { id: taskId, userId }, data: { deadlineEventId: event.id } });
+  const categoryId = await ensureTaskCategory(userId, client);
+  const event = await client.event.create({ data: { ...payload, categoryId, userId } });
+  await client.task.updateMany({ where: { id: taskId, userId }, data: { deadlineEventId: event.id } });
   return event.id;
 }
 

@@ -93,26 +93,31 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // ลบ event ของขั้นตอนนี้ออกจากปฏิทินด้วย ไม่ให้ค้างอยู่หลังขั้นตอนถูกลบ
-  if (existing.scheduledEventId) {
-    await prisma.event.deleteMany({ where: { id: existing.scheduledEventId, userId: session.user.id } });
-  }
-  await prisma.subtask.delete({ where: { id: params.id } });
-  await syncDeadlineEvent(existing.taskId, session.user.id);
-
-  // ลบขั้นตอนที่ค้างอยู่ออกไป อาจทำให้ที่เหลือเสร็จครบพอดี -> อัปเดตสถานะงานหลักตาม
-  const remaining = await prisma.subtask.count({ where: { taskId: existing.taskId, done: false } });
-  const total = await prisma.subtask.count({ where: { taskId: existing.taskId } });
-  // ถ้าไม่เหลือขั้นตอนย่อยเลย ให้ปล่อยสถานะงานหลักไว้ตามเดิม (กลับไปเป็นงานติ๊กเดียว)
-  if (total > 0) {
-    const shouldBeDone = remaining === 0;
-    if (shouldBeDone !== existing.task.done) {
-      await prisma.task.update({
-        where: { id: existing.taskId },
-        data: { done: shouldBeDone, completedAt: shouldBeDone ? new Date() : null },
-      });
+  // ลบ event + subtask + คิดสถานะงานหลักใหม่ทั้งหมดในทรานแซกชันเดียว กันเหลือ state ค้างครึ่งๆ กลางๆ
+  // ถ้า request ถูกขัดจังหวะกลางคัน (crash/timeout)
+  const { remaining, total } = await prisma.$transaction(async (tx) => {
+    // ลบ event ของขั้นตอนนี้ออกจากปฏิทินด้วย ไม่ให้ค้างอยู่หลังขั้นตอนถูกลบ
+    if (existing.scheduledEventId) {
+      await tx.event.deleteMany({ where: { id: existing.scheduledEventId, userId: session.user.id } });
     }
-  }
+    await tx.subtask.delete({ where: { id: params.id } });
+    await syncDeadlineEvent(existing.taskId, session.user.id, tx);
+
+    // ลบขั้นตอนที่ค้างอยู่ออกไป อาจทำให้ที่เหลือเสร็จครบพอดี -> อัปเดตสถานะงานหลักตาม
+    const remaining = await tx.subtask.count({ where: { taskId: existing.taskId, done: false } });
+    const total = await tx.subtask.count({ where: { taskId: existing.taskId } });
+    // ถ้าไม่เหลือขั้นตอนย่อยเลย ให้ปล่อยสถานะงานหลักไว้ตามเดิม (กลับไปเป็นงานติ๊กเดียว)
+    if (total > 0) {
+      const shouldBeDone = remaining === 0;
+      if (shouldBeDone !== existing.task.done) {
+        await tx.task.update({
+          where: { id: existing.taskId },
+          data: { done: shouldBeDone, completedAt: shouldBeDone ? new Date() : null },
+        });
+      }
+    }
+    return { remaining, total };
+  });
 
   return NextResponse.json({ ok: true, taskDone: total > 0 ? remaining === 0 : existing.task.done });
 }
