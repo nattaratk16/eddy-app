@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState, use } from 'react';
 import { addDays, addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import Card from '@/components/Card';
+import EmptyState from '@/components/EmptyState';
 import TimeGridView from '@/components/calendar/TimeGridView';
 import { getColorOption } from '@/lib/colors';
 import type { CalendarEvent, PastelColor } from '@/lib/types';
@@ -34,19 +35,27 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/groups/${params.id}/calendar?start=${format(weekStart, 'yyyy-MM-dd')}`);
-    if (!res.ok) {
-      setNotFound(true);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const res = await fetch(`/api/groups/${params.id}/calendar?start=${format(weekStart, 'yyyy-MM-dd')}`);
+      if (!res.ok) {
+        setNotFound(true);
+        return;
+      }
+      const data = await res.json();
+      setMembers(data.members ?? []);
+      setEvents(data.events ?? []);
+    } catch {
+      // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้นจะค้างที่ "กำลังโหลดตารางกลุ่ม..." ตลอดไป (บั๊กเดียวกับที่แก้ไปแล้วในหน้ารวมกลุ่ม)
+      setLoadError(true);
+    } finally {
       setLoading(false);
-      return;
     }
-    const data = await res.json();
-    setMembers(data.members ?? []);
-    setEvents(data.events ?? []);
-    setLoading(false);
   }, [params.id, weekStart]);
 
   useEffect(() => {
@@ -70,6 +79,16 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
   }
 
   if (notFound) return <p className="py-10 text-center font-body text-sm text-ink-muted">ไม่พบปฏิทินของกลุ่มนี้</p>;
+  if (loadError)
+    return (
+      <EmptyState
+        size="full"
+        mood="think"
+        title="โหลดปฏิทินกลุ่มไม่สำเร็จ"
+        description="เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะ"
+        action={{ label: 'ลองใหม่', icon: <ArrowRight size={16} />, onClick: load }}
+      />
+    );
 
   return (
     <div>

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { describeLoopConflict, findLoopConflict, parseDays, serializeDays, todayISOForLoops } from '@/lib/recurring';
 import type { RecurringEventInfo } from '@/lib/types';
 import type { RecurringEvent } from '@prisma/client';
+
+/** ใช้แยกกรณี "เช็คแล้วชนจริง" (ต้องตอบ 409 พร้อมข้อความ) ออกจาก error อื่นๆ ที่โยนออกมาจาก transaction */
+class LoopConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -61,34 +69,52 @@ export async function POST(req: NextRequest) {
 
   // Loop คือ "เวลาไม่ว่างประจำ" ที่ระบบเอาไปคิดเวลาว่าง/ภาระงาน
   // ถ้าลงทับกันได้ เวลาว่างที่คำนวณจะน้อยกว่าความจริง -> ต้องกันตั้งแต่ตอนบันทึก
-  const conflict = findLoopConflict(
-    { days: parseDays(days), startTime, endTime, endDate: endDate ? endDate.toISOString().slice(0, 10) : null },
-    (await prisma.recurringEvent.findMany({ where: { userId: session.user.id } })).map((r) => ({
-      id: r.id,
-      title: r.courseCode ? `${r.courseCode} ${r.title}` : r.title,
-      days: parseDays(r.days),
-      startTime: r.startTime,
-      endTime: r.endTime,
-      endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
-    })),
-    todayISOForLoops(),
-  );
-  if (conflict) {
-    return NextResponse.json({ error: describeLoopConflict(conflict) }, { status: 409 });
-  }
+  // ห่อเช็ค+สร้างไว้ในทรานแซกชันระดับ Serializable กันสอง request พร้อมกันเห็นรายการเดิมชุดเดียวกัน
+  // (ยังไม่มีของใหม่ที่อีกฝั่งกำลังจะสร้าง) แล้วผ่านการเช็คพร้อมกันทั้งคู่ - Postgres จะบล็อกฝั่งที่แพ้แล้ว
+  // โยน P2034 (write conflict) ออกมาแทนที่จะปล่อยให้สร้างซ้อนกันจริง
+  let created: RecurringEvent;
+  try {
+    created = await prisma.$transaction(
+      async (tx) => {
+        const conflict = findLoopConflict(
+          { days: parseDays(days), startTime, endTime, endDate: endDate ? endDate.toISOString().slice(0, 10) : null },
+          (await tx.recurringEvent.findMany({ where: { userId: session.user.id } })).map((r) => ({
+            id: r.id,
+            title: r.courseCode ? `${r.courseCode} ${r.title}` : r.title,
+            days: parseDays(r.days),
+            startTime: r.startTime,
+            endTime: r.endTime,
+            endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
+          })),
+          todayISOForLoops(),
+        );
+        if (conflict) throw new LoopConflictError(describeLoopConflict(conflict));
 
-  const created = await prisma.recurringEvent.create({
-    data: {
-      userId: session.user.id,
-      title,
-      courseCode,
-      days,
-      startTime,
-      endTime,
-      categoryId: typeof body?.categoryId === 'string' && body.categoryId ? body.categoryId : null,
-      endDate,
-    },
-  });
+        return tx.recurringEvent.create({
+          data: {
+            userId: session.user.id,
+            title,
+            courseCode,
+            days,
+            startTime,
+            endTime,
+            categoryId: typeof body?.categoryId === 'string' && body.categoryId ? body.categoryId : null,
+            endDate,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch (err) {
+    if (err instanceof LoopConflictError) {
+      return NextResponse.json({ error: err.message }, { status: 409 });
+    }
+    // P2034 = เขียนชนกันจริงภายใต้ Serializable (อีกฝั่งสร้างสำเร็จไปพร้อมกันพอดี) - ให้ผู้ใช้ลองใหม่
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2034') {
+      return NextResponse.json({ error: 'มีคนแก้ตารางพร้อมกันพอดี กรุณาลองใหม่อีกครั้ง' }, { status: 409 });
+    }
+    throw err;
+  }
 
   return NextResponse.json({ recurring: serialize(created) }, { status: 201 });
 }

@@ -15,13 +15,14 @@
  *   - เจ้าของงาน (คนที่ถูกมอบหมายและ approve แล้ว) ติ๊กว่าเสร็จได้ คนอื่นเห็นแต่ติ๊กแทนไม่ได้
  */
 import { useCallback, useEffect, useState, use } from 'react';
-import { CalendarClock, Check, Clock, Plus, Sparkles, Trash2, UserCheck, X } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, Clock, Plus, Sparkles, Trash2, UserCheck, X } from 'lucide-react';
 import clsx from 'clsx';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import Reveal from '@/components/motion/Reveal';
 import EddyMascot from '@/components/EddyMascot';
+import EmptyState from '@/components/EmptyState';
 import WorkloadPanel, { type WorkloadRow } from '@/components/groups/WorkloadPanel';
 import { notifyGroupUpdated } from '@/lib/groupEvents';
 import type { GroupInfo, GroupMemberInfo, GroupTaskInfo } from '@/lib/types';
@@ -65,6 +66,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -86,15 +88,22 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
   const acceptedMembers = (group?.members ?? []).filter((m) => m.status === 'accepted');
 
   const load = useCallback(async () => {
-    const [tRes, gRes] = await Promise.all([fetch(`/api/groups/${params.id}/tasks`), fetch(`/api/groups/${params.id}`)]);
-    if (!tRes.ok) {
-      setNotFound(true);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [tRes, gRes] = await Promise.all([fetch(`/api/groups/${params.id}/tasks`), fetch(`/api/groups/${params.id}`)]);
+      if (!tRes.ok) {
+        setNotFound(true);
+        return;
+      }
+      setTasks((await tRes.json()).tasks ?? []);
+      if (gRes.ok) setGroup((await gRes.json()).group);
+    } catch {
+      // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้นหน้าจะค้างเงียบๆ โดยไม่มีทางรู้ว่าโหลดพัง (บั๊กเดียวกับที่แก้ไปแล้วในหน้ารวมกลุ่ม)
+      setLoadError(true);
+    } finally {
       setLoading(false);
-      return;
     }
-    setTasks((await tRes.json()).tasks ?? []);
-    if (gRes.ok) setGroup((await gRes.json()).group);
-    setLoading(false);
   }, [params.id]);
 
   useEffect(() => {
@@ -279,6 +288,16 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
   }
 
   if (notFound) return <p className="py-10 text-center font-body text-sm text-ink-muted">ไม่พบงานของกลุ่มนี้</p>;
+  if (loadError)
+    return (
+      <EmptyState
+        size="full"
+        mood="think"
+        title="โหลดงานกลุ่มไม่สำเร็จ"
+        description="เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะ"
+        action={{ label: 'ลองใหม่', icon: <ArrowRight size={16} />, onClick: load }}
+      />
+    );
 
   // แยกงานตามสิ่งที่ต้องลงมือทำก่อน (งานที่เสร็จแล้วแยกไปกลุ่มท้ายสุดเสมอ ไม่ปนกับที่ยังต้องตาม)
   const waitingMe = tasks.filter((t) => !t.done && t.assignment?.isMine && t.assignment.status === 'suggested');

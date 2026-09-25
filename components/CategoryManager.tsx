@@ -198,7 +198,11 @@ export default function CategoryManager({
             autoFocus
           />
           <ColorPicker value={newColor} onChange={setNewColor} />
-          {addError && <p className="mt-2 font-body text-xs text-pastel-pink-dark">{addError}</p>}
+          {addError && (
+            <p className="mt-2 rounded-clay-sm bg-pastel-pink/60 px-3 py-1.5 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
+              {addError}
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             <button
               onClick={confirmAdd}

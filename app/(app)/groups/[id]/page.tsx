@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Clock, Crown, ListChecks, LogOut, Sparkles, Trash2, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 import Card from '@/components/Card';
+import EmptyState from '@/components/EmptyState';
 import WorkloadPanel from '@/components/groups/WorkloadPanel';
 import WorkloadTrendChart from '@/components/groups/WorkloadTrendChart';
 import { GROUP_UPDATED_EVENT, notifyGroupUpdated } from '@/lib/groupEvents';
@@ -26,20 +27,28 @@ export default function GroupOverviewPage(props: { params: Promise<{ id: string 
   const [tasks, setTasks] = useState<GroupTaskInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    const [gRes, tRes] = await Promise.all([
-      fetch(`/api/groups/${params.id}`),
-      fetch(`/api/groups/${params.id}/tasks`),
-    ]);
-    if (!gRes.ok) {
-      setNotFound(true);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [gRes, tRes] = await Promise.all([
+        fetch(`/api/groups/${params.id}`),
+        fetch(`/api/groups/${params.id}/tasks`),
+      ]);
+      if (!gRes.ok) {
+        setNotFound(true);
+        return;
+      }
+      setGroup((await gRes.json()).group);
+      if (tRes.ok) setTasks((await tRes.json()).tasks ?? []);
+    } catch {
+      // เน็ตหลุด/เซิร์ฟเวอร์พัง - ไม่งั้น "กำลังโหลด..." จะค้างตลอดไป (บั๊กเดียวกับที่แก้ไปแล้วในหน้ารวมกลุ่ม)
+      setLoadError(true);
+    } finally {
       setLoading(false);
-      return;
     }
-    setGroup((await gRes.json()).group);
-    if (tRes.ok) setTasks((await tRes.json()).tasks ?? []);
-    setLoading(false);
   }, [params.id]);
 
   useEffect(() => {
@@ -75,6 +84,16 @@ export default function GroupOverviewPage(props: { params: Promise<{ id: string 
   }
 
   if (loading) return <p className="py-10 text-center font-body text-sm text-ink-muted">กำลังโหลด...</p>;
+  if (loadError)
+    return (
+      <EmptyState
+        size="full"
+        mood="think"
+        title="โหลดข้อมูลกลุ่มไม่สำเร็จ"
+        description="เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะ"
+        action={{ label: 'ลองใหม่', icon: <ArrowRight size={16} />, onClick: load }}
+      />
+    );
   if (notFound || !group)
     return (
       <div className="py-10 text-center">

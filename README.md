@@ -74,7 +74,7 @@ eddy-app/
 │   ├── api/
 │   │   ├── auth/[...nextauth]/route.ts  # NextAuth route handler
 │   │   ├── auth/register/route.ts       # สมัครสมาชิก (hash รหัสผ่านด้วย bcrypt)
-│   │   ├── chat/route.ts                # API คุยกับ Eddy (mock → ต่อ Gemini ได้)
+│   │   ├── chat/route.ts                # API คุยกับ Eddy (ต่อ Gemini จริงแล้ว, mock เป็นแค่ fallback ตอนเรียกพัง)
 │   │   ├── tasks/[route.ts, [id]/route.ts]     # API งาน (ต่อ PostgreSQL จริงแล้ว)
 │   │   ├── events/[route.ts, [id]/route.ts]    # API กิจกรรม (ต่อ PostgreSQL จริงแล้ว)
 │   │   └── categories/[route.ts, [id]/route.ts] # API หมวดหมู่ (ต่อ PostgreSQL จริงแล้ว)
@@ -117,17 +117,24 @@ eddy-app/
 5. รัน `npm run dev` แล้วไปที่ `/register` เพื่อสมัครสมาชิก จากนั้น login ที่ `/login`
    — ข้อมูล categories/events/tasks ที่เพิ่มจะถูกบันทึกลง PostgreSQL จริงและผูกกับบัญชีของคุณ
 
-## 5. การต่อ Gemini API จริง (ขั้นตอนต่อไป)
+**ถ้าต้องการ login ด้วย Google ด้วย** (นอกจาก email/password) ต้องตั้งค่าเพิ่ม:
+1. สร้าง OAuth Client ที่ [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   (เพิ่ม redirect URI `http://localhost:3000/api/auth/callback/google` ตอน dev)
+2. ใส่ `AUTH_GOOGLE_ID` และ `AUTH_GOOGLE_SECRET` ใน `.env.local`
+   (ไม่ตั้งค่านี้ก็ไม่เป็นไร — ปุ่ม "เข้าสู่ระบบด้วย Google" แค่จะใช้งานไม่ได้ ส่วน login ด้วย email/password ปกติดี)
+
+## 5. การต่อ Gemini API จริง
+
+**โค้ดต่อ Gemini จริงไว้ให้แล้ว** (`lib/gemini.ts`, เรียกใช้จาก `app/api/chat/route.ts` และ endpoint
+AI อื่นๆ ใต้ `app/api/ai/`) เหลือแค่ใส่ API key เอง:
 
 1. สร้าง API key ที่ https://aistudio.google.com/app/apikey
 2. ใส่ค่าใน `.env.local`:
    ```
    GEMINI_API_KEY="ค่าที่ได้มา"
    ```
-3. เปิดไฟล์ `app/api/chat/route.ts` แล้วเปลี่ยนจากการสุ่ม `mockReplies`
-   ไปเรียก `askEddy({ message })` จาก `lib/gemini.ts` (มีตัวอย่าง comment ไว้ในไฟล์แล้ว)
-4. `lib/aiMock.ts` มีฟังก์ชันตรวจเวลาชนกัน/แนะนำหมวดหมู่แบบ rule-based ที่ใช้ในหน้าปฏิทินอยู่
-   — ขั้นต่อไปคือแทนที่ด้วยการเรียก Gemini จริงเพื่อให้วิเคราะห์ตารางได้ฉลาดขึ้น
+3. ถ้าไม่ได้ใส่ key (หรือเรียก Gemini แล้วพัง) ระบบจะ fallback ไปใช้ `lib/aiMock.ts`
+   (ตรรกะแบบ rule-based ล้วน ไม่พึ่ง AI) แทน เพื่อไม่ให้ฟีเจอร์พังทั้งหมดตอน Gemini ใช้งานไม่ได้ชั่วคราว
 
 ---
 
@@ -135,8 +142,8 @@ eddy-app/
 
 - **สีและธีมทั้งหมด** ปรับได้ที่ `tailwind.config.js` (ส่วน `colors.eddy` และ `colors.pastel`)
 - **มาสคอต Eddy** แก้ท่าทาง/สีได้ที่ `components/EddyMascot.tsx`
-- **ระบบ AI ตอนนี้** ยังเป็น rule-based mock (`lib/aiMock.ts`) และ chat reply แบบสุ่ม —
-  รอต่อ Gemini จริงตามหัวข้อ 5
+- **ระบบ AI ตอนนี้** ต่อ Gemini จริงแล้ว (`lib/gemini.ts`) ดูหัวข้อ 5 — `lib/aiMock.ts` เป็นแค่
+  fallback แบบ rule-based ตอนเรียก Gemini ไม่สำเร็จ ไม่ใช่โหมดหลัก
 
 มีคำถามหรือต้องการให้ต่อเติมหน้าไหนเพิ่ม (เช่น หน้า Settings, Profile, ระบบแชร์หมวดหมู่/เพื่อน)
 บอกมาได้เลย — โครงสร้างปัจจุบันรองรับการเพิ่มหน้าใหม่ได้ง่ายมาก

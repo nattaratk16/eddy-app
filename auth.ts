@@ -76,6 +76,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // กัน brute-force เดารหัสผ่านของบัญชีเดียวกันรัวๆ - ไม่มีอะไรจำกัดตรงนี้มาก่อนเลย
         // จำกัดต่อ identifier (ไม่ใช่ต่อ IP) เพราะเป้าหมายคือกันคนเดา "บัญชีนี้" ไม่ใช่กันคนคนเดียวล็อกอินถี่ๆ
         if (!checkRateLimit(`login:${identifier}`, 10, 5 * 60_000)) return null;
+        // เพดานรวมทั้งระบบอีกชั้น - กันคนร้ายสลับ identifier ไปเรื่อยๆ (credential spraying) หลบ limit ต่อ
+        // identifier ด้านบนไปได้ เพราะแต่ละ identifier นับแยกกันเอง
+        if (!checkRateLimit('login:global', 200, 60_000)) return null;
 
         // มี @ ถือว่าพิมพ์อีเมลมา ไม่งั้นถือว่าเป็น username (username validate ไว้แล้วว่าห้ามมี @)
         const user = await prisma.user.findUnique({

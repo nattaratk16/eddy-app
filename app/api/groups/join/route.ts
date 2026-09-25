@@ -11,11 +11,17 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { serializeGroup } from '@/lib/groups';
 import { isValidJoinCode, normalizeJoinCode } from '@/lib/joinCode';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;
+
+  // กันเดารหัสกลุ่มแบบ brute-force - เดิมไม่มีอะไรจำกัดเลยสักจุด (joinCode สร้างด้วย Math.random() ไม่ใช่ CSPRNG)
+  if (!checkRateLimit(`join:${getClientIp(req)}`, 10, 5 * 60_000)) {
+    return NextResponse.json({ error: 'ลองบ่อยเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง' }, { status: 429 });
+  }
 
   const body = await req.json().catch(() => null);
   const code = normalizeJoinCode(typeof body?.code === 'string' ? body.code : '');
