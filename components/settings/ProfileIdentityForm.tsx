@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Check, AtSign } from 'lucide-react';
@@ -73,8 +74,13 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
         <h2 className="font-display text-h3 text-ink">อวาตาร์</h2>
         <div className="mt-3 flex items-center gap-4">
           {hasPhoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.image} alt={name} className="h-20 w-20 flex-shrink-0 rounded-full object-cover shadow-clay-sm" />
+            <Image
+              src={p.image!}
+              alt={name}
+              width={80}
+              height={80}
+              className="h-20 w-20 flex-shrink-0 rounded-full object-cover shadow-clay-sm"
+            />
           ) : (
             <div
               className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ${color.chipClass}`}

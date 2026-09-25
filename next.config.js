@@ -15,6 +15,28 @@ const nextConfig = {
    * ส่วนการ build จริงตอน deploy ไม่ต้องใส่ - ปล่อยให้ลง .next ตามปกติ
    */
   ...(process.env.BUILD_DIST_DIR ? { distDir: process.env.BUILD_DIST_DIR } : {}),
+
+  // รูปโปรไฟล์จาก Google OAuth (AUD-23) - ต้อง allowlist โดเมนก่อนถึงจะใช้ next/image ได้
+  // (เดิมใช้ <img> ธรรมดาเพราะยังไม่ได้ config ตรงนี้ ทำให้ไม่ได้ optimize/lazy-load เลย)
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: '*.googleusercontent.com' }],
+  },
+
+  // Security header พื้นฐาน (AUD-05) - ไม่มีอะไรตั้งไว้เลยมาก่อน ก่อนหน้านี้ปล่อยให้ Next.js default ทั้งหมด
+  // ยังไม่ใส่ CSP เต็มรูปแบบ เพราะต้อง allowlist โดเมนของ Google OAuth/Gemini ให้ครบก่อน ไม่งั้นจะพังฟีเจอร์อื่น
+  // (ทำทีหลังตอนใกล้ production เต็มรูปแบบ) พวกนี้ปลอดภัยที่จะใส่ตรงๆ ได้เลยไม่กระทบอะไร
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        ],
+      },
+    ];
+  },
 };
 
 /*

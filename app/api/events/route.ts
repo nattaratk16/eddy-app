@@ -19,12 +19,33 @@ function serialize(ev: PrismaEvent): CalendarEvent {
   };
 }
 
-export async function GET() {
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// GET /api/events?start=YYYY-MM-DD&end=YYYY-MM-DD (ทั้งคู่ไม่บังคับ)
+// ไม่ใส่ = โหลดทั้งหมดเหมือนเดิม (พฤติกรรมเดิมของหน้าปฏิทินที่โหลดครั้งเดียวแล้วสลับสัปดาห์/เดือน
+// ฝั่ง client ล้วนไม่ยิง fetch ซ้ำ) ใส่มา = กรองช่วงวันที่ให้ ไว้ให้ผู้เรียกที่ต้องการช่วงจำกัด
+// (เช่น export, sync ภายนอก) ใช้ได้โดยไม่ต้องโหลดประวัติ event ทั้งหมดของผู้ใช้ทุกครั้ง
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const startParam = req.nextUrl.searchParams.get('start');
+  const endParam = req.nextUrl.searchParams.get('end');
+  if ((startParam && !DATE_RE.test(startParam)) || (endParam && !DATE_RE.test(endParam))) {
+    return NextResponse.json({ error: 'รูปแบบวันที่ไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD)' }, { status: 400 });
+  }
+
+  // รวม gte/lte ไว้ใน object เดียวกันเสมอ (ไม่แยก spread คนละก้อน) ไม่งั้นถ้าใส่มาทั้งคู่
+  // ก้อนหลังจะเขียนทับ key "date" ของก้อนแรกทิ้งไปเฉยๆ เหลือกรองแค่ขอบเขตเดียว
+  const dateFilter: { gte?: Date; lte?: Date } = {};
+  if (startParam) dateFilter.gte = new Date(`${startParam}T00:00:00.000Z`);
+  if (endParam) dateFilter.lte = new Date(`${endParam}T00:00:00.000Z`);
+
   const events = await prisma.event.findMany({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
+    },
     orderBy: { date: 'asc' },
   });
   return NextResponse.json({ events: events.map(serialize) });

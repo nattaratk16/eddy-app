@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Clock, Crown, ListChecks, LogOut, Sparkles, Trash2, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
@@ -271,8 +272,7 @@ function MemberRow({
   return (
     <div className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
       {m.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={m.image} alt={m.name} className="h-8 w-8 flex-shrink-0 rounded-full object-cover" />
+        <Image src={m.image} alt={m.name} width={32} height={32} className="h-8 w-8 flex-shrink-0 rounded-full object-cover" />
       ) : (
         <span
           className={clsx(

@@ -12,6 +12,7 @@
  */
 import { ReactNode, useCallback, useEffect, useRef, useState, use } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, Settings, UserPlus, Users } from 'lucide-react';
 import clsx from 'clsx';
@@ -204,12 +205,13 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
               <div className="flex -space-x-2">
                 {accepted.slice(0, 4).map((m) =>
                   m.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       key={m.id}
                       src={m.image}
                       alt={m.name}
                       title={m.name}
+                      width={32}
+                      height={32}
                       className="h-8 w-8 rounded-full border-2 border-surface object-cover"
                     />
                   ) : (

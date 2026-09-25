@@ -10,6 +10,7 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   Check,
@@ -432,11 +433,12 @@ function GroupCard({ group }: { group: GroupInfo }) {
             <div className="flex -space-x-2">
               {avatars.map((a, i) =>
                 a.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     key={i}
                     src={a.image}
                     alt={a.name}
+                    width={28}
+                    height={28}
                     className="h-7 w-7 rounded-full border-2 border-surface object-cover"
                   />
                 ) : (

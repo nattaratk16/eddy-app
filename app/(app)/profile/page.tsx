@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Pencil, Settings, ListChecks, Users, Mail, Clock, Tags, Timer, Coffee, type LucideIcon } from 'lucide-react';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -100,10 +101,11 @@ export default async function ProfilePage() {
 
             <div className="-mt-14 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:gap-4">
               {user.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={user.image}
                   alt={userName}
+                  width={96}
+                  height={96}
                   className="h-24 w-24 flex-shrink-0 rounded-full object-cover shadow-clay-sm ring-4 ring-surface"
                 />
               ) : (

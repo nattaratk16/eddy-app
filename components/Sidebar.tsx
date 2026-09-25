@@ -85,8 +85,13 @@ export default function Sidebar() {
           className="transition-transform duration-200 hover:scale-105 active:scale-95"
         >
           {user?.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.image} alt={displayName} className="h-9 w-9 rounded-full object-cover ring-2 ring-eddy-100" />
+            <Image
+              src={user.image}
+              alt={displayName}
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full object-cover ring-2 ring-eddy-100"
+            />
           ) : (
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-inverse font-display text-sm font-bold text-white">
               {initial}
