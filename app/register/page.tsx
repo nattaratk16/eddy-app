@@ -10,6 +10,7 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import PrivacyPolicyModal from '@/components/PrivacyPolicyModal';
 import GoogleIcon from '@/components/icons/GoogleIcon';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 
 // ต้องตรงกับ USERNAME_RE ใน lib/validation.ts (regex เดียวกันฝั่ง client แค่เอาไว้ขึ้น error เร็วๆ
 // ฝั่ง server ยังเป็นคนตัดสินจริงเสมอ)
@@ -18,6 +19,7 @@ const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -164,6 +166,8 @@ export default function RegisterPage() {
                 minLength={8}
                 pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
                 title="อย่างน้อย 8 ตัวอักษร และมีทั้งตัวอักษรและตัวเลขอย่างน้อยอย่างละ 1 ตัว"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 rightSlot={
                   <button
                     type="button"
@@ -176,6 +180,7 @@ export default function RegisterPage() {
                 }
                 required
               />
+              <PasswordStrengthMeter password={password} />
               <p className="mt-1 font-body text-xs text-ink-muted">อย่างน้อย 8 ตัว ต้องมีทั้งตัวอักษรและตัวเลข</p>
             </div>
 

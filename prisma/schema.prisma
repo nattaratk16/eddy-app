@@ -29,7 +29,7 @@ model User {
   title        String? // บทบาท/ตำแหน่ง เช่น "นักศึกษาวิศวกรรม", "นักการตลาด", "ครู"
   organization String? // สถานศึกษา/ที่ทำงาน
   status       String? // "student" | "working" | "other" (ช่องเก่า - ไม่ได้ใช้แล้ว)
-  role         String? // บทบาทจาก onboarding: "school" | "university" | "working" - ใช้ปรับ category/ภาษา/บริบท AI
+  role         String? // บทบาทจาก onboarding: "university" | "working" - ใช้ปรับ category/ภาษา/บริบท AI (ค่าเก่า "school" ที่อาจค้างอยู่ในข้อมูลเดิมถือเป็น "ยังไม่เลือกบทบาท" เหมือน null)
   onboardedAt  DateTime? // เวลาที่ทำ onboarding เสร็จ/ข้าม (null = ยังไม่เคยทำ -> ให้เด้งไปหน้า onboarding)
   avatarColor  String? // สีพื้นอวาตาร์ (คีย์จากพาเลตพาสเทล)
   avatarEmoji  String? // อีโมจิใช้เป็นอวาตาร์ (ถ้าไม่ได้ใส่รูป)

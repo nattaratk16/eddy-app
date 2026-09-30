@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { ROLE_DEFAULT_CATEGORIES, isUserRole } from '@/lib/roles';
 
-// POST /api/onboarding  { role?: "school"|"university"|"working", skip?: boolean }
+// POST /api/onboarding  { role?: "university"|"working", skip?: boolean }
 // - เลือกบทบาท: บันทึก role + สร้าง category พื้นฐานตามวัย (ถ้ายังไม่มี) + mark onboarded
 // - ข้าม: mark onboarded เฉยๆ (ไปตั้งค่าทีหลังได้)
 export async function POST(req: NextRequest) {
