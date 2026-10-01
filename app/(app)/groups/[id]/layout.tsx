@@ -27,7 +27,7 @@ import type { GroupInfo } from '@/lib/types';
 const TABS = [
   { key: '', label: 'ภาพรวม', icon: LayoutGrid },
   { key: 'calendar', label: 'ปฏิทินกลุ่ม', icon: CalendarDays },
-  { key: 'tasks', label: 'งานกลุ่ม', icon: ListChecks },
+  { key: 'tasks', label: 'รายละเอียดงาน', icon: ListChecks },
 ] as const;
 
 export default function GroupLayout(props: { children: ReactNode; params: Promise<{ id: string }> }) {

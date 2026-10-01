@@ -8,14 +8,14 @@
  *   - แยกงานเป็น 4 กลุ่มตามสถานะ (รอคุณยืนยัน / ยังไม่ได้มอบหมาย / มอบหมายแล้ว / เสร็จแล้ว)
  *     เพราะสิ่งที่ต้องลงมือทำจริงๆ คือสองกลุ่มแรก
  *   - ฟอร์มเพิ่มงานย้ายไปอยู่ในปุ่ม "เพิ่มงาน" (เดิมกางค้างไว้กินพื้นที่ตลอด)
- *   - ภาระงานสมาชิกอยู่คอลัมน์ขวา เห็นได้ตลอดโดยไม่ต้องกดจัดตารางก่อน
+ *   - ตัดกราฟภาระงานสมาชิกออกจากแท็บนี้แล้ว (ซ้ำกับที่มีอยู่แล้วในแท็บภาพรวมของกลุ่ม)
  *   - เพิ่มงานตอนนี้แตกเป็นขั้นตอนย่อยด้วย AI ได้ ก่อนยืนยันเลือกได้ว่าจะมอบหมายเอง
  *     หรือปล่อยให้เอ็ดดี้จัดตาราง (ปุ่ม "ให้เอ็ดดี้จัดตาราง" เดิม ไม่แตะของที่มอบหมายเองแล้ว)
  *   - ตอนยืนยันงาน เลือก "เวลาอื่น" แทนเวลาที่เอ็ดดี้เสนอได้ ถ้าเวลานั้นไม่ชนปฏิทินตัวเอง
  *   - เจ้าของงาน (คนที่ถูกมอบหมายและ approve แล้ว) ติ๊กว่าเสร็จได้ คนอื่นเห็นแต่ติ๊กแทนไม่ได้
  */
 import { useCallback, useEffect, useState, use } from 'react';
-import { ArrowRight, CalendarClock, Check, Clock, Plus, Sparkles, Trash2, UserCheck, X } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, Clock, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import clsx from 'clsx';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -23,8 +23,8 @@ import Modal from '@/components/Modal';
 import Reveal from '@/components/motion/Reveal';
 import EddyMascot from '@/components/EddyMascot';
 import EmptyState from '@/components/EmptyState';
-import WorkloadPanel, { type WorkloadRow } from '@/components/groups/WorkloadPanel';
 import { notifyGroupUpdated } from '@/lib/groupEvents';
+import { PASTEL_COLORS } from '@/lib/colors';
 import type { GroupInfo, GroupMemberInfo, GroupTaskInfo } from '@/lib/types';
 
 // คุมความสูงทุกช่องให้เท่ากัน (h-11) เพื่อให้ input/select/date อยู่ในแนวเดียวกันเป๊ะ
@@ -81,9 +81,6 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
 
   const [distributing, setDistributing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  // ภาระงานหลังกระจายเสร็จ (ถ้ายังไม่กด = ให้ WorkloadPanel โหลดค่าปัจจุบันเอง)
-  const [distributedWorkload, setDistributedWorkload] = useState<WorkloadRow[] | undefined>();
-  const [workloadKey, setWorkloadKey] = useState(0);
 
   const acceptedMembers = (group?.members ?? []).filter((m) => m.status === 'accepted');
 
@@ -219,9 +216,6 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
       load();
-      // ยืนยันแล้วงานกลายเป็น event จริง -> ภาระงานเปลี่ยน ให้โหลดค่าใหม่แทนค่าจากตอนกระจาย
-      setDistributedWorkload(undefined);
-      setWorkloadKey((k) => k + 1);
     } else {
       alert(data.error ?? 'ทำรายการไม่สำเร็จ');
     }
@@ -236,8 +230,6 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
       load();
-      setDistributedWorkload(undefined);
-      setWorkloadKey((k) => k + 1);
     } else {
       alert(data.error ?? 'มอบหมายไม่สำเร็จ');
     }
@@ -276,7 +268,6 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     const data = await res.json();
     setDistributing(false);
     if (!res.ok) return setResult(data.error ?? 'จัดตารางไม่สำเร็จ');
-    setDistributedWorkload(data.workload ?? undefined);
     if (data.assigned === 0 && data.unassigned === 0) setResult(data.message ?? 'ไม่มีงานที่ต้องจัด');
     else
       setResult(
@@ -350,11 +341,6 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
             <p className="font-body text-sm text-ink">{result}</p>
           </div>
         )}
-
-        {/* ภาระงานสมาชิก - ดูก่อนกดจัดตาราง แล้วดูอีกทีว่าหลังจัดแล้วเปลี่ยนไปยังไง */}
-        <Card className="mt-4">
-          <WorkloadPanel groupId={params.id} rows={distributedWorkload} refreshKey={workloadKey} />
-        </Card>
 
         {/* รายการงานแยกตามสถานะ */}
         {loading ? (
@@ -579,6 +565,12 @@ function TaskRow({
   const overrideValid =
     !!overrideDate && !!overrideStart && !!overrideEnd && overrideStart < overrideEnd;
 
+  // สีประจำตัวผู้ถูกมอบหมาย (อิงตำแหน่งในลิสต์สมาชิก - เหมือนกับที่ปฏิทินกลุ่มให้สีแต่ละคนไม่ซ้ำกัน)
+  // ไม่มีสีผูกกับ assignment โดยตรง (schema เก็บแค่ assignedToUserId) เลยคำนวณจากตำแหน่งแทน
+  const assigneeColorIdx = a ? members.findIndex((m) => m.userId === a.assignedToUserId) : -1;
+  const assigneeColor = PASTEL_COLORS[assigneeColorIdx >= 0 ? assigneeColorIdx % PASTEL_COLORS.length : 0];
+  const assigneeName = a?.isMine ? 'คุณ' : a?.assignedToName ?? '';
+
   return (
     <Card className={clsx('flex items-start gap-3 !p-4', task.done && 'bg-eddy-50/40')}>
       <div className="min-w-0 flex-1">
@@ -613,9 +605,19 @@ function TaskRow({
 
         {a && a.status !== 'rejected' && (
           <div className="mt-2 flex flex-wrap items-center gap-2 rounded-clay-sm bg-eddy-50 px-3 py-2">
-            <UserCheck size={14} className="flex-shrink-0 text-eddy-600" />
-            <span className="font-body text-xs text-ink">
-              {a.isMine ? 'คุณ' : a.assignedToName} · {a.date} {a.startTime}-{a.endTime} น.
+            {/* อวาตาร์ตัวอักษรแรก + ชื่อตัวหนาสีเด่น แยกออกจากวันเวลา (เทาเล็ก) ชัดเจน
+                กันมองไม่ออกว่างานนี้เป็นของใครตอนไล่ดูหลายๆ การ์ดรวด */}
+            <span
+              className={clsx(
+                'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full font-display text-[11px] font-bold',
+                assigneeColor.chipClass,
+              )}
+            >
+              {assigneeName.charAt(0).toUpperCase()}
+            </span>
+            <span className="font-display text-sm font-bold text-ink">{assigneeName}</span>
+            <span className="flex items-center gap-1 font-body text-xs text-ink-muted">
+              <Clock size={11} /> {a.date} {a.startTime}-{a.endTime} น.
             </span>
             <span className={clsx('rounded-full px-2 py-0.5 font-body text-[10px] font-semibold', statusChip[a.status])}>
               {statusText[a.status]}
