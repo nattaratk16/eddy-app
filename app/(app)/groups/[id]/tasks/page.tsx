@@ -571,34 +571,44 @@ function TaskRow({
   const assigneeColor = PASTEL_COLORS[assigneeColorIdx >= 0 ? assigneeColorIdx % PASTEL_COLORS.length : 0];
   const assigneeName = a?.isMine ? 'คุณ' : a?.assignedToName ?? '';
 
+  // แถบสีซ้ายบอกสถานะงานแบบกวาดตาเดียวรู้ ไม่ต้องไล่อ่านป้ายสถานะทีละงาน
+  const accentClass = task.done
+    ? 'bg-pastel-mint-dark'
+    : a?.status === 'approved'
+      ? 'bg-eddy-400'
+      : a?.status === 'suggested'
+        ? 'bg-pastel-yellow-dark'
+        : 'bg-eddy-100';
+
   return (
-    <Card className={clsx('flex items-start gap-3 !p-4', task.done && 'bg-eddy-50/40')}>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+    <Card className={clsx('flex items-stretch gap-0 overflow-hidden !p-0 transition-shadow hover:shadow-clay-pop', task.done && 'opacity-70')}>
+      <div className={clsx('w-1.5 flex-shrink-0', accentClass)} />
+      <div className="min-w-0 flex-1 p-4">
+        <div className="flex items-start gap-2">
           {/* ติ๊กเสร็จ - เฉพาะเจ้าของงานที่ลงปฏิทินแล้ว คนอื่นเห็นสถานะได้อย่างเดียว */}
           {a?.isMine && a.status === 'approved' && (
             <button
               onClick={() => onToggleDone(task.id, !task.done)}
               aria-label={task.done ? 'ยังไม่เสร็จ' : 'ติ๊กว่าเสร็จแล้ว'}
               className={clsx(
-                'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                'mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors',
                 task.done ? 'border-eddy-500 bg-eddy-500 text-white' : 'border-eddy-200 text-transparent hover:border-eddy-400',
               )}
             >
               <Check size={12} />
             </button>
           )}
-          <p className={clsx('font-body text-sm font-semibold text-ink', task.done && 'text-ink-muted line-through')}>
+          <p className={clsx('font-display text-base font-bold text-ink', task.done && 'text-ink-muted line-through')}>
             {task.title}
           </p>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs text-ink-muted">
-          <span className="flex items-center gap-1">
-            <Clock size={12} /> {task.estimatedMinutes} นาที
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 font-body text-xs text-ink-muted">
+          <span className="flex items-center gap-1 rounded-full bg-eddy-50 px-2 py-1">
+            <Clock size={12} className="text-eddy-500" /> {task.estimatedMinutes} นาที
           </span>
           {task.dueDate && (
-            <span className="flex items-center gap-1">
-              <CalendarClock size={12} /> ส่ง {task.dueDate}
+            <span className="flex items-center gap-1 rounded-full bg-eddy-50 px-2 py-1">
+              <CalendarClock size={12} className="text-eddy-500" /> ส่ง {task.dueDate}
             </span>
           )}
         </div>
@@ -718,7 +728,7 @@ function TaskRow({
       <button
         onClick={() => onRemove(task.id)}
         aria-label={`ลบงาน ${task.title}`}
-        className="flex-shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-pastel-pink/40 hover:text-chip-ink"
+        className="mr-3 mt-3 flex h-8 w-8 flex-shrink-0 items-center justify-center self-start rounded-full text-ink-muted transition-colors hover:bg-pastel-pink/60 hover:text-chip-ink"
       >
         <Trash2 size={15} />
       </button>
