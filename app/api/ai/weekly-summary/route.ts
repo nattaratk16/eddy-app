@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, bio: true, dayStart: true, dayEnd: true, timezone: true },
+    select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true },
   });
   const userProfile = user ? buildUserProfileContext(user) : undefined;
 

@@ -168,17 +168,18 @@ const ANALYZE_SCHEMA = {
   required: ['hasConflict', 'densityLevel', 'message'],
 };
 
-// สร้างบริบทเกี่ยวกับตัวผู้ใช้ (นิสัย + เวลาที่สะดวก) ให้ AI เอาไปปรับคำแนะนำให้เข้ากับแต่ละคน
+// สร้างบริบทเกี่ยวกับตัวผู้ใช้ (ทักษะ + เวลาที่สะดวก) ให้ AI เอาไปปรับคำแนะนำให้เข้ากับแต่ละคน
+// เดิมใช้ "เกี่ยวกับฉัน" (bio) ด้วย แต่ผู้ใช้ตัดฟีเจอร์นี้ออกจากหน้าโปรไฟล์แล้ว เปลี่ยนมาใช้ทักษะแทน
 export function buildUserProfileContext(user: {
   role?: string | null;
-  bio?: string | null;
+  skills?: string[] | null;
   dayStart?: string | null;
   dayEnd?: string | null;
   timezone?: string | null;
 }): string {
   return [
     isUserRole(user.role) ? ROLE_AI_CONTEXT[user.role] : '',
-    user.bio ? `นิสัย/ตัวตนของผู้ใช้: ${user.bio}` : '',
+    user.skills && user.skills.length > 0 ? `ทักษะ/ความถนัดของผู้ใช้: ${user.skills.join(', ')}` : '',
     user.dayStart || user.dayEnd
       ? `ช่วงเวลาที่ผู้ใช้สะดวกทำงาน: ${user.dayStart || '—'}-${user.dayEnd || '—'} น. (${user.timezone || 'Asia/Bangkok'})`
       : '',
@@ -452,8 +453,7 @@ interface DistributeInput {
     committedMinutes: number;
     /** Workload Score = committed / free (ยิ่งต่ำยิ่งมีที่ว่าง) - คำนวณ local ใน lib/workload.ts */
     workloadScore: number;
-    bio?: string | null;
-    /** ทักษะ/ความถนัดจากโปรไฟล์ - ใช้จับคู่กับเนื้องานย่อยโดยตรง (คนละเรื่องกับ bio ที่เป็นข้อความอิสระ) */
+    /** ทักษะ/ความถนัดจากโปรไฟล์ - ใช้จับคู่กับเนื้องานย่อยโดยตรง */
     skills?: string[] | null;
   }[];
 }
@@ -470,7 +470,7 @@ export async function distributeGroupTasks(
       const skillsText = m.skills && m.skills.length > 0 ? ` | ทักษะ: ${m.skills.join(', ')}` : '';
       return (
         `- id=${m.id} | ${m.name} | ว่าง ~${m.freeMinutes} นาที | งานที่มีอยู่แล้ว ~${m.committedMinutes} นาที` +
-        ` | ภาระงาน(workload score) ${fmtScore(m.workloadScore)}${skillsText}${m.bio ? ` | นิสัย: ${m.bio}` : ''}`
+        ` | ภาระงาน(workload score) ${fmtScore(m.workloadScore)}${skillsText}`
       );
     })
     .join('\n');

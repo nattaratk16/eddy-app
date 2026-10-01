@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
     // เทียบกับต้นวันนี้ (เที่ยงคืน) ไม่ใช่เวลาปัจจุบันเป๊ะๆ ไม่งั้นกิจกรรมที่เหลือของวันนี้จะถูกกรองออกไปหลังเที่ยงคืนผ่านมาแล้ว
     prisma.event.findMany({ where: { userId, date: { gte: todayStart } }, orderBy: { date: 'asc' }, take: 5 }),
     prisma.category.findMany({ where: { userId } }),
-    // โปรไฟล์ผู้ใช้ - เอานิสัย/ตัวตน + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true, bio: true, dayStart: true, dayEnd: true, timezone: true } }),
+    // โปรไฟล์ผู้ใช้ - เอาทักษะ + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true, skills: true, dayStart: true, dayEnd: true, timezone: true } }),
   ]);
   const categories: CalendarCategory[] = categoriesRaw.map((c) => ({
     id: c.id,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   const profileLines = [
     user?.name ? `ชื่อผู้ใช้: ${user.name}` : '',
     user && isUserRole(user.role) ? ROLE_AI_CONTEXT[user.role] : '',
-    user?.bio ? `นิสัย/ตัวตนของผู้ใช้: ${user.bio}` : '',
+    user?.skills && user.skills.length > 0 ? `ทักษะ/ความถนัดของผู้ใช้: ${user.skills.join(', ')}` : '',
     user?.dayStart || user?.dayEnd
       ? `ช่วงเวลาที่ผู้ใช้สะดวกทำงาน: ${user?.dayStart || '—'}-${user?.dayEnd || '—'} น. (${user?.timezone || 'Asia/Bangkok'})`
       : '',

@@ -12,7 +12,6 @@ import { PASTEL_COLORS, getColorOption } from '@/lib/colors';
 import type { PastelColor } from '@/lib/types';
 
 const EMOJI_PRESETS = ['😀', '😎', '🧑‍💻', '📚', '☕', '🌙', '🚀', '🎯', '🐱', '🌸', '⚡', '🎧'];
-const BIO_MAX = 500; // ต้องตรงกับ BIO_MAX ใน app/api/profile/route.ts
 
 interface ProfileIdentityFormProps {
   email: string;
@@ -21,7 +20,6 @@ interface ProfileIdentityFormProps {
   initialUsername: string;
   initialTitle: string;
   initialOrganization: string;
-  initialBio: string;
   initialAvatarColor: string;
   initialAvatarEmoji: string;
 }
@@ -37,7 +35,6 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
   const [username, setUsername] = useState(p.initialUsername);
   const [title, setTitle] = useState(p.initialTitle);
   const [organization, setOrganization] = useState(p.initialOrganization);
-  const [bio, setBio] = useState(p.initialBio);
   const [avatarColor, setAvatarColor] = useState<PastelColor>((p.initialAvatarColor as PastelColor) || 'blue');
   const [avatarEmoji, setAvatarEmoji] = useState(p.initialAvatarEmoji);
 
@@ -53,7 +50,7 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, username, title, organization, bio, avatarColor, avatarEmoji }),
+      body: JSON.stringify({ name, username, title, organization, avatarColor, avatarEmoji }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -179,24 +176,6 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
             />
           </div>
         </div>
-      </div>
-
-      {/* ---------- เกี่ยวกับฉัน ---------- */}
-      <div className="border-t border-eddy-100 pt-5">
-        <h2 className="font-display text-h3 text-ink">เกี่ยวกับฉัน</h2>
-        <p className="mt-0.5 font-body text-caption text-ink-muted">
-          เล่าสไตล์การทำงานของคุณสั้นๆ — เพื่อนในกลุ่มเห็น และเอ็ดดี้ใช้เป็นบริบทตอนช่วยวางแผนงานให้
-        </p>
-        <textarea
-          id="pf-bio"
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          rows={4}
-          maxLength={BIO_MAX}
-          placeholder="เช่น ชอบทำงานตอนเช้า สมาธิสั้นตอนบ่าย ถนัดงานออกแบบมากกว่างานเอกสาร"
-          className={`${inputClass} mt-3 resize-y`}
-        />
-        <p className="mt-1.5 text-right font-body text-xs text-ink-muted">{bio.length}/{BIO_MAX}</p>
       </div>
 
       {error && <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>}

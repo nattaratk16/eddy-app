@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { PASTEL_COLORS } from '@/lib/colors';
 import { USERNAME_RE } from '@/lib/validation';
 
-const BIO_MAX = 500; // "เกี่ยวกับฉัน/นิสัย" ยาวได้ขึ้น เพราะใช้ป้อนให้ AI วิเคราะห์
 const VALID_COLORS = new Set(PASTEL_COLORS.map((c) => c.value));
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 // ช่วงที่ยอมรับได้ - ไม่ผูกกับตัวเลือกสำเร็จรูปอีกต่อไป ผู้ใช้พิมพ์เองได้ในกรอบนี้
@@ -31,12 +30,6 @@ export async function PATCH(req: NextRequest) {
     const v = body.name.trim();
     if (v.length > 80) return NextResponse.json({ error: 'ชื่อยาวเกินไป' }, { status: 400 });
     data.name = v || null;
-  }
-
-  if (typeof body.bio === 'string') {
-    const v = body.bio.trim();
-    if (v.length > BIO_MAX) return NextResponse.json({ error: `เกี่ยวกับฉันยาวเกินไป (สูงสุด ${BIO_MAX})` }, { status: 400 });
-    data.bio = v || null;
   }
 
   // บทบาท/ตำแหน่ง และ สถานศึกษา/ที่ทำงาน - มีในฐานข้อมูลมาตั้งแต่แรก เพิ่งมีหน้าให้แก้ตอนทำหน้าตั้งค่า

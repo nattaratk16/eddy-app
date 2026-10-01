@@ -31,7 +31,7 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     where: { groupId: params.id, status: 'accepted' },
     include: {
       user: {
-        select: { id: true, name: true, email: true, bio: true, skills: true, dayStart: true, dayEnd: true, bufferMinutes: true },
+        select: { id: true, name: true, email: true, skills: true, dayStart: true, dayEnd: true, bufferMinutes: true },
       },
     },
   });
@@ -78,7 +78,6 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
           freeMinutes: w.freeMinutes,
           committedMinutes: w.committedMinutes,
           workloadScore: w.score,
-          bio: m.user.bio,
           skills: m.user.skills,
         };
       }),

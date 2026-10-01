@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Pencil, Settings, ListChecks, Users, Mail, Clock, Tags, Timer, Coffee, type LucideIcon } from 'lucide-react';
@@ -16,10 +17,24 @@ const monthNames = [
 
 function StatChip({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
   return (
-    <span className="flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1.5 font-body text-xs font-medium text-ink-soft shadow-clay-sm">
-      <Icon size={13} className="text-eddy-600" />
+    <span className="flex items-center gap-2 rounded-full bg-surface/80 py-1.5 pl-1.5 pr-3.5 font-body text-xs font-medium text-ink-soft shadow-clay-sm">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-eddy-500 to-accent-500 text-white">
+        <Icon size={12} />
+      </span>
       <span className="font-display font-bold text-ink">{value}</span> {label}
     </span>
+  );
+}
+
+/** หัวข้อการ์ดพร้อมไอคอน badge สีทึบ - ใช้ซ้ำทุกการ์ดในหน้านี้ให้เป็นชุดเดียวกัน */
+function SectionHeading({ icon: Icon, tone, children }: { icon: LucideIcon; tone: string; children: ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-2 font-display text-h3 text-ink">
+      <span className={`flex h-7 w-7 items-center justify-center rounded-full ${tone}`}>
+        <Icon size={15} />
+      </span>
+      {children}
+    </h2>
   );
 }
 
@@ -27,7 +42,9 @@ function StatChip({ icon: Icon, label, value }: { icon: LucideIcon; label: strin
 function InfoRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value?: string | null }) {
   return (
     <div className="flex items-start gap-3 py-2.5">
-      <Icon size={16} className="mt-0.5 flex-shrink-0 text-ink-muted" />
+      <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-eddy-50 text-eddy-600">
+        <Icon size={15} />
+      </span>
       <div className="min-w-0 flex-1">
         <p className="font-body text-xs text-ink-muted">{label}</p>
         <p className={`font-body text-sm ${value ? 'text-ink' : 'text-ink-muted/70'}`}>{value || 'ยังไม่ได้ตั้งค่า'}</p>
@@ -46,7 +63,7 @@ export default async function ProfilePage() {
       where: { id: userId },
       select: {
         name: true, email: true, image: true, createdAt: true,
-        username: true, title: true, organization: true, bio: true,
+        username: true, title: true, organization: true,
         avatarColor: true, avatarEmoji: true, timezone: true, dayStart: true, dayEnd: true,
         skills: true, maxFocusMinutes: true, bufferMinutes: true,
       },
@@ -70,51 +87,51 @@ export default async function ProfilePage() {
       {/* หน้านี้ "ดูอย่างเดียว" - การแก้ไขทั้งหมดอยู่ในหน้าตั้งค่า (/settings) */}
       <header className="flex flex-wrap items-center justify-between gap-3 pt-8">
         <h1 className="font-display text-h1 text-ink">โปรไฟล์</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/settings/profile"
-            className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-5 py-2.5 font-display text-sm font-semibold text-white shadow-clay-sm transition-all duration-150 hover:brightness-110 active:scale-[0.97]"
-          >
-            <Pencil size={15} /> แก้ไขโปรไฟล์
-          </Link>
-          <Link
-            href="/settings"
-            aria-label="ตั้งค่า"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-eddy-200 bg-surface text-ink-soft transition-colors hover:border-eddy-300 hover:bg-eddy-50 hover:text-eddy-700"
-          >
-            <Settings size={17} />
-          </Link>
-        </div>
+        <Link
+          href="/settings/profile"
+          className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-5 py-2.5 font-display text-sm font-semibold text-white shadow-clay-sm transition-all duration-150 hover:brightness-110 active:scale-[0.97]"
+        >
+          <Pencil size={15} /> แก้ไขโปรไฟล์
+        </Link>
       </header>
 
       <section className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
         {/* ---------- การ์ดตัวตน ---------- */}
         <Reveal>
           <Card className="overflow-hidden">
-            {/* แบนเนอร์ยื่นชนขอบการ์ด (ยกเลิก padding p-6 ของ Card) */}
+            {/* แบนเนอร์ยื่นชนขอบการ์ด (ยกเลิก padding p-6 ของ Card) - เพิ่มแสงเรืองอีกจุดให้ลึกขึ้น */}
             <div className="-mx-6 -mt-6 h-28 overflow-hidden bg-gradient-to-r from-eddy-500 via-accent-500 to-pastel-lilac-dark sm:h-32">
               <div className="relative h-full w-full">
                 <div className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
                 <div className="pointer-events-none absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+                <div className="pointer-events-none absolute right-1/3 top-0 h-20 w-20 rounded-full bg-white/10 blur-xl" />
               </div>
             </div>
 
-            <div className="-mt-14 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:gap-4">
-              {user.image ? (
-                <Image
-                  src={user.image}
-                  alt={userName}
-                  width={96}
-                  height={96}
-                  className="h-24 w-24 flex-shrink-0 rounded-full object-cover shadow-clay-sm ring-4 ring-surface"
-                />
-              ) : (
-                <div
-                  className={`flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ring-4 ring-surface ${color.chipClass}`}
-                >
-                  {user.avatarEmoji || previewInitial}
-                </div>
-              )}
+            {/* avatar มี -mt-14 ของตัวเองแยกจากบล็อกชื่อ (เดิมอยู่บนแถวรวมทั้งคู่) เพื่อไม่ให้ชื่อ
+                ถูกดันขึ้นไปทับแบนเนอร์สีตามไปด้วยตอนมีบรรทัดเยอะ (ชื่อ + @username) - บั๊กนี้เกิดกับ
+                ผู้ใช้ที่สมัครด้วยอีเมล/รหัสผ่านเท่านั้น เพราะมี username เสมอ (2 บรรทัด) ส่วนผู้ใช้ Google
+                ไม่มี username เลยมีแค่ชื่อบรรทัดเดียว (สั้นกว่า) จึงไม่ทับแบนเนอร์ให้เห็นบั๊ก */}
+            <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:gap-4">
+              <div className="relative -mt-14 flex-shrink-0">
+                {/* แสงเรืองนุ่มๆ หลังรูปโปรไฟล์ - ให้จุดสนใจแรกของหน้าเด่นขึ้นนิดหน่อย */}
+                <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-eddy-400/50 to-accent-300/50 blur-lg" />
+                {user.image ? (
+                  <Image
+                    src={user.image}
+                    alt={userName}
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 rounded-full object-cover shadow-clay-sm ring-4 ring-surface"
+                  />
+                ) : (
+                  <div
+                    className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ring-4 ring-surface ${color.chipClass}`}
+                  >
+                    {user.avatarEmoji || previewInitial}
+                  </div>
+                )}
+              </div>
               <div className="min-w-0 flex-1 sm:pb-1">
                 <p className="truncate font-display text-lg font-bold text-ink">{userName}</p>
                 {user.username && <p className="font-body text-sm text-ink-muted">@{user.username}</p>}
@@ -133,20 +150,16 @@ export default async function ProfilePage() {
             </div>
 
             <div className="mt-4 border-t border-eddy-100/80 pt-4">
-              <h2 className="font-display text-h3 text-ink">เกี่ยวกับฉัน</h2>
-              <p className={`mt-1.5 whitespace-pre-wrap font-body text-sm ${user.bio ? 'text-ink-soft' : 'text-ink-muted/70'}`}>
-                {user.bio || 'ยังไม่ได้เขียนอะไรไว้ — เขียนไว้สักหน่อยให้เอ็ดดี้เข้าใจสไตล์การทำงานของคุณมากขึ้น'}
-              </p>
-            </div>
-
-            <div className="mt-4 border-t border-eddy-100/80 pt-4">
-              <h2 className="flex items-center gap-1.5 font-display text-h3 text-ink">
-                <Tags size={17} className="text-eddy-500" /> ทักษะและความถนัด
-              </h2>
+              <SectionHeading icon={Tags} tone="bg-pastel-blue text-chip-ink">
+                ทักษะและความถนัด
+              </SectionHeading>
               {user.skills.length > 0 ? (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {user.skills.map((s) => (
-                    <span key={s} className="rounded-full bg-pastel-blue px-3 py-1 font-body text-xs text-chip-ink">
+                    <span
+                      key={s}
+                      className="rounded-full bg-gradient-to-r from-pastel-blue to-pastel-lilac px-3 py-1 font-body text-xs font-medium text-chip-ink shadow-sm"
+                    >
                       {s}
                     </span>
                   ))}
@@ -162,7 +175,9 @@ export default async function ProfilePage() {
         <div className="flex flex-col gap-6">
           <Reveal delay={0.08}>
             <Card>
-              <h2 className="font-display text-h3 text-ink">ข้อมูลบัญชี</h2>
+              <SectionHeading icon={Mail} tone="bg-pastel-mint text-chip-ink">
+                ข้อมูลบัญชี
+              </SectionHeading>
               <div className="mt-2 divide-y divide-eddy-100">
                 <InfoRow icon={Mail} label="อีเมล" value={user.email} />
               </div>
@@ -177,7 +192,9 @@ export default async function ProfilePage() {
 
           <Reveal delay={0.16}>
             <Card>
-              <h2 className="font-display text-h3 text-ink">การทำงานและเวลา</h2>
+              <SectionHeading icon={Clock} tone="bg-pastel-peach text-chip-ink">
+                การทำงานและเวลา
+              </SectionHeading>
               <div className="mt-2 divide-y divide-eddy-100">
                 <InfoRow icon={Clock} label="เวลาที่สะดวก" value={availability} />
                 <InfoRow
