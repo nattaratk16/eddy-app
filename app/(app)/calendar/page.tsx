@@ -28,6 +28,7 @@ import MonthView from '@/components/calendar/MonthView';
 import DayTimeline from '@/components/calendar/DayTimeline';
 import TimeGridView from '@/components/calendar/TimeGridView';
 import WeeklySummaryPanel from '@/components/calendar/WeeklySummaryPanel';
+import WeekStatsCard from '@/components/calendar/WeekStatsCard';
 import RecurringManager from '@/components/RecurringManager';
 import { buildWeeklySummary } from '@/lib/aiMock';
 import { isEventOnDay } from '@/lib/calendarLayout';
@@ -227,9 +228,12 @@ function CalendarPageContent() {
   const weekEvents = useMemo(() => {
     const weekStart = startOfWeek(anchor);
     const weekEnd = endOfWeek(anchor);
+    // เทียบแบบช่วงทับกัน (ไม่ใช่แค่ ev.date) เพราะกิจกรรมหลายวันอาจเริ่มก่อนสัปดาห์นี้
+    // แต่ยังคาบเกี่ยวอยู่ - เทียบแค่วันเริ่มจะทำให้กิจกรรมที่กำลังแสดงอยู่บนตารางหายไปจากสรุป/สถิติเงียบๆ
     const inWeek = (ev: CalendarEvent) => {
-      const d = new Date(ev.date);
-      return d >= weekStart && d <= weekEnd;
+      const start = new Date(ev.date);
+      const end = ev.endDate ? new Date(ev.endDate) : start;
+      return start <= weekEnd && end >= weekStart;
     };
     // รวม Loop ประจำเข้าไปด้วย - คาบเรียนก็กินเวลาในสัปดาห์จริงๆ ถ้าไม่นับ สรุปจะบอกว่าว่างเกินจริง
     return [...events.filter((ev) => inWeek(ev) && visibleIds.has(ev.categoryId)), ...recurringEvents.filter(inWeek)];
@@ -430,6 +434,15 @@ function CalendarPageContent() {
             <MiniCalendar selectedDate={anchor} events={displayEvents} onSelectDate={setAnchor} />
           </Card>
 
+          {/* สถิติสัปดาห์ที่กำลังดูอยู่ (แยกจากสรุปข้อความของเอ็ดดี้ที่อยู่ใต้ปฏิทิน) */}
+          <WeekStatsCard
+            rangeLabel={toolbarTitle('week', anchor)}
+            weekStartISO={toISODate(startOfWeek(anchor))}
+            weekEndISO={toISODate(endOfWeek(anchor))}
+            weekEvents={weekEvents}
+            categories={displayCategories}
+          />
+
           {/* หมวดหมู่ปฏิทิน + ตัวกรอง */}
           <Card className="!p-4">
             <h2 className="font-display text-h3 text-ink">ปฏิทินของฉัน</h2>
@@ -574,7 +587,6 @@ function CalendarPageContent() {
           summary={weeklySummary}
           rangeLabel={toolbarTitle('week', anchor)}
           weekEvents={weekEvents}
-          categories={displayCategories}
           loading={summaryLoading}
         />
       </div>
