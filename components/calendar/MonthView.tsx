@@ -97,7 +97,7 @@ export default function MonthView({
               title="คลิกเพื่อดูไทม์ไลน์ของวันนี้"
               // min-w-0 + overflow-hidden สำคัญมาก: ถ้าไม่ใส่ ชื่อกิจกรรมยาวๆ จะดันคอลัมน์นั้นให้กว้าง
               // แล้วคอลัมน์ที่เหลือ (โดยเฉพาะอาทิตย์ที่อยู่ซ้ายสุด) จะถูกบีบจนเลขวันที่เบียดกัน
-              className={`group flex min-h-[112px] min-w-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 hover:bg-eddy-50/40 ${
+              className={`group flex min-h-[140px] min-w-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 hover:bg-eddy-50/40 ${
                 !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-surface'
               }`}
             >
