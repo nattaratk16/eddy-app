@@ -1,8 +1,37 @@
 // ตัวช่วยสำหรับมุมมองปฏิทินแบบ time-grid (วัน/สัปดาห์) สไตล์ Google/Apple Calendar
 // - แปลงเวลา "HH:mm" เป็นนาที
 // - วางบล็อกกิจกรรมที่เวลาเหลื่อมกันให้อยู่เคียงข้างกัน (column layout)
+// - เช็ค/ขยายกิจกรรมหลายวัน (มี endDate) ให้ปรากฏในทุกวันที่ครอบคลุม
 //
 // หมายเหตุ: ไฟล์นี้ไม่มี Tailwind class string จึงไม่ต้องกังวลเรื่อง content glob
+import { format } from 'date-fns';
+
+/**
+ * true ถ้ากิจกรรมนี้ "ปรากฏ" ในวัน day (ครอบคลุมกิจกรรมหลายวันที่มี endDate ด้วย)
+ * ใช้แทนการเทียบ ev.date ตรงๆ ทุกจุดที่กรองกิจกรรมของวันใดวันหนึ่งในมุมมองปฏิทิน
+ */
+export function isEventOnDay(ev: { date: string; endDate?: string | null }, day: Date): boolean {
+  return isEventOnDateISO(ev, format(day, 'yyyy-MM-dd'));
+}
+
+/** เหมือน isEventOnDay แต่รับวันที่เป็น ISO string ตรงๆ (ไม่ต้องผ่าน Date) */
+export function isEventOnDateISO(ev: { date: string; endDate?: string | null }, dayISO: string): boolean {
+  if (!ev.endDate || ev.endDate <= ev.date) return ev.date === dayISO;
+  return ev.date <= dayISO && dayISO <= ev.endDate;
+}
+
+/** รายชื่อวันที่ (YYYY-MM-DD) ทั้งหมดที่กิจกรรมนี้ครอบคลุม เรียงจากวันแรกถึงวันสุดท้าย */
+export function eventDateRangeISO(date: string, endDate?: string | null): string[] {
+  if (!endDate || endDate <= date) return [date];
+  const out: string[] = [];
+  let cursor = new Date(`${date}T00:00:00.000Z`);
+  const end = new Date(`${endDate}T00:00:00.000Z`);
+  while (cursor <= end) {
+    out.push(cursor.toISOString().slice(0, 10));
+    cursor = new Date(cursor.getTime() + 86400000);
+  }
+  return out;
+}
 
 /** ความสูงต่อ 1 ชั่วโมงในตาราง (px) - ใช้ร่วมกันทั้งแกนเวลาและการวางบล็อก */
 export const HOUR_HEIGHT = 48;

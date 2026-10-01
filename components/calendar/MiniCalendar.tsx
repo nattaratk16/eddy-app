@@ -15,6 +15,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { eventDateRangeISO } from '@/lib/calendarLayout';
 import type { CalendarEvent } from '@/lib/types';
 
 const miniWeekLabels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
@@ -49,7 +50,7 @@ export default function MiniCalendar({ selectedDate, events, onSelectDate }: Min
 
   const daysWithEvents = useMemo(() => {
     const set = new Set<string>();
-    for (const ev of events) set.add(ev.date);
+    for (const ev of events) for (const d of eventDateRangeISO(ev.date, ev.endDate)) set.add(d);
     return set;
   }, [events]);
 

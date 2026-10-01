@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trash2, Sparkles, Check, CalendarRange } from 'lucide-react';
 import Button from './Button';
 import EddyMascot from './EddyMascot';
 import TimePicker from './TimePicker';
+import DateRangePicker from './DateRangePicker';
+import Switch from './Switch';
+import ConfirmDialog from './ConfirmDialog';
 import { getColorOption } from '@/lib/colors';
+import { eventDateRangeISO, isEventOnDateISO } from '@/lib/calendarLayout';
 import { checkScheduleConflict, suggestCategoryId, type ConflictResult } from '@/lib/aiMock';
 import type { ScheduleAnalysis } from '@/lib/gemini';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
@@ -44,11 +49,15 @@ export default function EventFormModal({
   const [title, setTitle] = useState(seed?.title ?? '');
   const [categoryId, setCategoryId] = useState(seed?.categoryId ?? categories[0]?.id ?? '');
   const [date, setDate] = useState(seed?.date ?? defaultDate ?? '');
+  // กิจกรรมหลายวันติดกัน (ไม่บังคับ) - ช่วงเวลาเดียวกันซ้ำทุกวันตั้งแต่ date ถึง endDate
+  const [isMultiDay, setIsMultiDay] = useState(Boolean(seed?.endDate && seed.endDate !== seed?.date));
+  const [endDate, setEndDate] = useState(seed?.endDate ?? seed?.date ?? defaultDate ?? '');
   const [startTime, setStartTime] = useState(seed?.startTime ?? '');
   const [endTime, setEndTime] = useState(seed?.endTime ?? '');
   const [location, setLocation] = useState(seed?.location ?? '');
   const [description, setDescription] = useState(seed?.description ?? '');
   const [error, setError] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // ถ้าเปิด modal ก่อนที่ categories จะโหลดเสร็จ (เช่น จาก quick-add ในแชท) categoryId จะ init เป็น ''
   // เพราะตอน mount ครั้งแรก categories ยังว่างอยู่ - พอ categories โหลดเสร็จทีหลัง ให้ตั้งค่าเริ่มต้นให้ใหม่
@@ -60,17 +69,30 @@ export default function EventFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories]);
 
-  // เฟส 2 (mock AI): เช็คเวลาชนกัน
+  // วันสิ้นสุดต้องไม่ก่อนวันเริ่มเสมอ - ขยับตามวันเริ่มถ้าพิมพ์วันเริ่มใหม่จนวันสิ้นสุดเดิมย้อนหลังไป
+  useEffect(() => {
+    setEndDate((prev) => (!prev || prev < date ? date : prev));
+  }, [date]);
+
+  const effectiveEndDate = isMultiDay && endDate > date ? endDate : undefined;
+
+  // เฟส 2 (mock AI): เช็คเวลาชนกัน - กิจกรรมหลายวันต้องเช็คช่วงเวลาเดียวกันนี้ทุกวันในช่วง ไม่ใช่แค่วันเริ่ม
   const [conflict, setConflict] = useState<ConflictResult | null>(null);
   useEffect(() => {
     if (!date || !startTime) {
       setConflict(null);
       return;
     }
-    // หมุดกำหนดส่งมีระยะเวลา 0 นาที ไม่ใช่เวลาที่ถูกจอง ไม่ต้องเอามาเช็คว่าชนกัน
-    const sameDay = allEvents.filter((e) => e.date === date && !e.isDeadline);
-    setConflict(checkScheduleConflict(startTime, endTime || undefined, sameDay, initialEvent?.id));
-  }, [date, startTime, endTime, allEvents, initialEvent?.id]);
+    const days = effectiveEndDate ? eventDateRangeISO(date, effectiveEndDate) : [date];
+    let found: ConflictResult | null = null;
+    for (const d of days) {
+      // หมุดกำหนดส่งมีระยะเวลา 0 นาที ไม่ใช่เวลาที่ถูกจอง ไม่ต้องเอามาเช็คว่าชนกัน
+      const sameDay = allEvents.filter((e) => e.id !== initialEvent?.id && !e.isDeadline && isEventOnDateISO(e, d));
+      found = checkScheduleConflict(startTime, endTime || undefined, sameDay, initialEvent?.id);
+      if (found) break;
+    }
+    setConflict(found);
+  }, [date, effectiveEndDate, startTime, endTime, allEvents, initialEvent?.id]);
 
   // วิเคราะห์ตารางด้วย Gemini จริง (debounce ~800ms หลังมีวันที่+เวลาเริ่ม) - เสริมจากการเช็คแบบ local ด้านบน ไม่แทนที่
   const [aiAnalysis, setAiAnalysis] = useState<ScheduleAnalysis | null>(null);
@@ -140,12 +162,14 @@ export default function EventFormModal({
     if (!title.trim()) return setError('กรุณากรอกชื่อกิจกรรม');
     if (!categoryId) return setError('กรุณาเลือกหมวดหมู่ (ถ้ายังไม่มี ให้เพิ่มหมวดหมู่ก่อนทางด้านซ้าย)');
     if (!date) return setError('กรุณาเลือกวันที่');
+    if (isMultiDay && endDate < date) return setError('วันสิ้นสุดต้องไม่ก่อนวันเริ่ม');
 
     const event: CalendarEvent = {
       id: initialEvent?.id ?? crypto.randomUUID(),
       title: title.trim(),
       categoryId,
       date,
+      endDate: effectiveEndDate,
       startTime: startTime || undefined,
       endTime: endTime || undefined,
       location: location.trim() || undefined,
@@ -196,7 +220,13 @@ export default function EventFormModal({
                       active ? 'ring-2 ring-eddy-400' : 'opacity-80 hover:opacity-100'
                     }`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${color.dotClass}`} />
+                    {active ? (
+                      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-white text-eddy-600">
+                        <Check size={11} strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <span className="h-2 w-2 flex-shrink-0 rounded-full bg-ink-muted" />
+                    )}
                     {cat.name}
                   </button>
                 );
@@ -211,20 +241,127 @@ export default function EventFormModal({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <label className={labelClass} htmlFor="ev-date">วันที่</label>
-          <input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+      <div
+        className={`flex items-center justify-between gap-3 rounded-clay-sm border px-4 py-3 transition-colors ${
+          isMultiDay ? 'border-eddy-200 bg-eddy-50' : 'border-eddy-100 bg-surface'
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-white transition-colors ${
+              isMultiDay ? 'bg-gradient-to-br from-eddy-500 to-accent-500' : 'bg-eddy-300'
+            }`}
+          >
+            <CalendarRange size={17} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-display text-sm font-semibold text-ink">กิจกรรมหลายวันติดกัน</p>
+            <p className="truncate font-body text-xs text-ink-muted">เช่น ค่าย ทริป ช่วงเวลาเดียวกันซ้ำทุกวัน</p>
+          </div>
         </div>
-        <div>
-          <label className={labelClass} htmlFor="ev-start">เวลาเริ่ม</label>
-          <TimePicker id="ev-start" value={startTime} onChange={setStartTime} />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="ev-end">เวลาจบ</label>
-          <TimePicker id="ev-end" value={endTime} onChange={setEndTime} />
-        </div>
+        <Switch checked={isMultiDay} onChange={setIsMultiDay} aria-label="กิจกรรมหลายวันติดกัน" />
       </div>
+
+      {/* โหมดวันเดียว (ปกติ) - เส้นเดิมไม่เปลี่ยน */}
+      {!isMultiDay && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label className={labelClass} htmlFor="ev-date">วันที่</label>
+            <input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="ev-start">เวลาเริ่ม</label>
+            <TimePicker id="ev-start" value={startTime} onChange={setStartTime} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="ev-end">เวลาจบ</label>
+            <TimePicker id="ev-end" value={endTime} onChange={setEndTime} />
+          </div>
+        </div>
+      )}
+
+      {/* โหมดหลายวัน - แยกออกมาเป็นแผงของตัวเอง (กรอบ+พื้นหลังไล่สี+เงาแยกจากฟอร์มรอบข้าง)
+          แทนที่จะโผล่เป็นแถวเพิ่มเฉยๆ ให้ความรู้สึกเหมือน "เปิดช่องตั้งค่าเฉพาะ" ขึ้นมาจริงๆ
+          เข้าจอด้วยการพลิก (rotateX) แกว่งไปมาก่อนตกไปนิ่งที่ 0 องศา (หน้าตรง) พอดี - ไม่ใช่แค่ fade/scale เฉยๆ
+          transformPerspective ใส่ตรงนี้เลย (ไม่ต้องมี div ครอบ) ให้การพลิกเห็นเป็น 3 มิติจริง */}
+      <AnimatePresence initial={false}>
+        {isMultiDay && (
+          <motion.div
+            key="multi-day-panel"
+            initial={{ opacity: 0, scale: 0.94, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -6 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            style={{ transformOrigin: 'top center' }}
+            className="relative overflow-hidden rounded-clay-lg border border-eddy-200 bg-gradient-to-br from-eddy-50 via-surface to-pastel-lilac/30 p-4 shadow-clay-sm sm:p-5"
+          >
+            {/* แสงเรืองประดับมุม - ให้แผงนี้ดูมีมิติแยกจากพื้นหลังฟอร์มรอบๆ */}
+            <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-eddy-300/25 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-10 -left-8 h-24 w-24 rounded-full bg-pastel-lilac-dark/20 blur-2xl" />
+
+            <div className="relative flex flex-col gap-4">
+              <div>
+                <label className={labelClass} htmlFor="ev-date-range">ช่วงวันที่</label>
+                <DateRangePicker
+                  id="ev-date-range"
+                  startDate={date}
+                  endDate={endDate}
+                  onChange={(s, e) => {
+                    setDate(s);
+                    setEndDate(e);
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass} htmlFor="ev-start">เวลาเริ่ม (ซ้ำทุกวัน)</label>
+                  <TimePicker id="ev-start" value={startTime} onChange={setStartTime} />
+                </div>
+                <div>
+                  <label className={labelClass} htmlFor="ev-end">เวลาจบ (ซ้ำทุกวัน)</label>
+                  <TimePicker id="ev-end" value={endTime} onChange={setEndTime} />
+                </div>
+              </div>
+
+              {/* สรุปสดๆ ว่ากำลังตั้งค่าอะไรอยู่ - อัปเดตทันทีตามที่กรอก เป็นรางวัลเล็กๆ ให้รู้ว่ากรอกถูก */}
+              <AnimatePresence mode="wait">
+                {effectiveEndDate ? (
+                  <motion.div
+                    key="summary"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                    className="flex items-center gap-2 rounded-full bg-surface px-3.5 py-2 shadow-clay-sm"
+                  >
+                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-eddy-500 to-accent-500 text-white">
+                      <CalendarRange size={12} />
+                    </span>
+                    <p className="font-body text-xs font-medium text-ink">
+                      รวม <span className="font-display font-bold text-eddy-700">{eventDateRangeISO(date, effectiveEndDate).length} วัน</span>
+                      {startTime && (
+                        <>
+                          {' '}· ซ้ำเวลา <span className="font-display font-bold text-eddy-700">{startTime}{endTime ? `-${endTime}` : ''}</span> ทุกวัน
+                        </>
+                      )}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.p
+                    key="hint"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="font-body text-xs text-ink-muted"
+                  >
+                    เลือกวันที่สิ้นสุดให้หลังวันที่เริ่ม เพื่อดูสรุปช่วงเวลา
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {conflict && (
         <div className="flex items-start gap-3 rounded-clay-sm bg-pastel-pink/50 dark:bg-pastel-pink-dark/15 p-3">
@@ -308,12 +445,7 @@ export default function EventFormModal({
         {isEditing && onDelete ? (
           <button
             type="button"
-            onClick={() => {
-              if (initialEvent && confirm('ลบกิจกรรมนี้ใช่ไหม?')) {
-                onDelete(initialEvent.id);
-                onClose();
-              }
-            }}
+            onClick={() => setDeleteConfirmOpen(true)}
             className="flex items-center gap-1 rounded-clay-sm px-3 py-2 font-display text-sm font-semibold text-eddy-700 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark hover:bg-pastel-pink/40"
           >
             <Trash2 size={16} /> ลบกิจกรรม
@@ -326,6 +458,20 @@ export default function EventFormModal({
           <Button type="submit">{isEditing ? 'บันทึกการแก้ไข' : 'เพิ่มกิจกรรม'}</Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="ลบกิจกรรมนี้?"
+        message={`"${initialEvent?.title ?? ''}" จะถูกลบถาวร เอากลับไม่ได้`}
+        confirmLabel="ลบเลย"
+        onConfirm={() => {
+          if (initialEvent && onDelete) {
+            onDelete(initialEvent.id);
+            onClose();
+          }
+        }}
+        onClose={() => setDeleteConfirmOpen(false)}
+      />
     </form>
   );
 }

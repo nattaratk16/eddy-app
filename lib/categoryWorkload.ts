@@ -16,10 +16,10 @@
  * --------------------------------------------------------------
  */
 import { prisma } from './prisma';
-import { NOT_DEADLINE_EVENT } from './eventFilters';
+import { NOT_DEADLINE_EVENT, eventOverlapsWindow } from './eventFilters';
 import { availabilityWindow } from './freeTime';
 import { expandRecurring, parseDays } from './recurring';
-import { timeToMinutes } from './calendarLayout';
+import { eventDateRangeISO, timeToMinutes } from './calendarLayout';
 import type { RecurringEventInfo } from './types';
 import { type CategoryKind, isCategoryKind } from './categoryKind';
 
@@ -67,8 +67,8 @@ export async function rawBookedMinutesByKind(
 
   const [events, recurringRows] = await Promise.all([
     prisma.event.findMany({
-      where: { userId: { in: userIds }, date: { gte: windowStart, lt: windowEnd }, ...NOT_DEADLINE_EVENT },
-      select: { userId: true, startTime: true, endTime: true, category: { select: { kind: true } } },
+      where: { userId: { in: userIds }, ...eventOverlapsWindow(windowStart, windowEnd), ...NOT_DEADLINE_EVENT },
+      select: { userId: true, date: true, endDate: true, startTime: true, endTime: true, category: { select: { kind: true } } },
     }),
     prisma.recurringEvent.findMany({ where: { userId: { in: userIds } } }),
   ]);
@@ -86,12 +86,19 @@ export async function rawBookedMinutesByKind(
     return availabilityWindow(prefs?.dayStart, prefs?.dayEnd);
   };
 
+  // กิจกรรมหลายวัน (มี endDate) ต้องนับเวลาซ้ำทุกวันที่ครอบคลุมภายในช่วง dates ที่ขอมา
+  // (ช่วงเวลาเดียวกันเกิดขึ้นจริงทุกวัน ไม่ใช่แค่วันเริ่ม) ไม่งั้นภาระงานของกิจกรรมยาวๆ จะถูกนับต่ำไป
+  const datesSet = new Set(dates);
   for (const ev of events) {
     const { startMin, endMin } = windowFor(ev.userId);
     const minutes = clippedDuration(ev.startTime, ev.endTime, startMin, endMin);
     if (minutes <= 0) continue;
     const kind = ev.category?.kind;
-    addRaw(result, ev.userId, isCategoryKind(kind) ? kind : 'non_academic', minutes);
+    const evDate = ev.date.toISOString().slice(0, 10);
+    const evEndDate = ev.endDate ? ev.endDate.toISOString().slice(0, 10) : null;
+    const activeDays = eventDateRangeISO(evDate, evEndDate).filter((d) => datesSet.has(d)).length;
+    if (activeDays === 0) continue;
+    addRaw(result, ev.userId, isCategoryKind(kind) ? kind : 'non_academic', minutes * activeDays);
   }
 
   const recurringByUser = new Map<string, RecurringEventInfo[]>();

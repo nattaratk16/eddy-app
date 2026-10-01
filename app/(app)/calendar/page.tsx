@@ -9,7 +9,6 @@ import {
   addWeeks,
   endOfWeek,
   format,
-  isSameDay,
   startOfWeek,
   subDays,
   subMonths,
@@ -31,8 +30,10 @@ import TimeGridView from '@/components/calendar/TimeGridView';
 import WeeklySummaryPanel from '@/components/calendar/WeeklySummaryPanel';
 import RecurringManager from '@/components/RecurringManager';
 import { buildWeeklySummary } from '@/lib/aiMock';
+import { isEventOnDay } from '@/lib/calendarLayout';
 import { expandRecurring } from '@/lib/recurring';
 import type { CalendarCategory, CalendarEvent, CalendarView, PastelColor, RecurringEventInfo } from '@/lib/types';
+import type { CategoryKind } from '@/lib/categoryKind';
 
 const thMonths = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -302,11 +303,11 @@ function CalendarPageContent() {
 
   // ---- Category handlers ----
   /** คืนข้อความ error ถ้าเพิ่มไม่สำเร็จ (เช่น ชื่อซ้ำ) หรือ null ถ้าสำเร็จ - CategoryManager โชว์ inline ต่อ */
-  async function addCategory(name: string, color: PastelColor): Promise<string | null> {
+  async function addCategory(name: string, color: PastelColor, kind: CategoryKind): Promise<string | null> {
     const res = await fetch('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, color }),
+      body: JSON.stringify({ name, color, kind }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return data.error ?? 'เพิ่มหมวดหมู่ไม่สำเร็จ ลองใหม่อีกครั้งนะ';
@@ -371,20 +372,25 @@ function CalendarPageContent() {
   }
 
   async function saveEvent(ev: CalendarEvent) {
+    // endDate ต้องส่งเป็น null ตรงๆ (ไม่ใช่ undefined) ตอนเคลียร์ทิ้ง เพราะ JSON.stringify ตัด
+    // key ที่เป็น undefined ออกไปเงียบๆ ทั้งก้อน - ถ้าไม่บังคับใส่ null ฝั่งเซิร์ฟเวอร์จะไม่รู้เลยว่า
+    // ผู้ใช้ติ๊กปิด "กิจกรรมหลายวัน" แล้ว (ไม่เห็นคีย์นี้ในเพย์โหลด = ไม่มีการเปลี่ยนแปลง) endDate เดิม
+    // จะค้างอยู่ในฐานข้อมูลทั้งที่หน้าจอไม่โชว์ว่าเป็นกิจกรรมหลายวันแล้ว
+    const payload = { ...ev, endDate: ev.endDate ?? null };
     const isExisting = events.some((e) => e.id === ev.id);
     if (isExisting) {
       setEvents((prev) => prev.map((e) => (e.id === ev.id ? ev : e)));
       await fetch(`/api/events/${ev.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ev),
+        body: JSON.stringify(payload),
       });
       return;
     }
     const res = await fetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ev),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) return;
@@ -588,7 +594,7 @@ function CalendarPageContent() {
         {timelineDay && (
           <DayTimeline
             // ใช้เกณฑ์เดียวกับที่ MonthView ใช้กรองกิจกรรมลงช่องวัน จะได้ตรงกับที่เห็นในตารางเป๊ะ
-            events={displayEvents.filter((ev) => isSameDay(new Date(ev.date), timelineDay))}
+            events={displayEvents.filter((ev) => isEventOnDay(ev, timelineDay))}
             categories={displayCategories}
             onEventClick={(ev) => {
               setTimelineDay(null);

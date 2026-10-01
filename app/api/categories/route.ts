@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { guessCategoryKind, isCategoryKind } from '@/lib/categoryKind';
+import { guessCategoryKind, isCategoryKind, type CategoryKind } from '@/lib/categoryKind';
 import type { CalendarCategory } from '@/lib/types';
 
 function serialize(cat: { id: string; name: string; color: string; shared: boolean; kind: string }): CalendarCategory {
@@ -39,9 +39,11 @@ export async function POST(req: NextRequest) {
   });
   if (existing) return NextResponse.json({ error: 'มีหมวดหมู่ชื่อนี้อยู่แล้ว' }, { status: 409 });
 
-  // เดาวิชาการ/ไม่ใช่วิชาการจากชื่อไว้ก่อน - ผู้ใช้แก้เองได้ทีหลังถ้าเดาผิด (ดู lib/categoryKind.ts)
+  // ใช้ค่าที่ผู้ใช้เลือกเองถ้าส่งมา (ตอนนี้ฟอร์มเพิ่มหมวดหมู่มีตัวเลือกนี้แล้ว) ไม่งั้นเดาจากชื่อไว้ก่อน
+  // ผู้ใช้แก้เองได้ทีหลังเสมอถ้าเดาผิด (ดู lib/categoryKind.ts)
+  const kind: CategoryKind = isCategoryKind(body.kind) ? body.kind : guessCategoryKind(name);
   const category = await prisma.category.create({
-    data: { name, color: body.color ?? 'blue', kind: guessCategoryKind(name), userId: session.user.id },
+    data: { name, color: body.color ?? 'blue', kind, userId: session.user.id },
   });
 
   return NextResponse.json({ category: serialize(category) }, { status: 201 });

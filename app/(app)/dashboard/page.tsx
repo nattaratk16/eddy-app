@@ -81,7 +81,16 @@ export default async function DashboardPage() {
     prisma.task.count({ where: { userId, done: false, priority: 'high', dueDate: { not: null, lte: today } } }),
     prisma.task.count({ where: { userId, done: false } }),
     prisma.task.count({ where: { userId, done: true } }),
-    prisma.event.findMany({ where: { userId, date: { gte: gridStart, lte: gridEnd } }, orderBy: { date: 'asc' } }),
+    // กิจกรรมหลายวัน (มี endDate) อาจเริ่มก่อน gridStart แต่ยังคาบเกี่ยวช่วงที่แสดงอยู่ - ต้องรวมด้วย
+    // ไม่งั้นช่องวันหลังวันแรกของกิจกรรมจะว่างผิดๆ ในมินิปฏิทินเดือนของแดชบอร์ด
+    prisma.event.findMany({
+      where: {
+        userId,
+        date: { lte: gridEnd },
+        OR: [{ endDate: { gte: gridStart } }, { endDate: null, date: { gte: gridStart } }],
+      },
+      orderBy: { date: 'asc' },
+    }),
     prisma.event.findMany({ where: { userId, date: { gte: today } }, orderBy: { date: 'asc' }, take: 5 }),
     prisma.category.findMany({ where: { userId } }),
     getWorkloadSignals(userId),
@@ -282,6 +291,7 @@ export default async function DashboardPage() {
                 id: ev.id,
                 title: ev.title,
                 date: toISODate(ev.date),
+                endDate: ev.endDate ? toISODate(ev.endDate) : undefined,
                 startTime: ev.startTime ?? undefined,
                 endTime: ev.endTime ?? undefined,
                 location: ev.location ?? undefined,

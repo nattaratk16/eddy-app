@@ -19,7 +19,6 @@ import {
   endOfMonth,
   endOfWeek,
   format,
-  isSameDay,
   isSameMonth,
   isToday,
   startOfMonth,
@@ -30,7 +29,7 @@ import clsx from 'clsx';
 import Modal from '@/components/Modal';
 import DayTimeline from '@/components/calendar/DayTimeline';
 import { getEventColor } from '@/lib/colors';
-import { timeToMinutes } from '@/lib/calendarLayout';
+import { eventDateRangeISO, isEventOnDay, timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
 // ตัวย่อภาษาไทยแบบมาตรฐาน - ย่อเหลือตัวเดียวไม่ได้เพราะ "อาทิตย์" กับ "อังคาร" จะกลายเป็น "อ" เหมือนกัน
@@ -75,9 +74,11 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const ev of events) {
-      const list = map.get(ev.date) ?? [];
-      list.push(ev);
-      map.set(ev.date, list);
+      for (const d of eventDateRangeISO(ev.date, ev.endDate)) {
+        const list = map.get(d) ?? [];
+        list.push(ev);
+        map.set(d, list);
+      }
     }
     for (const list of map.values()) {
       list.sort((a, b) => (timeToMinutes(a.startTime) ?? -1) - (timeToMinutes(b.startTime) ?? -1));
@@ -197,7 +198,7 @@ export default function DashboardCalendar({ events, categories, todayISO }: Dash
       >
         {openDay && (
           <DayTimeline
-            events={events.filter((ev) => isSameDay(new Date(ev.date), openDay))}
+            events={events.filter((ev) => isEventOnDay(ev, openDay))}
             categories={categories}
             // หน้า Dashboard ไม่มีฟอร์มแก้ไข - พาไปที่หน้าปฏิทินของวันนั้นแทน
             onEventClick={() => router.push(`/calendar?date=${format(openDay, 'yyyy-MM-dd')}`)}

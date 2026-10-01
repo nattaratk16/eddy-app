@@ -85,6 +85,8 @@ export interface CalendarEvent {
   id: string;
   title: string;
   date: string; // ISO date string (YYYY-MM-DD)
+  /** กิจกรรมหลายวัน (ไม่บังคับ) - ไม่ใส่/เท่ากับ date = กิจกรรมวันเดียวปกติ ใส่ = startTime-endTime ซ้ำทุกวันถึง endDate */
+  endDate?: string;
   startTime?: string; // HH:mm
   endTime?: string; // HH:mm
   location?: string;

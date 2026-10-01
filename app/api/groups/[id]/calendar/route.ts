@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
 import { PASTEL_COLORS } from '@/lib/colors';
-import { NOT_DEADLINE_EVENT } from '@/lib/eventFilters';
+import { NOT_DEADLINE_EVENT, eventOverlapsWindow } from '@/lib/eventFilters';
 import { todayISOBangkok } from '@/lib/thaiTime';
 
 // GET /api/groups/[id]/calendar?start=YYYY-MM-DD
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const events = await prisma.event.findMany({
     // หมุดกำหนดส่งเป็นตัวช่วยวางแผนส่วนตัว ไม่ใช่ช่วงเวลาที่ไม่ว่างจริง
     // ไม่ควรโผล่ในปฏิทินกลุ่มเป็นแท่งสีทึบ (จะทำให้เพื่อนเข้าใจผิดว่าคนนั้นติดธุระ)
-    where: { userId: { in: memberUserIds }, date: { gte: start, lt: end }, ...NOT_DEADLINE_EVENT },
+    where: { userId: { in: memberUserIds }, ...eventOverlapsWindow(start, end), ...NOT_DEADLINE_EVENT },
     orderBy: { date: 'asc' },
   });
 
@@ -72,6 +72,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       id: ev.id,
       title: canSeeTitle ? ev.title : 'ไม่ว่าง',
       date: ev.date.toISOString().slice(0, 10),
+      endDate: ev.endDate ? ev.endDate.toISOString().slice(0, 10) : undefined,
       startTime: ev.startTime ?? undefined,
       endTime: ev.endTime ?? undefined,
       location: canSeeTitle ? ev.location ?? undefined : undefined,

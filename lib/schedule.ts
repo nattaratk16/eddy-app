@@ -15,7 +15,8 @@ import { prisma } from './prisma';
 import { computeFreeSlots, type FreeSlot } from './freeTime';
 import { nowMinutesBangkok, todayISOBangkok } from './thaiTime';
 import { expandRecurring, parseDays } from './recurring';
-import { NOT_DEADLINE_EVENT } from './eventFilters';
+import { eventDateRangeISO } from './calendarLayout';
+import { NOT_DEADLINE_EVENT, eventOverlapsWindow } from './eventFilters';
 import type { RecurringEventInfo } from './types';
 
 // ฟังก์ชันเรื่องเวลาไทยย้ายไป lib/thaiTime.ts แล้ว (ฝั่งที่ไม่ต้องใช้ DB จะได้ไม่ต้องลาก Prisma ติดมา)
@@ -51,22 +52,29 @@ export async function freeSlotsForUsers(
     prisma.event.findMany({
       where: {
         userId: { in: userIds },
-        date: { gte: windowStart, lt: windowEnd },
+        ...eventOverlapsWindow(windowStart, windowEnd),
         ...NOT_DEADLINE_EVENT,
         ...(options?.excludeEventIds && options.excludeEventIds.length > 0
           ? { id: { notIn: options.excludeEventIds } }
           : {}),
       },
-      select: { userId: true, date: true, startTime: true, endTime: true },
+      select: { userId: true, date: true, endDate: true, startTime: true, endTime: true },
     }),
     prisma.recurringEvent.findMany({ where: { userId: { in: userIds } } }),
   ]);
 
-  // ช่วงไม่ว่างจาก Event ปกติ
+  // ช่วงไม่ว่างจาก Event ปกติ - กิจกรรมหลายวัน (มี endDate) ต้องกางเป็นบล็อกไม่ว่างของทุกวันที่ครอบคลุม
+  // (ช่วงเวลาเดียวกันซ้ำทุกวัน) ไม่ใช่แค่วันเริ่ม ไม่งั้น AI/ตัวจัดตารางจะมองว่าวันกลางๆ ของกิจกรรมว่างอยู่
+  const datesSet = new Set(dates);
   const busyByUser = new Map<string, { date: string; startTime: string | null; endTime: string | null }[]>();
   for (const ev of events) {
+    const evDate = ev.date.toISOString().slice(0, 10);
+    const evEndDate = ev.endDate ? ev.endDate.toISOString().slice(0, 10) : null;
     const arr = busyByUser.get(ev.userId) ?? [];
-    arr.push({ date: ev.date.toISOString().slice(0, 10), startTime: ev.startTime, endTime: ev.endTime });
+    for (const d of eventDateRangeISO(evDate, evEndDate)) {
+      if (!datesSet.has(d)) continue;
+      arr.push({ date: d, startTime: ev.startTime, endTime: ev.endTime });
+    }
     busyByUser.set(ev.userId, arr);
   }
 

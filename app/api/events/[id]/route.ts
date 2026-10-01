@@ -9,6 +9,7 @@ function serialize(ev: PrismaEvent): CalendarEvent {
     id: ev.id,
     title: ev.title,
     date: ev.date.toISOString().slice(0, 10),
+    endDate: ev.endDate ? ev.endDate.toISOString().slice(0, 10) : undefined,
     startTime: ev.startTime ?? undefined,
     endTime: ev.endTime ?? undefined,
     location: ev.location ?? undefined,
@@ -46,11 +47,33 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
   }
 
+  // กิจกรรมหลายวัน (ไม่บังคับ) - undefined = ไม่แตะ, ค่าว่าง/falsy = ล้างกลับเป็นกิจกรรมวันเดียว
+  const effectiveDate = newDate ?? existing.date;
+  let newEndDate: Date | null | undefined;
+  if (body.endDate !== undefined) {
+    if (!body.endDate) {
+      newEndDate = null;
+    } else {
+      const parsed = new Date(body.endDate);
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: 'Invalid endDate' }, { status: 400 });
+      }
+      if (parsed < effectiveDate) {
+        return NextResponse.json({ error: 'วันสิ้นสุดต้องไม่ก่อนวันเริ่ม' }, { status: 400 });
+      }
+      newEndDate = parsed.getTime() === effectiveDate.getTime() ? null : parsed;
+    }
+  } else if (newDate !== undefined && existing.endDate && existing.endDate < effectiveDate) {
+    // ย้ายวันเริ่มโดยไม่ได้แตะวันสิ้นสุด แล้วทำให้ endDate เดิมกลับมาอยู่ก่อนวันเริ่มใหม่ -> ล้างทิ้งกันสถานะเพี้ยน
+    newEndDate = null;
+  }
+
   const event = await prisma.event.update({
     where: { id: params.id },
     data: {
       ...(body.title !== undefined && { title: body.title }),
       ...(newDate !== undefined && { date: newDate }),
+      ...(newEndDate !== undefined && { endDate: newEndDate }),
       ...(body.startTime !== undefined && { startTime: body.startTime || null }),
       ...(body.endTime !== undefined && { endTime: body.endTime || null }),
       ...(body.location !== undefined && { location: body.location || null }),

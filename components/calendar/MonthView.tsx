@@ -6,7 +6,6 @@ import {
   endOfMonth,
   endOfWeek,
   format,
-  isSameDay,
   isSameMonth,
   isToday,
   startOfMonth,
@@ -14,7 +13,7 @@ import {
 } from 'date-fns';
 import { Flag, Plus } from 'lucide-react';
 import { getEventColor } from '@/lib/colors';
-import { timeToMinutes } from '@/lib/calendarLayout';
+import { isEventOnDay, timeToMinutes } from '@/lib/calendarLayout';
 import type { CalendarCategory, CalendarEvent } from '@/lib/types';
 
 // ตัวย่อภาษาไทยแบบมาตรฐาน - ย่อเหลือตัวเดียวไม่ได้เพราะ "อาทิตย์" กับ "อังคาร" จะกลายเป็น "อ" เหมือนกัน
@@ -65,7 +64,7 @@ export default function MonthView({
 
   const eventsForDay = (day: Date) =>
     events
-      .filter((ev) => isSameDay(new Date(ev.date), day))
+      .filter((ev) => isEventOnDay(ev, day))
       // เรียงตามเวลาเริ่ม (ไม่มีเวลา = กิจกรรมทั้งวัน ขึ้นก่อน)
       .sort((a, b) => (timeToMinutes(a.startTime) ?? -1) - (timeToMinutes(b.startTime) ?? -1));
 

@@ -22,7 +22,7 @@ model User {
   emailVerified DateTime? // ใช้โดย NextAuth adapter (OAuth provider ยืนยันอีเมลให้อัตโนมัติ)
   name          String?
   image         String?
-  bio           String? // เกี่ยวกับฉัน - แสดงในหน้าโปรไฟล์
+  bio           String? // "เกี่ยวกับฉัน" - ช่องเก่า ตัดออกจากหน้าโปรไฟล์/ตั้งค่า/บริบท AI แล้ว ไม่ได้ใช้แล้ว
   password      String? // เก็บแบบ hashed (bcrypt) เท่านั้น - เป็น null ได้ถ้าสมัครผ่าน Google (ไม่มีรหัสผ่าน)
   // ข้อมูลโปรไฟล์เพิ่มเติม (ทุกช่องไม่บังคับ - ออกแบบให้เป็นกลาง ใช้ได้ทั้งคนเรียนและคนทำงาน)
   username     String? @unique // ชื่อผู้ใช้ (handle) - ไม่ซ้ำกัน
@@ -219,6 +219,10 @@ model Event {
   id          String   @id @default(cuid())
   title       String
   date        DateTime
+  // null = กิจกรรมวันเดียว (ปกติ) ไม่ null = กิจกรรมหลายวันติดกัน ใช้ startTime/endTime
+  // ช่วงเวลาเดียวกันซ้ำทุกวันตั้งแต่ date ถึง endDate (รวมวันสุดท้าย) เช่น ค่าย 5-9 ต.ค. 09:00-16:00
+  // ต้อง >= date เสมอ (ตรวจที่ API) - ไม่ใช่ช่วงเวลาต่อเนื่องข้ามคืนแบบเดียว (นั่นคนละความหมาย)
+  endDate     DateTime?
   startTime   String?
   endTime     String?
   location    String?

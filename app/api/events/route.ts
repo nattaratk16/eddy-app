@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { eventOverlapsWindow } from '@/lib/eventFilters';
 import type { CalendarEvent } from '@/lib/types';
 import type { Event as PrismaEvent } from '@prisma/client';
 
@@ -9,6 +10,7 @@ function serialize(ev: PrismaEvent): CalendarEvent {
     id: ev.id,
     title: ev.title,
     date: ev.date.toISOString().slice(0, 10),
+    endDate: ev.endDate ? ev.endDate.toISOString().slice(0, 10) : undefined,
     startTime: ev.startTime ?? undefined,
     endTime: ev.endTime ?? undefined,
     location: ev.location ?? undefined,
@@ -35,16 +37,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'รูปแบบวันที่ไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD)' }, { status: 400 });
   }
 
-  // รวม gte/lte ไว้ใน object เดียวกันเสมอ (ไม่แยก spread คนละก้อน) ไม่งั้นถ้าใส่มาทั้งคู่
-  // ก้อนหลังจะเขียนทับ key "date" ของก้อนแรกทิ้งไปเฉยๆ เหลือกรองแค่ขอบเขตเดียว
-  const dateFilter: { gte?: Date; lte?: Date } = {};
-  if (startParam) dateFilter.gte = new Date(`${startParam}T00:00:00.000Z`);
-  if (endParam) dateFilter.lte = new Date(`${endParam}T00:00:00.000Z`);
+  // ใช้ eventOverlapsWindow แทนการกรอง date ตรงๆ เพราะกิจกรรมหลายวัน (มี endDate) อาจเริ่มก่อน
+  // ช่วงที่ขอมา แต่ยังสิ้นสุดอยู่ในช่วงนั้น - ไม่ใส่ start/end มาเลย = โหลดทั้งหมดเหมือนเดิม
+  const windowStart = startParam ? new Date(`${startParam}T00:00:00.000Z`) : undefined;
+  // lte ของเดิม (รวมวันสุดท้าย) เทียบเท่ากับ lt ของวันถัดไป
+  const windowEnd = endParam
+    ? new Date(new Date(`${endParam}T00:00:00.000Z`).getTime() + 86400000)
+    : undefined;
 
   const events = await prisma.event.findMany({
     where: {
       userId: session.user.id,
-      ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
+      ...(windowStart && windowEnd
+        ? eventOverlapsWindow(windowStart, windowEnd)
+        : windowStart
+          ? { OR: [{ endDate: { gte: windowStart } }, { endDate: null, date: { gte: windowStart } }] }
+          : windowEnd
+            ? { date: { lt: windowEnd } }
+            : {}),
     },
     orderBy: { date: 'asc' },
   });
@@ -70,10 +80,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
   }
 
+  // กิจกรรมหลายวัน (ไม่บังคับ) - ต้องไม่ก่อนวันเริ่ม ไม่งั้นความหมาย "ช่วง" จะกลับด้าน
+  let endDate: Date | null = null;
+  if (body.endDate) {
+    endDate = new Date(body.endDate);
+    if (Number.isNaN(endDate.getTime())) {
+      return NextResponse.json({ error: 'Invalid endDate' }, { status: 400 });
+    }
+    if (endDate < date) {
+      return NextResponse.json({ error: 'วันสิ้นสุดต้องไม่ก่อนวันเริ่ม' }, { status: 400 });
+    }
+    if (endDate.getTime() === date.getTime()) endDate = null; // เท่ากับวันเริ่ม = ไม่ใช่กิจกรรมหลายวัน
+  }
+
   const event = await prisma.event.create({
     data: {
       title: body.title,
       date,
+      endDate,
       startTime: body.startTime || null,
       endTime: body.endTime || null,
       location: body.location || null,

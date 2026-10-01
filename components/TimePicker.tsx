@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Clock } from 'lucide-react';
 
 interface TimePickerProps {
@@ -16,19 +17,50 @@ const TIMES = Array.from({ length: 96 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 });
 
+const LIST_WIDTH = 140;
+const LIST_EST_HEIGHT = 224; // max-h-56
+
+/**
+ * popover render ผ่าน portal ไปที่ document.body เพื่อไม่ให้โดน overflow-hidden ของ container ที่ครอบอยู่ตัดขอบ
+ * (เจอปัญหานี้ตอนใช้ใน multi-day-panel ที่มี overflow-hidden - ดรอปดาวน์โดนบังเหลือแค่ 2-3 แถว)
+ */
 export default function TimePicker({ value, onChange, id, placeholder = 'เลือกเวลา' }: TimePickerProps) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function updatePosition() {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.max(rect.width, LIST_WIDTH);
+      const left = Math.min(Math.max(rect.left, 8), window.innerWidth - width - 8);
+      const fitsBelow = rect.bottom + 6 + LIST_EST_HEIGHT <= window.innerHeight;
+      const top = fitsBelow ? rect.bottom + 6 : Math.max(8, rect.top - 6 - LIST_EST_HEIGHT);
+      setCoords({ top, left, width });
+    }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        // ต้องกันไม่ให้ Escape ไปถึง Modal ที่ครอบอยู่ (Modal ฟัง keydown บน document เหมือนกัน)
-        // ใช้ capture phase เพื่อดักก่อน Modal's bubble-phase listener เสมอ ไม่ว่าจะลงทะเบียนก่อน/หลังกัน
+        // กัน Escape ไหลไปปิด Modal ที่ครอบอยู่
         e.stopPropagation();
         setOpen(false);
       }
@@ -47,8 +79,9 @@ export default function TimePicker({ value, onChange, id, placeholder = 'เล�
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         id={id}
         onClick={() => setOpen((o) => !o)}
@@ -58,38 +91,45 @@ export default function TimePicker({ value, onChange, id, placeholder = 'เล�
         <span className={value ? 'text-ink' : 'text-ink-muted'}>{value || placeholder}</span>
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-20 max-h-56 w-full min-w-[120px] overflow-y-auto rounded-clay-sm bg-surface p-1.5 shadow-clay">
-          <div ref={listRef} className="flex flex-col gap-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                onChange('');
-                setOpen(false);
-              }}
-              className="rounded-clay-sm px-3 py-1.5 text-left font-body text-xs text-ink-muted hover:bg-eddy-50"
-            >
-              ไม่ระบุเวลา
-            </button>
-            {TIMES.map((t) => (
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{ position: 'fixed', top: coords.top, left: coords.left, width: coords.width }}
+            className="z-50 max-h-56 overflow-y-auto rounded-clay-sm bg-surface p-1.5 shadow-clay"
+          >
+            <div ref={listRef} className="flex flex-col gap-0.5">
               <button
-                key={t}
                 type="button"
-                data-selected={t === value}
                 onClick={() => {
-                  onChange(t);
+                  onChange('');
                   setOpen(false);
                 }}
-                className={`rounded-clay-sm px-3 py-1.5 text-left font-body text-sm transition-colors ${
-                  t === value ? 'bg-eddy-500 text-white' : 'text-ink hover:bg-eddy-50'
-                }`}
+                className="rounded-clay-sm px-3 py-1.5 text-left font-body text-xs text-ink-muted hover:bg-eddy-50"
               >
-                {t}
+                ไม่ระบุเวลา
               </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+              {TIMES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  data-selected={t === value}
+                  onClick={() => {
+                    onChange(t);
+                    setOpen(false);
+                  }}
+                  className={`rounded-clay-sm px-3 py-1.5 text-left font-body text-sm transition-colors ${
+                    t === value ? 'bg-eddy-500 text-white' : 'text-ink hover:bg-eddy-50'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

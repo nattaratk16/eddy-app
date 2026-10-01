@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { format, isSameDay, isToday } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { Flag } from 'lucide-react';
 import { getEventColor } from '@/lib/colors';
 import {
   DEFAULT_DURATION,
   HOUR_HEIGHT,
+  isEventOnDay,
   layoutDayEvents,
   minutesToTime,
   timeToMinutes,
@@ -54,7 +55,7 @@ export default function TimeGridView({
 
   // กิจกรรมทั้งวัน (ไม่มีเวลาเริ่ม) แยกออกไปแถบบนสุด
   const allDayByDay = useMemo(
-    () => days.map((day) => events.filter((ev) => !ev.startTime && isSameDay(new Date(ev.date), day))),
+    () => days.map((day) => events.filter((ev) => !ev.startTime && isEventOnDay(ev, day))),
     [days, events],
   );
   const hasAllDay = allDayByDay.some((list) => list.length > 0);
@@ -66,7 +67,7 @@ export default function TimeGridView({
     () =>
       days.map((day) => {
         const items = events
-          .filter((ev) => ev.startTime && !ev.isDeadline && isSameDay(new Date(ev.date), day))
+          .filter((ev) => ev.startTime && !ev.isDeadline && isEventOnDay(ev, day))
           .map((ev) => {
             const startMin = timeToMinutes(ev.startTime) as number;
             let endMin = timeToMinutes(ev.endTime) ?? startMin + DEFAULT_DURATION;
@@ -83,7 +84,7 @@ export default function TimeGridView({
     () =>
       days.map((day) =>
         events
-          .filter((ev) => ev.isDeadline && ev.startTime && isSameDay(new Date(ev.date), day))
+          .filter((ev) => ev.isDeadline && ev.startTime && isEventOnDay(ev, day))
           .map((ev) => ({ event: ev, startMin: timeToMinutes(ev.startTime) as number })),
       ),
     [days, events],

@@ -10,3 +10,17 @@
  * --------------------------------------------------------------
  */
 export const NOT_DEADLINE_EVENT = { isDeadline: false } as const;
+
+/**
+ * เงื่อนไข Prisma: Event นี้ "ปรากฏอยู่" ในช่วง [windowStart, windowEnd) หรือไม่ (windowEnd ไม่รวม)
+ * ต้องใช้แทนการเทียบ date ตรงๆ เพราะกิจกรรมหลายวัน (มี endDate) อาจเริ่มก่อนหน้าต่างนี้
+ * แต่ยังสิ้นสุดอยู่ในช่วง - เทียบแบบ interval overlap มาตรฐาน:
+ *   event เริ่มก่อน windowEnd  และ  event จบ (endDate ?? date) ไม่ก่อน windowStart
+ * windowStart/windowEnd เป็น Date เที่ยงคืน UTC แบบเดียวกับที่ query Event.date ใช้กันอยู่แล้วทุกจุด
+ */
+export function eventOverlapsWindow(windowStart: Date, windowEnd: Date) {
+  return {
+    date: { lt: windowEnd },
+    OR: [{ endDate: { gte: windowStart } }, { endDate: null, date: { gte: windowStart } }],
+  };
+}

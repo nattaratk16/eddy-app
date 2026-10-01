@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Check, X, Share2 } from 'lucide-react';
 import clsx from 'clsx';
 import { PASTEL_COLORS, getColorOption } from '@/lib/colors';
-import { CATEGORY_KIND_OPTIONS, type CategoryKind } from '@/lib/categoryKind';
+import { CATEGORY_KIND_OPTIONS, guessCategoryKind, type CategoryKind } from '@/lib/categoryKind';
 import type { CalendarCategory, PastelColor } from '@/lib/types';
 
 interface CategoryManagerProps {
@@ -12,7 +12,7 @@ interface CategoryManagerProps {
   visibleIds: Set<string>;
   onToggleVisible: (id: string) => void;
   /** คืนข้อความ error ถ้าเพิ่มไม่สำเร็จ (เช่น ชื่อซ้ำ) หรือ null ถ้าสำเร็จ - ใช้โชว์ inline ในฟอร์ม */
-  onAdd: (name: string, color: PastelColor) => Promise<string | null>;
+  onAdd: (name: string, color: PastelColor, kind: CategoryKind) => Promise<string | null>;
   onUpdate: (id: string, changes: Partial<CalendarCategory>) => void;
   onDelete: (id: string) => void;
   onShare?: (id: string) => void;
@@ -75,8 +75,17 @@ export default function CategoryManager({
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState<PastelColor>('blue');
+  const [newKind, setNewKind] = useState<CategoryKind>('non_academic');
+  // ตราบใดที่ผู้ใช้ยังไม่กดเลือกเอง คำเดาจากชื่อจะอัปเดตให้ทุกครั้งที่พิมพ์ชื่อ (เหมือนเดิม)
+  // พอกดเลือกเองแล้วหยุดเดาทับ ให้ค่าที่เลือกไว้ค้างอยู่แม้จะพิมพ์ชื่อต่อ
+  const [newKindTouched, setNewKindTouched] = useState(false);
   const [addError, setAddError] = useState('');
   const [addBusy, setAddBusy] = useState(false);
+
+  function handleNewNameChange(v: string) {
+    setNewName(v);
+    if (!newKindTouched) setNewKind(guessCategoryKind(v));
+  }
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -105,7 +114,7 @@ export default function CategoryManager({
     }
     setAddBusy(true);
     setAddError('');
-    const err = await onAdd(name, newColor);
+    const err = await onAdd(name, newColor, newKind);
     setAddBusy(false);
     if (err) {
       setAddError(err);
@@ -113,6 +122,8 @@ export default function CategoryManager({
     }
     setNewName('');
     setNewColor('blue');
+    setNewKind('non_academic');
+    setNewKindTouched(false);
     setAddError('');
     setAdding(false);
   }
@@ -192,12 +203,22 @@ export default function CategoryManager({
         <div className="rounded-clay-sm bg-eddy-50 p-3">
           <input
             value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            onChange={(e) => handleNewNameChange(e.target.value)}
             placeholder="ชื่อหมวดหมู่ เช่น ปฏิทินการเรียน"
             className="mb-2 w-full rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink shadow-clay-inset placeholder:text-ink-muted focus:outline-none"
             autoFocus
           />
           <ColorPicker value={newColor} onChange={setNewColor} />
+          <p className="mb-1.5 mt-3 font-body text-xs text-ink-muted">
+            หมวดหมู่นี้เกี่ยวกับ (ใช้แยกภาระงานในหน้ากลุ่ม)
+          </p>
+          <KindToggle
+            value={newKind}
+            onChange={(k) => {
+              setNewKind(k);
+              setNewKindTouched(true);
+            }}
+          />
           {addError && (
             <p className="mt-2 rounded-clay-sm bg-pastel-pink/60 px-3 py-1.5 font-body text-xs text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
               {addError}
@@ -215,6 +236,10 @@ export default function CategoryManager({
               onClick={() => {
                 setAdding(false);
                 setAddError('');
+                setNewName('');
+                setNewColor('blue');
+                setNewKind('non_academic');
+                setNewKindTouched(false);
               }}
               className="flex items-center gap-1 rounded-clay-sm bg-surface px-3 py-1.5 font-display text-xs font-semibold text-ink-muted"
             >
