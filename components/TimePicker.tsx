@@ -9,6 +9,7 @@ interface TimePickerProps {
   onChange: (value: string) => void;
   id?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const TIMES = Array.from({ length: 96 }, (_, i) => {
@@ -24,12 +25,18 @@ const LIST_EST_HEIGHT = 224; // max-h-56
  * popover render ผ่าน portal ไปที่ document.body เพื่อไม่ให้โดน overflow-hidden ของ container ที่ครอบอยู่ตัดขอบ
  * (เจอปัญหานี้ตอนใช้ใน multi-day-panel ที่มี overflow-hidden - ดรอปดาวน์โดนบังเหลือแค่ 2-3 แถว)
  */
-export default function TimePicker({ value, onChange, id, placeholder = 'เลือกเวลา' }: TimePickerProps) {
+export default function TimePicker({ value, onChange, id, placeholder = 'เลือกเวลา', disabled = false }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // ถ้าโดนปิดใช้งานขณะ dropdown เปิดค้างอยู่ (เช่น ผู้ใช้ลบวันกำหนดส่งทิ้งทั้งที่ช่องเวลายังเปิดอยู่)
+  // ต้องปิด open ไปด้วย ไม่งั้นพอกลับมาเปิดใช้งานได้อีกครั้ง dropdown จะโผล่มาเองทันทีโดยไม่ได้กดปุ่มเลย
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -84,14 +91,16 @@ export default function TimePicker({ value, onChange, id, placeholder = 'เล�
         ref={triggerRef}
         type="button"
         id={id}
+        disabled={disabled}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 rounded-clay-sm bg-eddy-50 px-4 py-2.5 font-body text-sm shadow-clay-inset focus:outline-none focus:ring-2 focus:ring-eddy-300"
+        className="flex w-full items-center gap-2 rounded-clay-sm bg-eddy-50 px-4 py-2.5 font-body text-sm shadow-clay-inset focus:outline-none focus:ring-2 focus:ring-eddy-300 disabled:opacity-40"
       >
         <Clock size={15} className="flex-shrink-0 text-ink-muted" />
         <span className={value ? 'text-ink' : 'text-ink-muted'}>{value || placeholder}</span>
       </button>
 
       {open &&
+        !disabled &&
         coords &&
         createPortal(
           <div

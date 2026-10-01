@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Plus, Trash2, ChevronDown, ChevronRight, Flame, CalendarClock,
   X, Check, ListChecks, AlertTriangle, Lock, Wand2, CheckCircle2, Pencil, RefreshCw,
+  CalendarDays, Timer, Sparkles, Undo2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import Card from '@/components/Card';
+import Modal from '@/components/Modal';
+import TimePicker from '@/components/TimePicker';
 import ScheduleTaskModal, { type ScheduleRow } from '@/components/ScheduleTaskModal';
 import EditTaskModal, { type TaskEditPatch } from '@/components/EditTaskModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -154,9 +158,10 @@ export default function TodoPage() {
   // โหมดเลือกงาน: ติ๊กเองว่าจะให้เอ็ดดี้จัดงานไหนบ้าง (ไม่ใช้ก็ = จัดทุกงานที่ค้าง)
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  // หน้าต่างเพิ่มงานใหม่ (แยกออกมาเป็น modal ไม่ปนอยู่ในหน้าเดียวกับลิสต์แล้ว)
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newPriority, setNewPriority] = useState<TaskPriority>('medium');
-  const [showDetails, setShowDetails] = useState(false);
   const [newDueDate, setNewDueDate] = useState('');
   const [newDueTime, setNewDueTime] = useState('');
   const [newEstimatedMinutes, setNewEstimatedMinutes] = useState('');
@@ -181,6 +186,9 @@ export default function TodoPage() {
   // ข้อ 4: ผู้ใช้รับทราบการเตือน "งานที่ถูกลืม" แล้ว (เก็บในหน่วยความจำหน้านี้พอ)
   const [forgottenAcked, setForgottenAcked] = useState(false);
   const [breakdownNotice, setBreakdownNotice] = useState<Record<string, string>>({});
+  // แจ้งเตือนเลิกทำ - โผล่สั้นๆ หลังติ๊กงานเสร็จ เผื่อกดผิด (งานเด้งไปหน้า "เสร็จแล้ว" ทันทีโดยไม่มีอะไรให้กดย้อนกลับ)
+  const [undoTask, setUndoTask] = useState<Task | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function loadTasks() {
     setTasksLoading(true);
@@ -236,6 +244,10 @@ export default function TodoPage() {
 
   // งานบนสุดของลิสต์ = งานที่ควรทำก่อน (ลำดับล็อกแล้ว จึงเป็นตัวแรกเสมอ)
   const topTaskId = visibleTasks[0]?.id ?? null;
+
+  // จุดที่ลิสต์ (เรียงแล้วตาม compareTasks: มีกำหนดส่งมาก่อนเสมอ) เปลี่ยนจาก "มีกำหนดส่ง" เป็น
+  // "ไม่มีกำหนดส่ง" - ใช้คั่นหัวข้อกลางลิสต์ ผู้ใช้จะได้รู้ว่าทำไมแถวถัดจากนี้ไม่มีวันที่โชว์
+  const firstUndatedIndex = visibleTasks.findIndex((t) => !t.dueDate);
 
   // ป้ายเดือนปัจจุบันสำหรับการ์ดสรุปความคืบหน้า (ตัดตามเดือนแบบเดียวกับกล่อง "เสร็จแล้ว")
   const thisMonthLabel = new Date().toLocaleDateString('th-TH', {
@@ -310,6 +322,9 @@ export default function TodoPage() {
         const data = await refreshed.json().catch(() => null);
         if (typeof data?.doneCount === 'number') setDoneCount(data.doneCount);
         if (typeof data?.doneCountThisMonth === 'number') setDoneCountThisMonth(data.doneCountThisMonth);
+        // งานเพิ่งเด้งออกจากลิสต์ไปอยู่ "เสร็จแล้ว" ทันทีโดยไม่มีอะไรให้กดย้อน - โชว์แจ้งเตือนเลิกทำสั้นๆ
+        // กันเคสกดผิด (task ตัวแปรนี้ยังเป็น done:false เพราะยังไม่ได้ mutate - ใช้กับ restoreTask ได้ตรงๆ)
+        showUndoToast(task);
       }
     } catch {
       // เน็ตหลุด: ถ้าไม่ย้อนกลับ งานจะดูเหมือนเสร็จแล้วทั้งที่ไม่ได้บันทึกอะไรเลย
@@ -322,6 +337,22 @@ export default function TodoPage() {
       }
       setScheduleError('บันทึกไม่สำเร็จ (เชื่อมต่อไม่ได้) — สถานะถูกย้อนกลับแล้ว');
     }
+  }
+
+  /** โชว์แจ้งเตือนเลิกทำ 6 วิหลังติ๊กงานเสร็จ - กดซ้อนงานใหม่ระหว่างนั้นจะแทนที่ของเดิม (ของเก่ายังย้อนได้ผ่านกล่อง "เสร็จแล้ว" ปกติ) */
+  function showUndoToast(task: Task) {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoTask(task);
+    undoTimerRef.current = setTimeout(() => setUndoTask(null), 6000);
+  }
+
+  /** กดเลิกทำจากแจ้งเตือน - ใช้ตัว restoreTask เดิม (ตัวเดียวกับที่กล่อง "เสร็จแล้ว" ใช้กู้คืนงาน) */
+  async function undoComplete() {
+    if (!undoTask) return;
+    const task = undoTask;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoTask(null);
+    await restoreTask(task);
   }
 
   function toggleSelected(taskId: string) {
@@ -403,23 +434,35 @@ export default function TodoPage() {
   async function restoreTask(task: Task) {
     setDoneCount((n) => Math.max(0, n - 1));
     setDoneRefreshSignal((n) => n + 1);
-    const res = await fetch(`/api/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done: false }),
-    });
-    if (!res.ok) return;
-    // PATCH /api/tasks/[id] ไม่ส่ง subtasks กลับมา (serialize คนละชุดกับ GET) - ถ้าต่อออบเจ็กต์
-    // ที่ตอบมาเข้า tasks ตรงๆ งานที่เพิ่งกู้กลับมาจะโชว์ 0 ขั้นตอนย่อยผิดๆ จนกว่าจะโหลดหน้าใหม่
-    // โหลดลิสต์ทั้งชุดใหม่แทน ช้ากว่านิดหน่อยแต่ข้อมูลครบถูกต้องแน่นอน
-    const refreshed = await fetch('/api/tasks');
-    const data = await refreshed.json().catch(() => null);
-    if (data?.tasks) setTasks(data.tasks);
-    // เซิร์ฟเวอร์เป็นตัวเลขที่ถูกต้องจริง ใช้ทับค่าที่ลดไปเองไว้ก่อนหน้านี้ กัน drift
-    // (ไม่แตะ doneCountThisMonth แบบ optimistic เลย เพราะงานที่กู้คืนอาจเสร็จมาจากเดือนไหนก็ได้
-    // - รอเลขจริงจากที่นี่อย่างเดียวง่ายกว่าและถูกต้องกว่าการเดา)
-    if (typeof data?.doneCount === 'number') setDoneCount(data.doneCount);
-    if (typeof data?.doneCountThisMonth === 'number') setDoneCountThisMonth(data.doneCountThisMonth);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: false }),
+      });
+      // เซิร์ฟเวอร์ปฏิเสธ (หรือเน็ตหลุด - ดักใน catch ด้านล่าง) -> ย้อน doneCount ที่ลดไปแบบ optimistic กลับ
+      // ไม่งั้นตัวเลข "เสร็จแล้ว" จะต่ำเกินจริงถาวร ทั้งที่งานยังเป็น done:true อยู่ฝั่งเซิร์ฟเวอร์เหมือนเดิม
+      if (!res.ok) {
+        setDoneCount((n) => n + 1);
+        setScheduleError('กู้คืนงานไม่สำเร็จ ลองใหม่อีกครั้งนะ');
+        return;
+      }
+      // PATCH /api/tasks/[id] ไม่ส่ง subtasks กลับมา (serialize คนละชุดกับ GET) - ถ้าต่อออบเจ็กต์
+      // ที่ตอบมาเข้า tasks ตรงๆ งานที่เพิ่งกู้กลับมาจะโชว์ 0 ขั้นตอนย่อยผิดๆ จนกว่าจะโหลดหน้าใหม่
+      // โหลดลิสต์ทั้งชุดใหม่แทน ช้ากว่านิดหน่อยแต่ข้อมูลครบถูกต้องแน่นอน
+      const refreshed = await fetch('/api/tasks');
+      const data = await refreshed.json().catch(() => null);
+      if (data?.tasks) setTasks(data.tasks);
+      // เซิร์ฟเวอร์เป็นตัวเลขที่ถูกต้องจริง ใช้ทับค่าที่ลดไปเองไว้ก่อนหน้านี้ กัน drift
+      // (ไม่แตะ doneCountThisMonth แบบ optimistic เลย เพราะงานที่กู้คืนอาจเสร็จมาจากเดือนไหนก็ได้
+      // - รอเลขจริงจากที่นี่อย่างเดียวง่ายกว่าและถูกต้องกว่าการเดา)
+      if (typeof data?.doneCount === 'number') setDoneCount(data.doneCount);
+      if (typeof data?.doneCountThisMonth === 'number') setDoneCountThisMonth(data.doneCountThisMonth);
+    } catch {
+      // เน็ตหลุด: เหมือน !res.ok ด้านบน ต้องย้อน doneCount กลับเช่นกัน
+      setDoneCount((n) => n + 1);
+      setScheduleError('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้งนะ');
+    }
   }
 
   async function addTask(e: React.FormEvent) {
@@ -437,7 +480,7 @@ export default function TodoPage() {
     setNewDueTime('');
     setNewStartDate(todayISO());
     setNewEstimatedMinutes('');
-    setShowDetails(false);
+    setAddModalOpen(false);
 
     const res = await fetch('/api/tasks', {
       method: 'POST',
@@ -818,6 +861,13 @@ export default function TodoPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAddModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-5 py-2.5 font-display text-body font-semibold text-white shadow-clay-pop transition-all hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-95"
+              >
+                <Plus size={16} /> เพิ่มงานใหม่
+              </button>
               {selectMode ? (
                 <>
                   <button
@@ -881,107 +931,6 @@ export default function TodoPage() {
               )}
             </div>
           </div>
-
-          {/* Add task form */}
-          <form onSubmit={addTask} className="mt-5 flex flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="เพิ่มสิ่งที่ต้องทำ..."
-                className="flex-1 rounded-clay-sm bg-eddy-50 px-4 py-3 font-body text-sm text-ink shadow-clay-inset placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300"
-              />
-              <select
-                value={newPriority}
-                onChange={(e) => setNewPriority(e.target.value as TaskPriority)}
-                className="rounded-clay-sm bg-eddy-50 px-4 py-3 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
-              >
-                {priorityOptions.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                className="flex items-center justify-center gap-1 rounded-clay-sm bg-gradient-to-r from-eddy-500 to-accent-500 px-6 py-3 font-display text-body font-semibold text-white shadow-clay-sm transition-all hover:brightness-110 active:scale-[0.98]"
-              >
-                <Plus size={16} /> เพิ่ม
-              </button>
-            </div>
-
-            {showDetails ? (
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="flex-1">
-                  <label className="mb-1 block font-body text-xs text-ink-muted" htmlFor="new-start-date">
-                    วันที่เริ่ม
-                  </label>
-                  <input
-                    id="new-start-date"
-                    type="date"
-                    value={newStartDate}
-                    onChange={(e) => setNewStartDate(e.target.value)}
-                    className="w-full rounded-clay-sm bg-eddy-50 px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
-                  />
-                  <p className="mt-1 font-body text-[11px] text-ink-muted">ค่าเริ่มต้นคือวันนี้ — เอ็ดดี้ใช้เป็นวันเริ่มกระจายขั้นตอนย่อย</p>
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block font-body text-xs text-ink-muted" htmlFor="new-due-date">
-                    กำหนดส่ง (ไม่บังคับ)
-                  </label>
-                  <input
-                    id="new-due-date"
-                    type="date"
-                    value={newDueDate}
-                    onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full rounded-clay-sm bg-eddy-50 px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
-                  />
-                  {/* เวลาส่งใส่ได้เฉพาะเมื่อมีวันกำหนดส่ง ไม่ใส่ = หมุดขึ้นเป็นกิจกรรมทั้งวัน */}
-                  <div className="mt-2">
-                    <label className="mb-1 block font-body text-xs text-ink-muted" htmlFor="new-due-time">
-                      เวลาส่ง (ไม่บังคับ)
-                    </label>
-                    <input
-                      id="new-due-time"
-                      type="time"
-                      value={newDueTime}
-                      onChange={(e) => setNewDueTime(e.target.value)}
-                      disabled={!newDueDate}
-                      className="w-full rounded-clay-sm bg-eddy-50 px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none disabled:opacity-40"
-                    />
-                    <p className="mt-1 font-body text-[11px] text-ink-muted">
-                      {newDueDate ? 'ไม่ใส่ = ขึ้นปฏิทินเป็นกิจกรรมทั้งวัน' : 'ใส่วันกำหนดส่งก่อน'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block font-body text-xs text-ink-muted" htmlFor="new-estimated-minutes">
-                    เวลาโดยประมาณ (นาที)
-                  </label>
-                  <input
-                    id="new-estimated-minutes"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    step={5}
-                    value={newEstimatedMinutes}
-                    onChange={(e) => setNewEstimatedMinutes(e.target.value)}
-                    placeholder="เช่น 60"
-                    className="w-full rounded-clay-sm bg-eddy-50 px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
-                  />
-                  <p className="mt-1 font-body text-[11px] text-ink-muted">ไม่บังคับ - ใช้คำนวณตอนเอ็ดดี้จัดงานลงปฏิทินให้</p>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowDetails(true)}
-                className="self-start font-body text-xs font-semibold text-eddy-600 hover:underline"
-              >
-                + เพิ่มรายละเอียด (วันที่เริ่ม / กำหนดส่ง / เวลาส่ง / เวลาโดยประมาณ)
-              </button>
-            )}
-          </form>
 
           {/* ผลการจัดงานลงปฏิทิน: ข้อความสั้นๆ / ข้อผิดพลาด */}
           {scheduleNotice && (
@@ -1071,8 +1020,8 @@ export default function TodoPage() {
                   {/* อธิบายกติกาสั้นๆ ตรงจุดที่ผู้ใช้เห็นผลลัพธ์ จะได้เข้าใจว่าทำไมได้วันนี้ */}
                   <p className="mt-2 rounded-clay-sm bg-eddy-50 px-3 py-2 font-body text-[11px] text-ink-soft">
                     เอ็ดดี้ดูปฏิทินจริงของคุณ (กิจกรรม + Loop ชีวิต) แล้วเลี่ยงช่วงที่ไม่ว่าง ·
-                    งานที่<b className="font-semibold text-ink">มีกำหนดส่ง</b>จะลงในวันกำหนดส่ง ·
-                    งานที่<b className="font-semibold text-ink">ไม่มีกำหนดส่ง</b>จะลงช่องว่างที่ใกล้ที่สุด ·
+                    งานที่<b className="font-semibold text-eddy-700">มีกำหนดส่ง</b>จะลงในวันกำหนดส่ง ·
+                    งานที่<b className="font-semibold text-brand-orange-ink">ไม่มีกำหนดส่ง</b>จะลงช่องว่างที่ใกล้ที่สุด ·
                     เรียงคิวตามลำดับเดียวกับในลิสต์
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
@@ -1204,7 +1153,7 @@ export default function TodoPage() {
                 />
               )
             )}
-            {!tasksLoading && !tasksLoadError && visibleTasks.map((task) => {
+            {!tasksLoading && !tasksLoadError && visibleTasks.map((task, index) => {
               const priority = priorityOptions.find((p) => p.value === task.priority)!;
               const subtasks = task.subtasks ?? [];
               const subDone = subtasks.filter((s) => s.done).length;
@@ -1226,13 +1175,28 @@ export default function TodoPage() {
                 : !!task.scheduled;
               const isSelected = selectedTaskIds.has(task.id);
               return (
-                <div
-                  key={task.id}
-                  className={clsx(
-                    'rounded-clay-sm px-4 py-3 transition-colors',
-                    selectMode && isSelected ? 'bg-eddy-100 ring-2 ring-eddy-300' : 'bg-eddy-50'
+                <Fragment key={task.id}>
+                  {/* เส้นคั่นตรงจุดที่ลิสต์สลับจาก "มีกำหนดส่ง" เป็น "ไม่มีกำหนดส่ง" - โชว์เฉพาะตอนมีทั้งสองกลุ่มจริงๆ
+                      (ไม่ใช่งานแรกสุดของลิสต์ ไม่งั้นจะกลายเป็นคั่นหัวลิสต์เฉยๆ) */}
+                  {index === firstUndatedIndex && firstUndatedIndex > 0 && (
+                    <div className="my-1 flex items-center gap-2 px-1">
+                      <span className="h-px flex-1 bg-eddy-100" />
+                      <span className="flex-shrink-0 font-body text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                        ไม่มีกำหนดส่ง
+                      </span>
+                      <span className="h-px flex-1 bg-eddy-100" />
+                    </div>
                   )}
-                >
+                  <div
+                    className={clsx(
+                      'rounded-clay-sm px-4 py-3 transition-colors',
+                      selectMode && isSelected
+                        ? 'bg-eddy-100 ring-2 ring-eddy-300'
+                        : isOverdue
+                          ? 'border-l-4 border-pastel-pink-dark bg-pastel-pink/30 dark:bg-pastel-pink-dark/15'
+                          : 'bg-eddy-50'
+                    )}
+                  >
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleExpand(task.id)}
@@ -1310,7 +1274,7 @@ export default function TodoPage() {
                         {task.category && <span>{task.category}</span>}
                         {task.startDate && <span>เริ่ม {formatThaiDay(task.startDate)}</span>}
                         {task.dueDate && (
-                          <span className={clsx(isOverdue && 'font-semibold text-eddy-700')}>
+                          <span className={clsx('font-medium text-eddy-700', isOverdue && 'font-semibold')}>
                             กำหนดส่ง {formatThaiDay(task.dueDate)}
                             {task.dueTime ? ` ${task.dueTime} น.` : ''}
                             {isOverdue && ` · เลยมา ${daysOverdue(task.dueDate)} วัน`}
@@ -1477,12 +1441,22 @@ export default function TodoPage() {
                           value={subtaskDrafts[task.id] ?? ''}
                           onChange={(e) => setSubtaskDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))}
                           placeholder="+ เพิ่มรายการย่อย"
-                          className="flex-1 rounded-clay-sm bg-surface px-3 py-1.5 font-body text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300"
+                          className="flex-1 rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300"
                         />
+                        {/* เดิมต้องกด Enter อย่างเดียว ไม่มีปุ่มให้กด - เพิ่มปุ่มชัดๆ ไว้ข้างช่อง */}
+                        <button
+                          type="submit"
+                          disabled={!(subtaskDrafts[task.id] ?? '').trim()}
+                          aria-label="เพิ่มรายการย่อย"
+                          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-eddy-500 text-white transition-colors hover:brightness-110 disabled:opacity-40"
+                        >
+                          <Plus size={14} />
+                        </button>
                       </form>
                     </div>
                   )}
                 </div>
+                </Fragment>
               );
             })}
           </div>
@@ -1514,6 +1488,151 @@ export default function TodoPage() {
           <p className="mt-3 font-body text-sm text-ink-muted">{progressMessage}</p>
         </Card>
       </section>
+
+      {/* หน้าต่างเพิ่มงานใหม่ - แยกออกมาเป็น modal ไม่ปนอยู่ในหน้าเดียวกับลิสต์แล้ว */}
+      <Modal open={addModalOpen} onClose={() => setAddModalOpen(false)} title="เพิ่มงานใหม่" maxWidth="max-w-2xl">
+        <form onSubmit={addTask} className="flex flex-col gap-4">
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 font-display text-sm font-semibold text-ink-soft" htmlFor="new-task-title">
+              <Sparkles size={14} className="text-eddy-500" /> งานอะไรดี?
+            </label>
+            <input
+              id="new-task-title"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="เพิ่มสิ่งที่ต้องทำ..."
+              className="w-full rounded-clay-sm bg-eddy-50 px-4 py-3 font-body text-sm text-ink shadow-clay-inset placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-eddy-300"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block font-display text-sm font-semibold text-ink-soft">ความสำคัญ</label>
+            <div className="flex flex-wrap gap-2">
+              {priorityOptions.map((p) => {
+                const active = newPriority === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setNewPriority(p.value)}
+                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-body text-xs font-semibold transition-all ${p.chipClass} ${
+                      active ? 'ring-2 ring-eddy-400' : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    {active && <Check size={12} strokeWidth={3} />}
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* รายละเอียดเพิ่มเติม - โชว์ไว้หน้าเดียวเลย ไม่ต้องกด "+ เพิ่มรายละเอียด" อีกต่อไป
+              แยกเป็นแผงของตัวเอง (กรอบ+พื้นหลังไล่สี) ให้รู้สึกว่าเป็น "ตัวเลือกเสริม" แยกจากฟอร์มหลักด้านบน */}
+          <div className="relative overflow-hidden rounded-clay-lg border border-eddy-200 bg-gradient-to-br from-eddy-50 via-surface to-pastel-lilac/30 p-4">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-eddy-300/20 blur-2xl" />
+            <p className="relative mb-3 font-display text-xs font-semibold uppercase tracking-wide text-ink-muted">
+              รายละเอียดเพิ่มเติม (ไม่บังคับ)
+            </p>
+            <div className="relative flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
+                <label className="mb-1 flex items-center gap-1 font-body text-xs text-ink-muted" htmlFor="new-start-date">
+                  <CalendarDays size={12} /> วันที่เริ่ม
+                </label>
+                <input
+                  id="new-start-date"
+                  type="date"
+                  value={newStartDate}
+                  onChange={(e) => setNewStartDate(e.target.value)}
+                  className="w-full rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
+                />
+                <p className="mt-1 font-body text-[11px] text-ink-muted">ค่าเริ่มต้นคือวันนี้ — เอ็ดดี้ใช้เป็นวันเริ่มกระจายขั้นตอนย่อย</p>
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 flex items-center gap-1 font-body text-xs text-ink-muted" htmlFor="new-due-date">
+                  <CalendarClock size={12} /> กำหนดส่ง (ไม่บังคับ)
+                </label>
+                <input
+                  id="new-due-date"
+                  type="date"
+                  value={newDueDate}
+                  onChange={(e) => setNewDueDate(e.target.value)}
+                  className="w-full rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
+                />
+                {/* เวลาส่งใส่ได้เฉพาะเมื่อมีวันกำหนดส่ง ไม่ใส่ = หมุดขึ้นเป็นกิจกรรมทั้งวัน */}
+                <div className="mt-2">
+                  <label className="mb-1 block font-body text-xs text-ink-muted" htmlFor="new-due-time">
+                    เวลาส่ง (ไม่บังคับ)
+                  </label>
+                  <TimePicker id="new-due-time" value={newDueTime} onChange={setNewDueTime} disabled={!newDueDate} />
+                  <p className="mt-1 font-body text-[11px] text-ink-muted">
+                    {newDueDate ? 'ไม่ใส่ = ขึ้นปฏิทินเป็นกิจกรรมทั้งวัน' : 'ใส่วันกำหนดส่งก่อน'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 flex items-center gap-1 font-body text-xs text-ink-muted" htmlFor="new-estimated-minutes">
+                  <Timer size={12} /> เวลาโดยประมาณ (นาที)
+                </label>
+                <input
+                  id="new-estimated-minutes"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={5}
+                  value={newEstimatedMinutes}
+                  onChange={(e) => setNewEstimatedMinutes(e.target.value)}
+                  placeholder="เช่น 60"
+                  className="w-full rounded-clay-sm bg-surface px-3 py-2 font-body text-sm text-ink shadow-clay-inset focus:outline-none"
+                />
+                <p className="mt-1 font-body text-[11px] text-ink-muted">ไม่บังคับ - ใช้คำนวณตอนเอ็ดดี้จัดงานลงปฏิทินให้</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setAddModalOpen(false)}
+              className="rounded-clay-sm bg-eddy-50 px-4 py-2 font-display text-caption font-semibold text-ink-muted transition-all hover:bg-eddy-100"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="submit"
+              className="flex items-center justify-center gap-1 rounded-clay-sm bg-gradient-to-r from-eddy-500 to-accent-500 px-6 py-2.5 font-display text-body font-semibold text-white shadow-clay-sm transition-all hover:brightness-110 active:scale-[0.98]"
+            >
+              <Plus size={16} /> เพิ่ม
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* แจ้งเตือนเลิกทำสั้นๆ หลังติ๊กงานเสร็จ - กันเคสกดผิดแล้วงานเด้งหายไปอยู่หน้า "เสร็จแล้ว" โดยไม่มีทางย้อน */}
+      <AnimatePresence>
+        {undoTask && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+            className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-slate-900 px-5 py-3 shadow-clay-pop"
+          >
+            <CheckCircle2 size={16} className="flex-shrink-0 text-eddy-300" />
+            <p className="min-w-0 truncate font-body text-sm text-white">
+              <span className="font-semibold">&quot;{undoTask.title}&quot;</span> ทำเสร็จแล้ว
+            </p>
+            <button
+              type="button"
+              onClick={undoComplete}
+              className="flex flex-shrink-0 items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-white/25"
+            >
+              <Undo2 size={13} /> เลิกทำ
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* งานที่เสร็จแล้วถูกย้ายออกจากลิสต์หลักมาอยู่ที่นี่ - ดูทีละเดือน กู้คืน/ลบได้ */}
       <CompletedTasksModal
