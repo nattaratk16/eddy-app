@@ -63,7 +63,7 @@ function bandOf(pct: number) {
 const KIND_SEGMENTS = [
   { key: 'academic', label: 'วิชาการ', swatch: 'bg-kind-academic' },
   { key: 'nonAcademic', label: 'ไม่ใช่วิชาการ', swatch: 'bg-kind-nonAcademic' },
-  { key: 'pending', label: 'งานค้างยังไม่ลงปฏิทิน', swatch: 'bg-ink-muted/50' },
+  { key: 'pending', label: 'งานค้างยังไม่ลงปฏิทิน', swatch: 'bg-kind-pending' },
 ] as const;
 
 interface WorkloadPanelProps {
@@ -165,7 +165,7 @@ export default function WorkloadPanel({ groupId, rows, refreshKey = 0, className
                           <div className="w-full bg-kind-nonAcademic" style={{ flexGrow: nonAcademicMin, flexBasis: 0 }} />
                         )}
                         {pendingMin > 0 && (
-                          <div className="w-full bg-ink-muted/50" style={{ flexGrow: pendingMin, flexBasis: 0 }} />
+                          <div className="w-full bg-kind-pending" style={{ flexGrow: pendingMin, flexBasis: 0 }} />
                         )}
                       </div>
                     ) : (

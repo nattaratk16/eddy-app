@@ -52,7 +52,9 @@ function KindToggle({ value, onChange }: { value: CategoryKind; onChange: (k: Ca
             value === opt.value
               ? opt.value === 'academic'
                 ? 'bg-kind-academic text-white'
-                : 'bg-kind-nonAcademic text-white'
+                // พื้นหลังนี้เป็นสีทองสว่าง (#FFD700) - ตัวหนังสือขาวอ่านแทบไม่ออก (contrast 1.4:1)
+                // ต้องใช้ตัวหนังสือเข้มแทน ต่างจาก academic (น้ำเงินเข้ม ขาวอ่านออกสบาย 16:1)
+                : 'bg-kind-nonAcademic text-chip-ink'
               : 'bg-surface text-ink-muted shadow-clay-inset',
           )}
         >
