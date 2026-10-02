@@ -29,6 +29,50 @@ const initialMessages: ChatMessage[] = [
 /** ตัวอย่างให้กดเริ่มบทสนทนา - โผล่เฉพาะตอนยังไม่มีประวัติแชท */
 const STARTERS = ['นัดหมอฟันพุธหน้าบ่ายสาม', 'อ่านหนังสือสอบ', 'ประชุมกลุ่มพรุ่งนี้ 10 โมง'];
 
+/** ขีดนำข้อที่เอ็ดดี้อาจใช้ได้ทั้งหมด ("- "/"• "/"* " - เผื่อ Gemini ไม่เป๊ะตามที่สั่งไว้เป๊ะๆ ทุกครั้ง) */
+const LIST_MARKER_RE = /^[-•*]\s+/;
+
+/**
+ * แยกข้อความของเอ็ดดี้เป็นย่อหน้า/รายการข้อ แล้วเรนเดอร์เป็น <ul><li> จริงพร้อมจุดนำข้อ
+ * แทนตัวอักษร "-"/"•" ดิบๆ ที่รวมกันเป็นก้อนเดียว (ของเดิม {m.text} ไม่มี whitespace-pre-wrap
+ * เลย \n ที่ Gemini ส่งมาถูก HTML ยุบทิ้งหมด ข้อความเลยดูอัดกันเป็นพรืดอ่านยาก)
+ */
+function renderEddyText(text: string) {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.some((l) => LIST_MARKER_RE.test(l))) {
+    return <p className="whitespace-pre-wrap">{text}</p>;
+  }
+
+  const blocks: { list: boolean; lines: string[] }[] = [];
+  for (const line of lines) {
+    const list = LIST_MARKER_RE.test(line);
+    const last = blocks[blocks.length - 1];
+    if (last && last.list === list) last.lines.push(line);
+    else blocks.push({ list, lines: [line] });
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {blocks.map((b, i) =>
+        b.list ? (
+          <ul key={i} className="flex flex-col gap-1">
+            {b.lines.map((l, j) => (
+              <li key={j} className="flex items-start gap-2">
+                <span className="mt-[7px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-eddy-400" />
+                <span>{l.replace(LIST_MARKER_RE, '')}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p key={i} className="whitespace-pre-wrap">
+            {b.lines.join(' ')}
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
 /** "2026-09-10" -> "พ. 10 ก.ย." (เป็นป้ายวันที่ล้วน อ่านเป็น UTC ไม่ให้เลื่อนตามโซนเวลาเครื่อง) */
 function thaiDay(iso?: string): string {
   if (!iso) return '';
@@ -239,7 +283,7 @@ export default function ChatWidget() {
                             : 'rounded-[18px] rounded-br-[6px] bg-inverse text-white'
                         }`}
                       >
-                        {m.text}
+                        {eddy ? renderEddyText(m.text) : m.text}
                       </div>
                     </div>
 
