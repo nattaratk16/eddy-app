@@ -97,7 +97,7 @@ export default function MonthView({
               title="คลิกเพื่อดูไทม์ไลน์ของวันนี้"
               // min-w-0 + overflow-hidden สำคัญมาก: ถ้าไม่ใส่ ชื่อกิจกรรมยาวๆ จะดันคอลัมน์นั้นให้กว้าง
               // แล้วคอลัมน์ที่เหลือ (โดยเฉพาะอาทิตย์ที่อยู่ซ้ายสุด) จะถูกบีบจนเลขวันที่เบียดกัน
-              className={`group flex min-h-[140px] min-w-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-2 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 hover:bg-eddy-50/40 ${
+              className={`group flex min-h-[72px] min-w-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-eddy-100 p-1.5 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 hover:bg-eddy-50/40 sm:min-h-[140px] sm:p-2 ${
                 !inMonth ? 'bg-eddy-50/30' : isWeekend ? 'bg-eddy-50/40' : 'bg-surface'
               }`}
             >
@@ -125,7 +125,9 @@ export default function MonthView({
                   }}
                   aria-label={`เพิ่มกิจกรรมวันที่ ${format(day, 'd')}`}
                   title="เพิ่มกิจกรรมในวันนี้"
-                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-ink-muted opacity-0 transition-opacity hover:bg-eddy-100 hover:text-eddy-600 focus:opacity-100 group-hover:opacity-100"
+                  // มือถือไม่มี hover - ต้องโชว์ปุ่มนี้ค้างไว้เลย ไม่งั้นแตะไม่ถูกเพราะมองไม่เห็น
+                  // ตั้งแต่ sm ขึ้นไปกลับไปซ่อนจนชี้เมาส์แบบเดิม
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-ink-muted opacity-60 transition-opacity hover:bg-eddy-100 hover:text-eddy-600 focus:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <Plus size={13} />
                 </button>
