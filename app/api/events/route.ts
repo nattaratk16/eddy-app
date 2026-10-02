@@ -93,6 +93,11 @@ export async function POST(req: NextRequest) {
     if (endDate.getTime() === date.getTime()) endDate = null; // เท่ากับวันเริ่ม = ไม่ใช่กิจกรรมหลายวัน
   }
 
+  // ฟอร์มฝั่ง client เช็คอยู่แล้ว แต่เช็คซ้ำที่นี่กันเรียก API ตรงๆ ข้ามฟอร์ม (เช่นจากแชท quick-add)
+  if (body.startTime && body.endTime && body.endTime <= body.startTime) {
+    return NextResponse.json({ error: 'เวลาสิ้นสุดต้องหลังเวลาเริ่ม' }, { status: 400 });
+  }
+
   const event = await prisma.event.create({
     data: {
       title: body.title,

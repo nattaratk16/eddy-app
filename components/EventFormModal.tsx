@@ -163,6 +163,7 @@ export default function EventFormModal({
     if (!categoryId) return setError('กรุณาเลือกหมวดหมู่ (ถ้ายังไม่มี ให้เพิ่มหมวดหมู่ก่อนทางด้านซ้าย)');
     if (!date) return setError('กรุณาเลือกวันที่');
     if (isMultiDay && endDate < date) return setError('วันสิ้นสุดต้องไม่ก่อนวันเริ่ม');
+    if (startTime && endTime && endTime <= startTime) return setError('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');
 
     const event: CalendarEvent = {
       id: initialEvent?.id ?? crypto.randomUUID(),

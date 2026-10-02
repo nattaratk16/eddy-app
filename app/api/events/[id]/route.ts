@@ -68,6 +68,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     newEndDate = null;
   }
 
+  // ค่าเวลาที่จะมีผลจริงหลังอัปเดต (undefined = ไม่ได้แตะ ใช้ค่าเดิม) - เช็คย้อนหลังแบบเดียวกับตอนสร้างใหม่
+  const effectiveStartTime = body.startTime !== undefined ? body.startTime || null : existing.startTime;
+  const effectiveEndTime = body.endTime !== undefined ? body.endTime || null : existing.endTime;
+  if (effectiveStartTime && effectiveEndTime && effectiveEndTime <= effectiveStartTime) {
+    return NextResponse.json({ error: 'เวลาสิ้นสุดต้องหลังเวลาเริ่ม' }, { status: 400 });
+  }
+
   const event = await prisma.event.update({
     where: { id: params.id },
     data: {
