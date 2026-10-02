@@ -73,10 +73,9 @@ export default function PrivacyPolicyContent() {
       <p className={p}>
         คุณสามารถแก้ไขหรือลบข้อมูลโปรไฟล์ส่วนใหญ่ได้ด้วยตนเองในหน้าโปรไฟล์ หากต้องการขอดู แก้ไข หรือลบบัญชีและข้อมูล
         ทั้งหมดอย่างถาวร ติดต่อผู้ดูแลโครงงานได้ที่{' '}
-        <a href="mailto:privacy@example.com" className="font-semibold text-eddy-600 hover:text-eddy-700">
-          privacy@example.com
+        <a href="mailto:nattarat.k@rmutsvmail.com" className="font-semibold text-eddy-600 hover:text-eddy-700">
+          nattarat.k@rmutsvmail.com
         </a>{' '}
-        <span className="font-body text-caption text-ink-muted">(อีเมลตัวอย่าง - ผู้พัฒนาโปรดแก้เป็นช่องทางติดต่อจริงก่อนใช้งานจริง)</span>
       </p>
 
       <h2 className={h2}>การเปลี่ยนแปลงนโยบายนี้</h2>
