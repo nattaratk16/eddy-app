@@ -115,6 +115,7 @@ export interface RecurringEventInfo {
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   categoryId?: string | null;
+  startDate?: string | null; // YYYY-MM-DD (null = ไม่มีขอบเขตล่าง)
   endDate?: string | null; // YYYY-MM-DD (null = ตลอดไป)
 }
 

@@ -24,6 +24,7 @@ function serialize(re: RecurringEvent): RecurringEventInfo {
     startTime: re.startTime,
     endTime: re.endTime,
     categoryId: re.categoryId,
+    startDate: re.startDate ? re.startDate.toISOString().slice(0, 10) : null,
     endDate: re.endDate ? re.endDate.toISOString().slice(0, 10) : null,
   };
 }
@@ -61,10 +62,23 @@ export async function POST(req: NextRequest) {
   }
   if (endTime <= startTime) return NextResponse.json({ error: 'เวลาจบต้องหลังเวลาเริ่ม' }, { status: 400 });
 
+  // ไม่ส่ง startDate มา (หรือส่งค่าไม่ถูกต้อง) = ตั้งเป็นวันนี้ให้เอง - กันไม่ให้ Loop ใหม่ทบวันก่อนหน้า
+  // ที่เพิ่งเพิ่มเข้ามาโดยไม่ตั้งใจ (ปัญหาที่เจอก่อนมีฟิลด์นี้: ไม่มีขอบเขตล่าง เลยขยายย้อนหลังไปเรื่อยๆ)
+  let startDate: Date;
+  if (typeof body?.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.startDate)) {
+    const parsed = new Date(`${body.startDate}T00:00:00.000Z`);
+    startDate = Number.isNaN(parsed.getTime()) ? new Date(`${todayISOForLoops()}T00:00:00.000Z`) : parsed;
+  } else {
+    startDate = new Date(`${todayISOForLoops()}T00:00:00.000Z`);
+  }
+
   let endDate: Date | null = null;
   if (typeof body?.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.endDate)) {
     endDate = new Date(`${body.endDate}T00:00:00.000Z`);
     if (Number.isNaN(endDate.getTime())) endDate = null;
+  }
+  if (endDate && endDate < startDate) {
+    return NextResponse.json({ error: 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม' }, { status: 400 });
   }
 
   // Loop คือ "เวลาไม่ว่างประจำ" ที่ระบบเอาไปคิดเวลาว่าง/ภาระงาน
@@ -99,6 +113,7 @@ export async function POST(req: NextRequest) {
             startTime,
             endTime,
             categoryId: typeof body?.categoryId === 'string' && body.categoryId ? body.categoryId : null,
+            startDate,
             endDate,
           },
         });

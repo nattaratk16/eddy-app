@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       startTime: r.startTime,
       endTime: r.endTime,
       categoryId: r.categoryId,
+      startDate: r.startDate ? r.startDate.toISOString().slice(0, 10) : null,
       endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
     })),
     [dateISO],

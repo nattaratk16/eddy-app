@@ -28,6 +28,11 @@ interface Props {
   onChange: () => void; // แจ้งให้ปฏิทินโหลด Loop ใหม่หลังเพิ่ม/แก้/ลบ
 }
 
+/** วันนี้แบบ YYYY-MM-DD ตามเวลาไทย - ใช้เป็นค่าเริ่มต้นของ "เริ่มวันที่" ตอนเพิ่ม Loop ใหม่ */
+function todayISO(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+}
+
 const EMPTY = {
   title: '',
   courseCode: '',
@@ -35,6 +40,7 @@ const EMPTY = {
   startTime: '',
   endTime: '',
   categoryId: '',
+  startDate: '',
   endDate: '',
 };
 
@@ -103,7 +109,8 @@ export default function RecurringManager({ categories, onChange }: Props) {
   }
 
   function startAdd() {
-    setForm({ ...EMPTY });
+    // ตั้งค่าเริ่มต้นเป็นวันนี้ - กันไม่ให้ Loop ใหม่ย้อนไปทบวันก่อนหน้าที่เพิ่งเพิ่มเข้ามา (ผู้ใช้แก้เป็นวันอื่นได้)
+    setForm({ ...EMPTY, startDate: todayISO() });
     setError('');
     setEditing('new');
   }
@@ -116,6 +123,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
       startTime: it.startTime,
       endTime: it.endTime,
       categoryId: it.categoryId ?? '',
+      startDate: it.startDate ?? '',
       endDate: it.endDate ?? '',
     });
     setError('');
@@ -132,6 +140,9 @@ export default function RecurringManager({ categories, onChange }: Props) {
     if (form.days.length === 0) return setError('กรุณาเลือกวันอย่างน้อย 1 วัน');
     if (!form.startTime || !form.endTime) return setError('กรุณาเลือกเวลาเริ่มและจบ');
     if (form.endTime <= form.startTime) return setError('เวลาจบต้องหลังเวลาเริ่ม');
+    if (form.startDate && form.endDate && form.endDate < form.startDate) {
+      return setError('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม');
+    }
 
     setSaving(true);
     const isNew = editing === 'new';
@@ -145,6 +156,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
         startTime: form.startTime,
         endTime: form.endTime,
         categoryId: form.categoryId,
+        startDate: form.startDate || null,
         endDate: form.endDate || null,
       }),
     });
@@ -270,15 +282,27 @@ export default function RecurringManager({ categories, onChange }: Props) {
             </div>
           </div>
 
-          <div className="sm:max-w-[260px]">
-            <label className={labelCls} htmlFor="loop-end">ใช้ถึงวันที่ (เช่น สิ้นเทอม)</label>
-            <input
-              id="loop-end"
-              type="date"
-              value={form.endDate}
-              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-              className={inputCls}
-            />
+          <div className="grid gap-3 sm:grid-cols-2 sm:max-w-[520px]">
+            <div>
+              <label className={labelCls} htmlFor="loop-start">เริ่มวันที่</label>
+              <input
+                id="loop-start"
+                type="date"
+                value={form.startDate}
+                onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="loop-end">ใช้ถึงวันที่ (เช่น สิ้นเทอม)</label>
+              <input
+                id="loop-end"
+                type="date"
+                value={form.endDate}
+                onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
           </div>
 
           {/* สรุปสิ่งที่กรอกไว้ - เห็นทันทีว่า Loop นี้จะกินเวลาไปเท่าไรก่อนกดบันทึก */}
@@ -358,6 +382,7 @@ export default function RecurringManager({ categories, onChange }: Props) {
                   {weeklyLoad(it.days, it.startTime, it.endTime) && (
                     <span>· {weeklyLoad(it.days, it.startTime, it.endTime)}</span>
                   )}
+                  {it.startDate && <span>· จาก {thaiDate(it.startDate)}</span>}
                   {it.endDate && <span>· ถึง {thaiDate(it.endDate)}</span>}
                 </div>
               </div>

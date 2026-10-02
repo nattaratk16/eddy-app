@@ -26,6 +26,7 @@ export function expandRecurring(recurring: RecurringEventInfo[], dates: string[]
     const dow = new Date(`${date}T00:00:00Z`).getUTCDay(); // 0=อาทิตย์ .. 6=เสาร์
     for (const re of recurring) {
       if (!re.days.includes(dow)) continue;
+      if (re.startDate && date < re.startDate) continue; // ยังไม่ถึงวันเริ่ม Loop นี้ - กันไม่ให้ทบวันก่อนหน้าที่เพิ่ง Loop เข้าไป
       if (re.endDate && date > re.endDate) continue; // เลยวันสิ้นสุดแล้ว (เทียบ string YYYY-MM-DD ได้)
       out.push({
         id: `recur:${re.id}:${date}`,

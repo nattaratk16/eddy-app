@@ -84,6 +84,7 @@ model RecurringEvent {
   startTime  String // "HH:mm"
   endTime    String // "HH:mm"
   categoryId String? // อ้างอิงหมวดหมู่ (เก็บเป็น string ไม่ทำ FK เพื่อไม่ให้ลบหมวดแล้วลบ loop ตาม)
+  startDate  DateTime? // เริ่มนับตั้งแต่วันไหน - null = ไม่มีขอบเขตล่าง (ของเก่าก่อนมีฟิลด์นี้ ยังขยายย้อนหลังได้เหมือนเดิม)
   endDate    DateTime? // ใช้ถึงวันไหน (เช่น สิ้นเทอม) - null = ตลอดไป
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

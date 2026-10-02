@@ -41,6 +41,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     data.courseCode = code || null;
   }
   if (typeof body?.categoryId === 'string') data.categoryId = body.categoryId || null;
+  if (body?.startDate === null) data.startDate = null;
+  else if (typeof body?.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.startDate)) {
+    data.startDate = new Date(`${body.startDate}T00:00:00.000Z`);
+  }
   if (body?.endDate === null) data.endDate = null;
   else if (typeof body?.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.endDate)) {
     data.endDate = new Date(`${body.endDate}T00:00:00.000Z`);
@@ -51,6 +55,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     days: parseDays((data.days as string) ?? existing.days),
     startTime: (data.startTime as string) ?? existing.startTime,
     endTime: (data.endTime as string) ?? existing.endTime,
+    startDate:
+      data.startDate === undefined
+        ? existing.startDate
+          ? existing.startDate.toISOString().slice(0, 10)
+          : null
+        : data.startDate
+        ? (data.startDate as Date).toISOString().slice(0, 10)
+        : null,
     endDate:
       data.endDate === undefined
         ? existing.endDate
@@ -62,6 +74,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   };
   if (next.endTime <= next.startTime) {
     return NextResponse.json({ error: 'เวลาจบต้องหลังเวลาเริ่ม' }, { status: 400 });
+  }
+  if (next.startDate && next.endDate && next.endDate < next.startDate) {
+    return NextResponse.json({ error: 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม' }, { status: 400 });
   }
 
   const others = await prisma.recurringEvent.findMany({ where: { userId: session.user.id, id: { not: params.id } } });
