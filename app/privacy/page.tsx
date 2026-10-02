@@ -3,7 +3,10 @@ import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 import PrivacyPolicyContent from '@/components/PrivacyPolicyContent';
 
-export const metadata = { title: 'นโยบายความเป็นส่วนตัว - Eddy' };
+export const metadata = {
+  title: 'นโยบายความเป็นส่วนตัว - Eddy',
+  alternates: { canonical: '/privacy' },
+};
 
 // หน้านี้เก็บไว้เป็นลิงก์ตรงถาวร (เช่นกรอกใน Google OAuth consent screen) แม้ว่าตอนสมัครสมาชิก
 // จะเปิดเนื้อหาเดียวกันนี้เป็นป็อปอัปแทนแล้วก็ตาม (ดู components/PrivacyPolicyModal.tsx)

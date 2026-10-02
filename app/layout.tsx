@@ -29,6 +29,9 @@ const brandFont = Mitr({
 });
 
 export const metadata: Metadata = {
+  // จำเป็นสำหรับให้ alternates.canonical / Open Graph ของแต่ละหน้า resolve เป็น absolute URL
+  // ที่ถูกต้อง (ไม่งั้น Next.js จะปล่อยเป็น relative path เฉยๆ ซึ่ง Google Search Console ไม่รับ)
+  metadataBase: new URL('https://www.eddyth.online'),
   title: 'EDDY — ผู้ช่วยจัดตารางชีวิตของคุณ',
   description: 'AI assistant ที่ช่วยจัดตารางชีวิตประจำวัน งาน และสิ่งที่ต้องทำ',
 };

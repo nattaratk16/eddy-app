@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Check } from 'lucide-react';
@@ -10,6 +11,11 @@ import LandingFooter from '@/components/landing/LandingFooter';
 import ScrollProgressBar from '@/components/landing/ScrollProgressBar';
 import CountUpNumber from '@/components/landing/CountUpNumber';
 import AnimatedBar from '@/components/landing/AnimatedBar';
+
+// alternates.canonical: '/' -> resolve เป็น https://www.eddyth.online พอดี (ใช้ metadataBase จาก root layout)
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 export default async function LandingPage() {
   const session = await auth();
