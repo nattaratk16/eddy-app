@@ -87,8 +87,12 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     // เงียบไว้ - ใช้ local
   }
 
-  // จัดลำดับงาน: ใกล้ deadline ก่อน แล้วงานยาวก่อน
+  // จัดลำดับงาน: ด่าน (stage) ก่อนเป็นอันดับแรกเสมอ - งานด่านหลังต้องรองานด่านก่อนหน้า "ทุกชิ้น" เสร็จก่อน
+  // (ข้ามคนได้ เพราะด่านเดียวกันอาจถูกแบ่งให้คนละคนทำพร้อมกัน) ภายในด่านเดียวกันค่อยเรียงแบบเดิม:
+  // ใกล้ deadline ก่อน แล้วงานยาวก่อน - กันเคสที่เคยเจอ เช่น "เตรียมอุปกรณ์" (ด่าน 2) ถูกจัดก่อน
+  // "วางแผน" (ด่าน 1) เพราะบังเอิญคนที่ได้รับมอบหมายว่างเช้ากว่า
   const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.stage !== b.stage) return a.stage - b.stage;
     const ad = a.dueDate ? a.dueDate.toISOString().slice(0, 10) : '9999-99-99';
     const bd = b.dueDate ? b.dueDate.toISOString().slice(0, 10) : '9999-99-99';
     if (ad !== bd) return ad < bd ? -1 : 1;
@@ -105,14 +109,27 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     source: string;
   }[] = [];
 
+  // ขอบเขตล่างของเวลาที่ "ด่านปัจจุบัน" เริ่มได้ (= เวลาจบล่าสุดของงานทุกชิ้นในด่านก่อนหน้า ข้ามทุกคน)
+  // null = ด่านแรก ไม่มีข้อจำกัด
+  let stageNotBefore: { date: string; minutesOfDay: number } | null = null;
+  let currentStage = sortedTasks[0]?.stage;
+  let stageMaxEnd: { date: string; minutesOfDay: number } | null = null;
+
   for (const task of sortedTasks) {
+    if (task.stage !== currentStage) {
+      // ข้ามไปด่านใหม่ - ด่านนี้ห้ามเริ่มก่อนจุดจบล่าสุดของด่านก่อนหน้าที่เพิ่งจัดจบ
+      stageNotBefore = stageMaxEnd;
+      stageMaxEnd = null;
+      currentStage = task.stage;
+    }
+
     const due = task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null;
     // ผู้สมัคร: เรียงตาม Workload Score (ภาระงานน้อยสุดก่อน)
     // คนที่ Gemini เลือกจะถูกดันขึ้นมาก่อน เว้นแต่ภาระงานสูงกว่าคนที่ว่างสุดเกินเพดานความเป็นธรรม
     const candidates = rankCandidates([...workloadByUser.values()], geminiPref.get(task.id));
 
     for (const uid of candidates) {
-      const placed = placeTask(slotsByUser.get(uid)!, task.estimatedMinutes, due, bufferByUser.get(uid) ?? 0);
+      const placed = placeTask(slotsByUser.get(uid)!, task.estimatedMinutes, due, bufferByUser.get(uid) ?? 0, stageNotBefore);
       if (placed) {
         toCreate.push({
           groupTaskId: task.id,
@@ -134,6 +151,10 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
           freeMinutes: freeLeft,
           score: workloadScore(w.committedMinutes + task.estimatedMinutes, freeLeft),
         });
+        // จำเวลาจบล่าสุดของด่านนี้ไว้ (ข้ามทุกคน) - ด่านถัดไปจะเอาไปเป็น stageNotBefore
+        if (!stageMaxEnd || placed.date > stageMaxEnd.date || (placed.date === stageMaxEnd.date && placed.endMin > stageMaxEnd.minutesOfDay)) {
+          stageMaxEnd = { date: placed.date, minutesOfDay: placed.endMin };
+        }
         break;
       }
     }

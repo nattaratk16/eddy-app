@@ -101,17 +101,24 @@ export function totalFreeMinutes(slots: FreeSlot[]): number {
  * กิจกรรมก่อนหน้าที่ทำให้ slot นี้เริ่มตรงนี้) แล้วเลื่อน cursor ไปอีก bufferMin หลังงานจบ (กันชน
  * ให้งานถัดไปที่จะมาแทรกในช่องว่างเดียวกัน) ข้อจำกัดที่ยอมรับได้: ถ้า slot นี้ติดขอบเขตวัน
  * (dayStart/dayEnd) ไม่ใช่กิจกรรมจริง ก็จะเสียเวลากันชนไปเปล่าๆ นิดหน่อย - ไม่ใช่บั๊ก แค่กันเผื่อเกินจำเป็น
+ *
+ * notBefore (ไม่บังคับ): ห้ามเริ่มงานก่อนจุดเวลานี้ - ใช้ตอนงานนี้ต้องรองานอื่นที่ "คนละคน คนละปฏิทิน"
+ * ให้เสร็จก่อน (ดู /api/groups/[id]/distribute ที่ใช้บังคับลำดับ "ด่าน" ข้ามสมาชิกในกลุ่ม) ต่างจาก
+ * dueDate ที่เป็นขอบบน (ห้ามเกิน) notBefore เป็นขอบล่าง (ห้ามก่อน) ของทั้งสองแกน
  */
 export function placeTask(
   slots: FreeSlot[],
   durationMin: number,
   dueDate?: string | null,
   bufferMin = 0,
+  notBefore?: { date: string; minutesOfDay: number } | null,
 ): { date: string; startMin: number; endMin: number } | null {
   for (const slot of slots) {
     if (dueDate && slot.date > dueDate) continue; // ข้ามวันที่เลย deadline (string YYYY-MM-DD เทียบตรงๆ ได้)
+    if (notBefore && slot.date < notBefore.date) continue; // ข้ามวันที่ยังไม่ถึงจุดที่อนุญาตให้เริ่ม
     const leadBuffer = slot.bufferedStart ? 0 : bufferMin;
-    const start = slot.startMin + leadBuffer;
+    let start = slot.startMin + leadBuffer;
+    if (notBefore && slot.date === notBefore.date) start = Math.max(start, notBefore.minutesOfDay);
     const end = start + durationMin;
     if (end + bufferMin <= slot.endMin) {
       const placed = { date: slot.date, startMin: start, endMin: end };

@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMembership } from '@/lib/groups';
-import { breakdownTask } from '@/lib/gemini';
+import { breakdownGroupTask } from '@/lib/gemini';
 import { todayISOBangkok } from '@/lib/schedule';
 import { datesBetween } from '@/lib/subtaskPlan';
 
@@ -46,10 +46,18 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   // ระยะเวลาโฟกัสสูงสุดของ "คนที่กำลังแตกงานอยู่" (ยังไม่รู้ว่าใครจะรับงานย่อยไหนตอนนี้)
   const callerProfile = await prisma.user.findUnique({ where: { id: session.user.id }, select: { maxFocusMinutes: true } });
+  // จำนวนสมาชิกที่รับงานได้จริง - บอก AI กันแบ่งด่านขนานเกินจำนวนคนที่มีในกลุ่ม
+  const memberCount = await prisma.groupMember.count({ where: { groupId: params.id, status: 'accepted' } });
 
-  let steps: Awaited<ReturnType<typeof breakdownTask>> = null;
+  let steps: Awaited<ReturnType<typeof breakdownGroupTask>> = null;
   try {
-    steps = await breakdownTask({ title, spanDays, totalMinutes, maxSessionMinutes: callerProfile?.maxFocusMinutes ?? null });
+    steps = await breakdownGroupTask({
+      title,
+      spanDays,
+      totalMinutes,
+      maxSessionMinutes: callerProfile?.maxFocusMinutes ?? null,
+      memberCount,
+    });
   } catch {
     steps = null;
   }

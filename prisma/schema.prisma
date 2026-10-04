@@ -311,6 +311,10 @@ model GroupTask {
   description      String?
   estimatedMinutes Int                  @default(60) // ใช้คำนวณว่าต้องการช่วงว่างยาวแค่ไหน
   dueDate          DateTime? // กำหนดส่ง (ไม่บังคับ) - AI จะไม่วางเกินวันนี้
+  // ด่านของงานนี้ (จากการแตกงานกลุ่มด้วย AI - ดู breakdownGroupTask ใน lib/gemini.ts)
+  // งาน stage เดียวกันทำขนานกันได้ (คนละคน) stage ถัดไปต้องรองานทุกชิ้นใน stage ก่อนหน้าเสร็จก่อน
+  // ค่าเริ่มต้น 1 = ไม่มีข้อจำกัดลำดับ (งานที่เพิ่มเองไม่ผ่านการแตกงาน หรือทุกงานอยู่ด่านเดียวกันหมด)
+  stage            Int                  @default(1)
   createdById      String
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt

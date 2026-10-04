@@ -56,6 +56,8 @@ const statusText: Record<string, string> = {
 interface StepRow {
   title: string;
   estimatedMinutes: number;
+  /** ด่าน (1=แรกสุด) - ขั้นตอนด่านเดียวกันมอบหมายคนละคนทำพร้อมกันได้ ด่านถัดไปต้องรอด่านนี้เสร็จก่อนทั้งหมด */
+  stage: number;
   /** null = ปล่อยให้เอ็ดดี้จัดตาราง (กด "ให้เอ็ดดี้จัดตาราง" ทีหลัง) */
   assigneeUserId: string | null;
 }
@@ -152,7 +154,11 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
       return;
     }
     setSteps(
-      (data.steps ?? []).map((s: { title: string; estimatedMinutes: number }) => ({ ...s, assigneeUserId: null })),
+      (data.steps ?? []).map((s: { title: string; estimatedMinutes: number; stage?: number }) => ({
+        ...s,
+        stage: s.stage ?? 1,
+        assigneeUserId: null,
+      })),
     );
   }
 
@@ -163,7 +169,11 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     setSteps((prev) => (prev ? prev.filter((_, idx) => idx !== i) : prev));
   }
   function addStepRow() {
-    setSteps((prev) => [...(prev ?? []), { title: '', estimatedMinutes: 60, assigneeUserId: null }]);
+    // ค่าเริ่มต้น stage = ด่านของขั้นตอนสุดท้าย (ต่อท้ายด่านเดิม) - ผู้ใช้ปรับขึ้นเองได้ถ้าควรเป็นด่านใหม่
+    setSteps((prev) => [
+      ...(prev ?? []),
+      { title: '', estimatedMinutes: 60, stage: prev?.[prev.length - 1]?.stage ?? 1, assigneeUserId: null },
+    ]);
   }
 
   async function confirmSteps() {
@@ -180,6 +190,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
         body: JSON.stringify({
           title: s.title,
           estimatedMinutes: s.estimatedMinutes,
+          stage: s.stage,
           dueDate: due || undefined,
           description: `จากการแตกงาน: "${title}"`,
         }),
@@ -464,35 +475,60 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
               แก้ไข ลบ หรือเพิ่มขั้นตอนได้ก่อนยืนยัน แล้วเลือกได้ว่าจะมอบหมายเองหรือให้เอ็ดดี้เลือกให้ทีหลัง
             </p>
             <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto pr-1">
-              {steps.map((s, i) => (
-                <div key={i} className="rounded-clay-sm bg-eddy-50 p-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={s.title}
-                      onChange={(e) => updateStep(i, { title: e.target.value })}
-                      placeholder="ชื่อขั้นตอน"
-                      className="h-9 flex-1 rounded-clay-sm border border-eddy-200 bg-surface px-3 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none"
-                    />
-                    <button
-                      onClick={() => removeStep(i)}
-                      aria-label="ลบขั้นตอนนี้"
-                      className="flex-shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-surface hover:text-eddy-700"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input
-                      type="number"
-                      min={5}
-                      max={1440}
-                      step={5}
-                      value={s.estimatedMinutes}
-                      onChange={(e) => updateStep(i, { estimatedMinutes: Math.max(5, Math.min(1440, Number(e.target.value) || 60)) })}
-                      className={clsx(smallField, 'w-20')}
-                    />
-                    <span className="font-body text-xs text-ink-muted">นาที</span>
-                    <select
+              {/* เรียงแสดงตามด่านเสมอ (เผื่อ AI คืนมาไม่เรียงตามด่านพอดี) - ไม่กระทบลำดับจริงที่ส่งไปจัดตาราง
+                  เพราะ /distribute เรียงตาม stage เองอยู่แล้ว อันนี้แค่กันป้าย "ด่าน" ซ้ำ/สลับกันตอนแสดงผล
+                  ใช้ i (ดัชนีจริงใน steps) อ้างอิง update/remove เสมอ ไม่ใช่ตำแหน่งหลังเรียงใหม่นี้ */}
+              {steps
+                .map((s, i) => ({ s, i }))
+                .sort((a, b) => a.s.stage - b.s.stage)
+                .map(({ s, i }, idx, ordered) => {
+                const newStage = idx === 0 || ordered[idx - 1].s.stage !== s.stage;
+                return (
+                  <div key={i}>
+                    {newStage && (
+                      <p className="mb-1 mt-2 flex items-center gap-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-eddy-500 first:mt-0">
+                        <CalendarClock size={12} /> ด่าน {s.stage}
+                        {s.stage > 1 && <span className="font-normal normal-case text-ink-muted">— รอด่านก่อนหน้าเสร็จก่อน</span>}
+                      </p>
+                    )}
+                    <div className="rounded-clay-sm bg-eddy-50 p-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={s.title}
+                          onChange={(e) => updateStep(i, { title: e.target.value })}
+                          placeholder="ชื่อขั้นตอน"
+                          className="h-9 flex-1 rounded-clay-sm border border-eddy-200 bg-surface px-3 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none"
+                        />
+                        <button
+                          onClick={() => removeStep(i)}
+                          aria-label="ลบขั้นตอนนี้"
+                          className="flex-shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-surface hover:text-eddy-700"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          min={5}
+                          max={1440}
+                          step={5}
+                          value={s.estimatedMinutes}
+                          onChange={(e) => updateStep(i, { estimatedMinutes: Math.max(5, Math.min(1440, Number(e.target.value) || 60)) })}
+                          className={clsx(smallField, 'w-20')}
+                        />
+                        <span className="font-body text-xs text-ink-muted">นาที</span>
+                        <span className="ml-2 font-body text-xs text-ink-muted">ด่าน</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          title="ด่าน - ขั้นตอนด่านเดียวกันทำพร้อมกันได้ (คนละคน) ด่านถัดไปต้องรอด่านนี้เสร็จก่อนทั้งหมด"
+                          value={s.stage}
+                          onChange={(e) => updateStep(i, { stage: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })}
+                          className={clsx(smallField, 'w-14')}
+                        />
+                        <select
                       value={s.assigneeUserId ?? ''}
                       onChange={(e) => updateStep(i, { assigneeUserId: e.target.value || null })}
                       className={clsx(smallField, 'ml-auto flex-1')}
@@ -505,8 +541,10 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
                       ))}
                     </select>
                   </div>
-                </div>
-              ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <button
               type="button"

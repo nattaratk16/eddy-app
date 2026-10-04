@@ -36,6 +36,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
     estimatedMinutes: t.estimatedMinutes,
     dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null,
     createdById: t.createdById,
+    stage: t.stage,
     assignment: t.assignment
       ? {
           id: t.assignment.id,
@@ -81,6 +82,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     if (Number.isNaN(dueDate.getTime())) dueDate = null;
   }
 
+  // ด่านจากการแตกงานด้วย AI (ดูคำอธิบายที่ Prisma schema) - ไม่ส่งมา/ค่าไม่ถูกต้อง = 1 (ไม่มีข้อจำกัดลำดับ)
+  let stage = Number(body?.stage);
+  if (!Number.isFinite(stage) || stage < 1) stage = 1;
+  stage = Math.round(stage);
+
   const task = await prisma.groupTask.create({
     data: {
       groupId: params.id,
@@ -88,6 +94,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       description: typeof body?.description === 'string' ? body.description.trim() || null : null,
       estimatedMinutes,
       dueDate,
+      stage,
       createdById: userId,
     },
   });
@@ -99,6 +106,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     estimatedMinutes: task.estimatedMinutes,
     dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null,
     createdById: task.createdById,
+    stage: task.stage,
     assignment: null,
     done: task.done,
     completedAt: null,

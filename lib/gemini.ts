@@ -430,6 +430,119 @@ export async function breakdownTask({
   return cleaned.length > 0 ? cleaned : null;
 }
 
+// ---------- 4b) แตกงานกลุ่มเป็นรายการย่อย พร้อมจัด "ด่าน" (stage) ----------
+// ต่างจาก breakdownTask (ส่วนตัว) ตรงที่งานกลุ่มมีหลายคนทำพร้อมกันได้ - ถ้าใช้ลิสต์เรียงเดียวแบบเดิม
+// ตอน /distribute จะไม่รู้เลยว่าขั้นไหน "ต้องรอขั้นก่อนหน้าเสร็จก่อน" กับขั้นไหน "ทำคู่ขนานได้โดยคนละคน"
+// แล้วจะจัดเวลาสลับลำดับกันมั่วๆ ได้ (เช่น "เตรียมอุปกรณ์" ถูกจัดก่อน "วางแผน" เพราะบังเอิญคนที่ได้รับ
+// มอบหมายว่างเช้ากว่า) - stage แก้ปัญหานี้: งาน stage เดียวกัน = ขนานกันได้ไม่ต้องรอกัน
+// stage ถัดไปต้องรองานทุกชิ้นใน stage ก่อนหน้าเสร็จก่อนถึงเริ่มได้ (ดู /distribute ที่บังคับกติกานี้จริง)
+const GROUP_BREAKDOWN_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    subtasks: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          estimatedMinutes: { type: 'INTEGER' },
+          stage: { type: 'INTEGER' },
+        },
+        required: ['title', 'estimatedMinutes', 'stage'],
+      },
+    },
+  },
+  required: ['subtasks'],
+};
+
+export interface GroupBreakdownStep extends BreakdownStep {
+  /** ลำดับด่าน เริ่มที่ 1 - ขั้นตอนที่อยู่ด่านเดียวกันมอบหมายคนละคนทำพร้อมกันได้ ด่านถัดไปต้องรอด่านนี้เสร็จก่อนทั้งหมด */
+  stage: number;
+}
+
+interface BreakdownGroupTaskParams {
+  title: string;
+  description?: string;
+  /** จำนวนวันตั้งแต่วันเริ่มถึงกำหนดส่ง - ช่วยให้ AI ซอยขั้นตอนให้พอดีกับเวลาที่มี (เหมือน breakdownTask) */
+  spanDays?: number | null;
+  totalMinutes?: number | null;
+  maxSessionMinutes?: number | null;
+  /** จำนวนสมาชิกที่รับผิดชอบได้จริง - กันไม่ให้ AI แบ่งงานขนานในด่านเดียวกันเกินจำนวนคนที่มี */
+  memberCount?: number | null;
+}
+
+export async function breakdownGroupTask({
+  title,
+  description,
+  spanDays,
+  totalMinutes,
+  maxSessionMinutes,
+  memberCount,
+}: BreakdownGroupTaskParams): Promise<GroupBreakdownStep[] | null> {
+  const stepCap =
+    typeof maxSessionMinutes === 'number' && maxSessionMinutes > 0
+      ? Math.min(MAX_STEP_MINUTES, maxSessionMinutes)
+      : MAX_STEP_MINUTES;
+
+  const spanHint =
+    typeof spanDays === 'number' && spanDays > 0
+      ? `\nมีเวลาทำงานนี้ทั้งหมด ${spanDays} วัน (นับจากวันเริ่มถึงกำหนดส่ง) ` +
+        `ให้ซอยจำนวนขั้นตอนให้เหมาะกับเวลาที่มี - เวลาน้อยให้ขั้นตอนน้อยและสั้นลง`
+      : '';
+  const totalHint =
+    typeof totalMinutes === 'number' && totalMinutes > 0
+      ? `\nผู้ใช้ประเมินว่างานนี้ใช้เวลารวมประมาณ ${totalMinutes} นาที ให้ผลรวมของทุกขั้นตอนใกล้เคียงค่านี้`
+      : '';
+  const focusHint =
+    stepCap < MAX_STEP_MINUTES
+      ? `\nแต่ละขั้นตอนทำต่อเนื่องได้ไม่เกิน ${stepCap} นาที ถ้างานยาวกว่านี้ให้ซอยเป็นหลายขั้นตอนแทน`
+      : '';
+  const memberHint =
+    typeof memberCount === 'number' && memberCount > 1
+      ? `\nกลุ่มนี้มีสมาชิกที่รับงานได้ ${memberCount} คน - งานที่อยู่ "ด่านเดียวกัน" จะถูกมอบหมายให้คนละคนทำพร้อมกัน ` +
+        `อย่าจัดงานขนานในด่านเดียวกันเกิน ${memberCount} ชิ้น`
+      : '';
+
+  const prompt = `
+งานกลุ่มนี้: "${title}"${description ? `\nรายละเอียดเพิ่มเติม: ${description}` : ''}${spanHint}${totalHint}${focusHint}${memberHint}
+
+ช่วยแตกงานนี้เป็นรายการย่อย (subtask) ที่ทำแล้วนำไปสู่งานหลักสำเร็จ แล้วจัดแต่ละรายการเข้า "ด่าน" (stage)
+ตามลำดับก่อน-หลังที่ต้องทำจริง:
+- งานที่อยู่ "ด่านเดียวกัน" (stage เท่ากัน) ต้องเป็นงานที่คนละคนทำพร้อมกันได้จริง ไม่ต้องรอกันเอง
+- งานในด่านถัดไปต้องรอให้งาน "ทุกชิ้น" ในด่านก่อนหน้าเสร็จก่อน ถึงจะเริ่มได้
+- stage เริ่มที่ 1 และเรียงต่อเนื่องไปเรื่อยๆ ไม่กระโดดข้ามเลข (1, 2, 3, ...)
+- ถ้างานนี้เป็นขั้นตอนต่อเนื่องล้วนๆ ไม่มีส่วนไหนขนานกันได้จริง ก็ให้ stage ไล่ทีละขั้นตามปกติ (1, 2, 3, ... คนละด่าน)
+- ให้แต่ละรายการย่อยสั้นกระชับ เป็นภาษาไทย เริ่มด้วยคำกริยา (เช่น "วางแผน...", "ซื้อ...", "เตรียม...")
+- จำนวนรายการย่อยที่เหมาะสมคือ 3-6 รายการ ขึ้นอยู่กับความซับซ้อนของงาน
+- ใส่ estimatedMinutes ของแต่ละขั้นตอนเป็นจำนวนนาทีที่สมจริง (ระหว่าง ${MIN_STEP_MINUTES} ถึง ${stepCap} นาที)
+`.trim();
+
+  const result = await callGeminiJSON<{ subtasks: { title: string; estimatedMinutes: number; stage: number }[] }>(
+    prompt,
+    GROUP_BREAKDOWN_SCHEMA,
+  );
+  if (!result || !Array.isArray(result.subtasks)) return null;
+
+  const cleaned = result.subtasks
+    .map((s) => ({
+      title: typeof s?.title === 'string' ? s.title.trim() : '',
+      estimatedMinutes: Math.min(
+        stepCap,
+        Math.max(MIN_STEP_MINUTES, Number.isFinite(s?.estimatedMinutes) ? Math.round(s.estimatedMinutes) : 30),
+      ),
+      stage: Number.isFinite(s?.stage) ? Math.max(1, Math.round(s.stage)) : 1,
+    }))
+    .filter((s) => s.title.length > 0);
+  if (cleaned.length === 0) return null;
+
+  // ปรับเลข stage ให้ต่อเนื่องเสมอ (1,2,3,...) เผื่อ AI ข้ามเลขหรือเรียงไม่เป็นระเบียบ (เช่น 1,1,4)
+  // (/distribute ไม่ได้ต้องพึ่งความต่อเนื่องนี้เพื่อความถูกต้อง - แค่เทียบว่า stage "เปลี่ยนค่า" จากงาน
+  // ก่อนหน้าหรือเปล่าเท่านั้น เลขกระโดดก็ยังทำงานถูก) ทำไว้เพื่อให้เลขด่านที่โชว์ในหน้าเว็บอ่านง่าย/คาดเดาได้
+  const distinctStages = [...new Set(cleaned.map((s) => s.stage))].sort((a, b) => a - b);
+  const stageRank = new Map(distinctStages.map((s, i) => [s, i + 1]));
+  return cleaned.map((s) => ({ ...s, stage: stageRank.get(s.stage)! }));
+}
+
 // ---------- 5) กระจายงานกลุ่มให้สมาชิก (เฟส 3c) ----------
 // AI ตัดสินแค่ "ใครควรทำงานไหน" (จากเวลาว่าง + นิสัย) ส่วนการวางเวลาจริงคำนวณ local เพื่อการันตีว่าไม่ชน
 const DISTRIBUTE_SCHEMA = {

@@ -176,6 +176,8 @@ export interface GroupTaskInfo {
   estimatedMinutes: number;
   dueDate?: string | null; // YYYY-MM-DD
   createdById: string;
+  /** ด่านจากการแตกงานด้วย AI (1 = ไม่มีข้อจำกัดลำดับ) - ดูคำอธิบายเต็มที่ Prisma schema */
+  stage: number;
   assignment?: GroupAssignmentInfo | null;
   /** เจ้าของงาน (assignment.assignedToUserId) ติ๊กว่าเสร็จแล้ว - คนอื่นดูได้อย่างเดียว */
   done: boolean;
