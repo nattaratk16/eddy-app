@@ -65,25 +65,30 @@ export default function LoginPage() {
               required
             />
 
-            <Input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              label="รหัสผ่าน"
-              placeholder="••••••••"
-              icon={<Lock size={18} />}
-              rightSlot={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-                  className="transition-colors hover:text-eddy-600"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              }
-              required
-            />
+            <div>
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                label="รหัสผ่าน"
+                placeholder="••••••••"
+                icon={<Lock size={18} />}
+                rightSlot={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                    className="transition-colors hover:text-eddy-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
+                required
+              />
+              <Link href="/forgot-password" className="mt-1.5 inline-block font-body text-xs font-semibold text-eddy-600 hover:text-eddy-700">
+                ลืมรหัสผ่าน?
+              </Link>
+            </div>
 
             {error && (
               <p className="rounded-clay-sm bg-pastel-pink/60 px-3 py-2 text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">{error}</p>

@@ -48,11 +48,12 @@ model User {
   accounts      Account[]
   sessions      Session[]
   // เฟส 3: ระบบกลุ่ม
-  ownedGroups      Group[]       @relation("GroupOwner")
-  groupMemberships GroupMember[] @relation("GroupMemberships")
+  ownedGroups         Group[]              @relation("GroupOwner")
+  groupMemberships    GroupMember[]        @relation("GroupMemberships")
   // Loop ชีวิต (กิจกรรมประจำที่ซ้ำทุกสัปดาห์)
-  recurringEvents  RecurringEvent[]
-  aiCache          AiCache[]
+  recurringEvents     RecurringEvent[]
+  aiCache             AiCache[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 // ผลลัพธ์ข้อความจาก Gemini ที่ cache ไว้ต่อ user (เช่น สรุปภาพรวมสัปดาห์, ประโยควิเคราะห์ภาระงาน)
@@ -70,6 +71,20 @@ model AiCache {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, kind, cacheKey])
+}
+
+// ลิงก์รีเซ็ตรหัสผ่าน ("ลืมรหัสผ่าน") - ใช้ครั้งเดียวแล้วลบทิ้ง
+// เก็บ token แบบ hash (sha256) ไม่ใช่ตัวเดิมที่ส่งในอีเมล เหมือนรหัสผ่าน - ถ้า DB รั่วจะเอา token
+// ไปสวมรอยรีเซ็ตรหัสผ่านคนอื่นต่อไม่ได้ (เทียบ hash ตอนตรวจสอบ ไม่เทียบ token ตรงๆ)
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Loop ชีวิตพื้นฐาน - บล็อกเวลาที่ซ้ำทุกสัปดาห์ (ตารางเรียนประจำ / เวลาทำงาน)
