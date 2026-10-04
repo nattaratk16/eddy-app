@@ -12,7 +12,7 @@ export default async function SettingsProfilePage() {
     where: { id: session.user.id },
     select: {
       email: true, image: true, name: true, username: true,
-      title: true, organization: true, avatarColor: true, avatarEmoji: true,
+      title: true, organization: true, avatarStyle: true, avatarSeed: true,
     },
   });
   if (!user) redirect('/login');
@@ -26,8 +26,8 @@ export default async function SettingsProfilePage() {
         initialUsername={user.username ?? ''}
         initialTitle={user.title ?? ''}
         initialOrganization={user.organization ?? ''}
-        initialAvatarColor={user.avatarColor ?? ''}
-        initialAvatarEmoji={user.avatarEmoji ?? ''}
+        initialAvatarStyle={user.avatarStyle ?? ''}
+        initialAvatarSeed={user.avatarSeed ?? ''}
       />
     </Card>
   );

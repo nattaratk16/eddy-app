@@ -573,6 +573,9 @@ function CalendarPageContent() {
                   categories={displayCategories}
                   onAddSlot={(day, startTime) => openAddModal(day, startTime)}
                   onEventClick={openEditModal}
+                  // มุมมองสัปดาห์: ให้ตารางเวลาสูงเต็มไหลไปตามหน้าเว็บ ไม่มี scrollbar ซ้อนในกรอบตัวเอง
+                  // (ตามที่ขอ - เฉพาะสัปดาห์เท่านั้น มุมมองวันยังคงพฤติกรรมเดิม กรอบสูงคงที่ + auto-scroll ไป ~7 โมงเช้า)
+                  scrollWithPage={view === 'week'}
                 />
               )}
             </motion.div>

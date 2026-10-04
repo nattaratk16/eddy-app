@@ -32,7 +32,11 @@ model User {
   role         String? // บทบาทจาก onboarding: "university" | "working" - ใช้ปรับ category/ภาษา/บริบท AI (ค่าเก่า "school" ที่อาจค้างอยู่ในข้อมูลเดิมถือเป็น "ยังไม่เลือกบทบาท" เหมือน null)
   onboardedAt  DateTime? // เวลาที่ทำ onboarding เสร็จ/ข้าม (null = ยังไม่เคยทำ -> ให้เด้งไปหน้า onboarding)
   avatarColor  String? // สีพื้นอวาตาร์ (คีย์จากพาเลตพาสเทล)
-  avatarEmoji  String? // อีโมจิใช้เป็นอวาตาร์ (ถ้าไม่ได้ใส่รูป)
+  avatarEmoji  String? // อีโมจิใช้เป็นอวาตาร์ (ช่องเก่า - ไม่ได้ใช้แล้ว เปลี่ยนไปใช้อวาตาร์การ์ตูน DiceBear แทน)
+  // อวาตาร์การ์ตูนจาก DiceBear (api.dicebear.com) - ทางเลือกแทนรูปจริง/อีโมจิ ไม่ต้องมี object storage
+  // เก็บแค่ style+seed (ไม่เก็บ URL เต็ม) เพื่อ re-render ได้เสมอแม้ภายหลังจะย้าย API version
+  avatarStyle String? // สไตล์ DiceBear เช่น "adventurer", "big-smile" (ดู lib/avatar.ts)
+  avatarSeed  String? // seed ที่ใช้สุ่มหน้าตา - ล็อกหน้าตาให้เหมือนเดิมทุกครั้งที่ render
   timezone     String? // โซนเวลา IANA เช่น "Asia/Bangkok"
   dayStart     String? // ช่วงเวลาที่สะดวกเริ่ม "HH:mm" - ป้อนให้ AI หาเวลาว่าง
   dayEnd       String? // ช่วงเวลาที่สะดวกจบ "HH:mm"

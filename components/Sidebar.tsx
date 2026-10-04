@@ -7,6 +7,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { LogOut, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import UserAvatar from './UserAvatar';
 
 // ไอคอน 3D จากชุดที่ผู้ใช้ทำเอง (mascottmodel/ICON.png ตัดออกมาเป็นไฟล์เดี่ยวไว้ที่ public/icons/)
 // แทนที่ lucide-react เดิม (เส้นบางๆ) ให้เข้ากับธีมมาสคอตของแอปมากขึ้น
@@ -23,7 +24,6 @@ export default function Sidebar() {
   const { data: session } = useSession();
   const user = session?.user;
   const displayName = user?.name || user?.email?.split('@')[0] || 'ผู้ใช้';
-  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <aside className="sticky top-0 z-20 hidden h-screen w-[76px] flex-col items-center gap-1 border-r border-eddy-100 bg-surface/70 py-4 backdrop-blur-xl md:flex">
@@ -84,19 +84,15 @@ export default function Sidebar() {
           aria-label="โปรไฟล์"
           className="transition-transform duration-200 hover:scale-105 active:scale-95"
         >
-          {user?.image ? (
-            <Image
-              src={user.image}
-              alt={displayName}
-              width={36}
-              height={36}
-              className="h-9 w-9 rounded-full object-cover ring-2 ring-eddy-100"
-            />
-          ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-inverse font-display text-sm font-bold text-white">
-              {initial}
-            </span>
-          )}
+          <UserAvatar
+            name={displayName}
+            image={user?.image}
+            avatarStyle={user?.avatarStyle}
+            avatarSeed={user?.avatarSeed}
+            avatarColor={user?.avatarColor}
+            size={36}
+            className="ring-2 ring-eddy-100 font-display text-sm"
+          />
         </Link>
         {/* ตั้งค่าเป็นเมนูรอง ไม่ใช่เมนูหลัก - อยู่คู่กับปุ่มออกจากระบบตรงนี้แทนการเพิ่มช่องที่ 6
             ในแถบเมนูหลัก (ซึ่งใช้ไอคอน 3D ชุดที่ทำเองไว้ และแถบล่างบนมือถือก็เต็ม 5 ช่องพอดีแล้ว) */}

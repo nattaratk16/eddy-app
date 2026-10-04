@@ -1,27 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Check, AtSign } from 'lucide-react';
+import { Check, AtSign, Shuffle, Wand2, UserRound } from 'lucide-react';
 import Button from '../Button';
+import UserAvatar from '../UserAvatar';
 import { useToast } from '../ToastProvider';
 import { inputClass, labelClass } from './fieldStyles';
-import { PASTEL_COLORS, getColorOption } from '@/lib/colors';
-import type { PastelColor } from '@/lib/types';
+import { AVATAR_STYLES, buildDicebearUrl, randomAvatarSeed, type AvatarStyle } from '@/lib/avatar';
 
-const EMOJI_PRESETS = ['😀', '😎', '🧑‍💻', '📚', '☕', '🌙', '🚀', '🎯', '🐱', '🌸', '⚡', '🎧'];
+const SEED_GRID_SIZE = 8;
 
 interface ProfileIdentityFormProps {
   email: string;
-  image: string; // รูปจากบัญชี Google - แสดงอย่างเดียว แก้ไม่ได้
+  image: string; // รูปจากบัญชี Google - ซิงก์อัตโนมัติ ใช้เป็นค่าเริ่มต้นถ้ายังไม่ได้เลือกอวาตาร์การ์ตูนเอง
   initialName: string;
   initialUsername: string;
   initialTitle: string;
   initialOrganization: string;
-  initialAvatarColor: string;
-  initialAvatarEmoji: string;
+  initialAvatarStyle: string;
+  initialAvatarSeed: string;
 }
 
 export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
@@ -35,22 +34,60 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
   const [username, setUsername] = useState(p.initialUsername);
   const [title, setTitle] = useState(p.initialTitle);
   const [organization, setOrganization] = useState(p.initialOrganization);
-  const [avatarColor, setAvatarColor] = useState<PastelColor>((p.initialAvatarColor as PastelColor) || 'blue');
-  const [avatarEmoji, setAvatarEmoji] = useState(p.initialAvatarEmoji);
 
   const hasPhoto = Boolean(p.image);
-  const color = getColorOption(avatarColor);
-  const initial = (name || p.email).charAt(0).toUpperCase();
+  // ถ้ามีรูป Google อยู่แล้วและยังไม่เคยเลือกอวาตาร์การ์ตูนมาก่อน (initialAvatarStyle ว่าง) ต้องเริ่มที่
+  // สถานะ "ใช้รูป Google" ไว้ก่อน (avatarStyle ว่าง) ไม่ใช่สุ่มเลือกสไตล์แรกให้อัตโนมัติ - ไม่งั้นทุกครั้งที่
+  // เปิดหน้านี้ ฟอร์มจะเผลอ "เลือก" อวาตาร์การ์ตูนให้เองโดยที่ผู้ใช้ไม่ได้ตั้งใจ แล้วถ้าบันทึกอย่างอื่น
+  // (เช่น แก้ชื่อ) โดยไม่ทันสังเกต จะเผลอทับค่า "ใช้รูป Google" ที่เคยตั้งใจเลือกไว้ไปโดยไม่รู้ตัว
+  // (คนที่ไม่มีรูป Google ไม่มีทางเลือกอื่น เลยค่อยสุ่มสไตล์แรกให้เป็นค่าเริ่มต้นแทน)
+  const [avatarStyle, setAvatarStyle] = useState(
+    p.initialAvatarStyle || (hasPhoto ? '' : AVATAR_STYLES[0].value),
+  );
+  const [seedGrid, setSeedGrid] = useState<string[]>(() => {
+    const seeds = p.initialAvatarSeed ? [p.initialAvatarSeed] : [];
+    while (seeds.length < SEED_GRID_SIZE) seeds.push(randomAvatarSeed());
+    return seeds;
+  });
+  const [avatarSeed, setAvatarSeed] = useState(p.initialAvatarSeed || (hasPhoto ? '' : seedGrid[0]));
+
+  // ใช้รูป Google ได้ก็ต่อเมื่อยังไม่เคยเลือกอวาตาร์การ์ตูนไว้เลย (ตอนเปิดหน้าครั้งแรก) หรือตั้งใจเคลียร์ทิ้ง
+  // (กดปุ่ม "ใช้รูปจาก Google แทน")
+  const showingGoogleFallback = hasPhoto && !avatarStyle;
+
+  function shuffleSeeds() {
+    setSeedGrid(Array.from({ length: SEED_GRID_SIZE }, () => randomAvatarSeed()));
+  }
+
+  function pickDicebearStyle(style: AvatarStyle) {
+    setAvatarStyle(style);
+    // สไตล์ใหม่ - เคลียร์ seed ที่เลือกไว้ด้วย กันกรณี seed เดิม (เลือกไว้ตอนดูสไตล์อื่น) ถูกบันทึกไป
+    // ทั้งที่ผู้ใช้ไม่เคยเห็น/กดเลือกมันภายใต้สไตล์ใหม่นี้เลย ต้องกดเลือกจากกริดใหม่อีกครั้ง
+    const freshSeeds = Array.from({ length: SEED_GRID_SIZE }, () => randomAvatarSeed());
+    setSeedGrid(freshSeeds);
+    setAvatarSeed(freshSeeds[0]);
+  }
+
+  function resetToGooglePhoto() {
+    setAvatarStyle('');
+    setAvatarSeed('');
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError('');
-    // ส่งเฉพาะฟิลด์ของแท็บนี้ - API เช็คทีละช่อง (field-by-field) ค่าที่ไม่ได้ส่งจะไม่ถูกแตะ
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, username, title, organization, avatarColor, avatarEmoji }),
+      body: JSON.stringify({
+        name,
+        username,
+        title,
+        organization,
+        avatarStyle,
+        avatarSeed,
+      }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -58,9 +95,12 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
       return setError(data.error ?? 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ');
     }
     toast.success('บันทึกโปรไฟล์แล้ว');
-    // อัปเดต JWT ของ next-auth ให้ดึงชื่อ/รูปใหม่จาก DB (ดู jwt callback ใน auth.ts) ก่อน refresh
-    // ไม่งั้น Sidebar กับคำทักทาย "สวัสดี, ..." จะยังเป็นชื่อเดิม เพราะ router.refresh() ไม่แตะ session
-    await update();
+    // อัปเดต JWT ของ next-auth ให้ดึงชื่อ/รูป/อวาตาร์ใหม่จาก DB (ดู jwt callback ใน auth.ts) ก่อน refresh
+    // ไม่งั้น Sidebar กับคำทักทาย "สวัสดี, ..." จะยังเป็นของเดิม เพราะ router.refresh() ไม่แตะ session
+    // ต้องส่ง argument (แม้จะเป็น {} เฉยๆ) ไม่งั้น next-auth จะแค่ GET session เดิมกลับมาเฉยๆ ไม่ได้
+    // ยิง POST ไปเรียก jwt callback ใหม่จริงๆ (เจอบั๊กนี้ตอนทดสอบ - เรียก update() เปล่าๆ แล้วอวาตาร์/ชื่อ
+    // ใน Sidebar ไม่เคยอัปเดตเลยจนกว่าจะออกจากระบบแล้วเข้าใหม่)
+    await update({});
     router.refresh();
   }
 
@@ -70,65 +110,85 @@ export default function ProfileIdentityForm(p: ProfileIdentityFormProps) {
       <div>
         <h2 className="font-display text-h3 text-ink">อวาตาร์</h2>
         <div className="mt-3 flex items-center gap-4">
-          {hasPhoto ? (
-            <Image
-              src={p.image!}
-              alt={name}
-              width={80}
-              height={80}
-              className="h-20 w-20 flex-shrink-0 rounded-full object-cover shadow-clay-sm"
-            />
-          ) : (
-            <div
-              className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ${color.chipClass}`}
-            >
-              {avatarEmoji || initial}
-            </div>
-          )}
-          {hasPhoto && <p className="font-body text-sm text-ink-muted">ใช้รูปจากบัญชีอีเมลของคุณ</p>}
+          <UserAvatar
+            name={name || p.email}
+            image={showingGoogleFallback ? p.image : undefined}
+            avatarStyle={!showingGoogleFallback ? avatarStyle : undefined}
+            avatarSeed={!showingGoogleFallback ? avatarSeed : undefined}
+            size={80}
+            className="shadow-clay-sm"
+          />
+          {showingGoogleFallback && <p className="font-body text-sm text-ink-muted">ใช้รูปจากบัญชี Google อยู่ตอนนี้</p>}
         </div>
 
-        {!hasPhoto && (
+        {showingGoogleFallback ? (
+          // avatarStyle ว่างอยู่ตอนนี้ (เพิ่งกด "ใช้รูปจาก Google แทน") - ต้องซ่อนตัวเลือกสไตล์/หน้าตา
+          // ไปเลย ไม่ใช่โชว์ไว้เฉยๆ เพราะ buildDicebearUrl('', seed) จะได้ URL พัง (ไม่มีสไตล์ใน path)
+          // กลายเป็นรูปเสียทั้งกริดจนกว่าจะกดเลือกสไตล์ใหม่
+          <button
+            type="button"
+            onClick={() => pickDicebearStyle(AVATAR_STYLES[0].value)}
+            className="mt-4 flex items-center gap-2 rounded-full bg-eddy-500 px-5 py-2.5 font-display text-sm font-semibold text-white shadow-clay-sm transition-all duration-150 hover:brightness-110 active:scale-[0.97]"
+          >
+            <Wand2 size={16} /> ลองเปลี่ยนเป็นอวาตาร์การ์ตูนดูไหม
+          </button>
+        ) : (
           <div className="mt-4">
-            <p className={labelClass}>สีพื้น</p>
-            <div className="flex flex-wrap gap-2">
-              {PASTEL_COLORS.map((c) => (
+            <p className={labelClass}>สไตล์</p>
+            {/* grid เท่ากันทุกปุ่มแทน flex-wrap เดิม (ความยาวข้อความไม่เท่ากันทำให้ปุ่มกว้างไม่เท่ากัน ดูไม่สมมาตร) */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {AVATAR_STYLES.map((s) => (
                 <button
-                  key={c.value}
+                  key={s.value}
                   type="button"
-                  onClick={() => setAvatarColor(c.value)}
-                  aria-label={c.label}
-                  className={`h-6 w-6 rounded-full ${c.swatchClass} ${
-                    avatarColor === c.value ? 'scale-110 ring-2 ring-eddy-500 ring-offset-2' : ''
-                  }`}
-                />
-              ))}
-            </div>
-            <p className={`${labelClass} mt-3`}>อีโมจิ</p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {EMOJI_PRESETS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setAvatarEmoji(avatarEmoji === e ? '' : e)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-lg transition-colors ${
-                    avatarEmoji === e ? 'bg-eddy-100 ring-2 ring-eddy-400' : 'hover:bg-eddy-50'
+                  onClick={() => pickDicebearStyle(s.value)}
+                  className={`rounded-full py-1.5 font-body text-xs font-semibold transition-colors ${
+                    avatarStyle === s.value
+                      ? 'bg-eddy-500 text-white'
+                      : 'bg-eddy-50 text-ink-soft hover:bg-eddy-100'
                   }`}
                 >
-                  {e}
+                  {s.label}
                 </button>
               ))}
-              {avatarEmoji && (
-                <button
-                  type="button"
-                  onClick={() => setAvatarEmoji('')}
-                  className="ml-1 font-body text-xs text-ink-muted hover:text-ink"
-                >
-                  ล้าง
-                </button>
-              )}
             </div>
+
+            <p className={`${labelClass} mt-3`}>เลือกหน้าตา</p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+              {seedGrid.map((seed) => (
+                <button
+                  key={seed}
+                  type="button"
+                  onClick={() => setAvatarSeed(seed)}
+                  aria-label="เลือกอวาตาร์นี้"
+                  className={`overflow-hidden rounded-full border-2 transition-colors ${
+                    avatarSeed === seed ? 'border-eddy-500' : 'border-transparent hover:border-eddy-200'
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- SVG จาก DiceBear */}
+                  <img src={buildDicebearUrl(avatarStyle, seed)} alt="" width={48} height={48} className="h-12 w-12" />
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={shuffleSeeds}
+              className="mt-3 flex items-center gap-1.5 font-body text-xs font-semibold text-eddy-600 hover:text-eddy-700"
+            >
+              <Shuffle size={13} /> สุ่มหน้าใหม่
+            </button>
           </div>
+        )}
+
+        {hasPhoto && !showingGoogleFallback && (
+          <button
+            type="button"
+            onClick={resetToGooglePhoto}
+            className="mt-3 flex items-center gap-1.5 rounded-full bg-eddy-50 px-4 py-2 font-body text-xs font-semibold text-eddy-700 transition-colors hover:bg-eddy-100"
+          >
+            <UserRound size={14} /> ใช้รูปจาก Google แทน
+          </button>
         )}
       </div>
 

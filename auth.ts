@@ -22,20 +22,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   callbacks: {
     ...authConfig.callbacks,
-    // session ใช้ strategy 'jwt' - ชื่อ/รูปถูกแช่ไว้ใน token ตั้งแต่ตอนล็อกอิน ถ้าผู้ใช้แก้ชื่อในหน้าตั้งค่า
-    // แล้วไม่อ่านใหม่ตรงนี้ Sidebar กับคำทักทาย (ซึ่งอ่านจาก session) จะค้างเป็นชื่อเก่าจนกว่าจะล็อกอินใหม่
+    // session ใช้ strategy 'jwt' - ชื่อ/รูป/อวาตาร์ถูกแช่ไว้ใน token ตั้งแต่ตอนล็อกอิน ถ้าผู้ใช้แก้ในหน้าตั้งค่า
+    // แล้วไม่อ่านใหม่ตรงนี้ Sidebar กับคำทักทาย (ซึ่งอ่านจาก session) จะค้างเป็นของเก่าจนกว่าจะล็อกอินใหม่
     // ฝั่งฟอร์มเรียก useSession().update() หลังบันทึกสำเร็จ -> callback นี้ถูกเรียกด้วย trigger 'update'
+    // ดึงใหม่ทั้งตอนล็อกอินครั้งแรก (user มีค่า) ด้วย ไม่ใช่แค่ trigger 'update' เพราะ authorize() ของ
+    // Credentials provider คืนแค่ id/email/name ไม่มี avatarStyle/avatarSeed ฯลฯ ถ้าไม่ดึงตรงนี้
+    // คนที่เคยตั้งอวาตาร์ไว้แล้ว ล็อกอินใหม่อีกรอบ (เช่น session หมดอายุ) จะไม่เห็นอวาตาร์ตัวเองจนกว่า
+    // จะกดบันทึกที่หน้าตั้งค่าอีกครั้ง
     // (jwt callback อยู่ที่นี่ ไม่ใช่ auth.config.ts เพราะต้องใช้ Prisma ซึ่ง Edge Runtime รันไม่ได้)
     async jwt({ token, user, trigger }) {
       if (user) token.id = user.id;
-      if (trigger === 'update' && typeof token.id === 'string') {
+      const id = user?.id ?? (typeof token.id === 'string' ? token.id : undefined);
+      if (id && (user || trigger === 'update')) {
         const fresh = await prisma.user.findUnique({
-          where: { id: token.id },
-          select: { name: true, image: true },
+          where: { id },
+          select: { name: true, image: true, avatarStyle: true, avatarSeed: true, avatarColor: true },
         });
         if (fresh) {
           token.name = fresh.name;
           token.picture = fresh.image;
+          token.avatarStyle = fresh.avatarStyle;
+          token.avatarSeed = fresh.avatarSeed;
+          token.avatarColor = fresh.avatarColor;
         }
       }
       return token;

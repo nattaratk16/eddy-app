@@ -21,6 +21,11 @@ export default {
       if (session.user && typeof token.id === 'string') {
         session.user.id = token.id;
       }
+      if (session.user) {
+        session.user.avatarStyle = typeof token.avatarStyle === 'string' ? token.avatarStyle : null;
+        session.user.avatarSeed = typeof token.avatarSeed === 'string' ? token.avatarSeed : null;
+        session.user.avatarColor = typeof token.avatarColor === 'string' ? token.avatarColor : null;
+      }
       return session;
     },
   },

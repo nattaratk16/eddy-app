@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { PASTEL_COLORS } from '@/lib/colors';
 import { USERNAME_RE } from '@/lib/validation';
+import { isValidAvatarStyle } from '@/lib/avatar';
 
 const VALID_COLORS = new Set(PASTEL_COLORS.map((c) => c.value));
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -45,15 +46,21 @@ export async function PATCH(req: NextRequest) {
     data.organization = v || null;
   }
 
-  if (typeof body.avatarEmoji === 'string') {
-    // เก็บอีโมจิตัวเดียว (จำกัด 4 code points กันข้อมูลเกิน แต่ไม่ตัดอีโมจิ ZWJ เช่น 🧑‍💻)
-    data.avatarEmoji = [...body.avatarEmoji.trim()].slice(0, 4).join('') || null;
-  }
-
   if (typeof body.avatarColor === 'string') {
     const c = body.avatarColor.trim();
     if (c && !VALID_COLORS.has(c as never)) return NextResponse.json({ error: 'สีไม่ถูกต้อง' }, { status: 400 });
     data.avatarColor = c || null;
+  }
+
+  // อวาตาร์การ์ตูน DiceBear - ส่งมาคู่กันเสมอ (เลือกใหม่ = ตั้งทั้งคู่, ล้าง = ส่งสตริงว่างทั้งคู่)
+  // ไม่ validate seed เพราะเป็นแค่สตริงสุ่มของฝั่งเรา ไม่ได้ส่งต่อไปเป็นส่วนหนึ่งของคำสั่งอะไร
+  if (typeof body.avatarStyle === 'string') {
+    const s = body.avatarStyle.trim();
+    if (s && !isValidAvatarStyle(s)) return NextResponse.json({ error: 'สไตล์อวาตาร์ไม่ถูกต้อง' }, { status: 400 });
+    data.avatarStyle = s || null;
+  }
+  if (typeof body.avatarSeed === 'string') {
+    data.avatarSeed = body.avatarSeed.trim().slice(0, 100) || null;
   }
 
   if (typeof body.timezone === 'string') data.timezone = body.timezone.trim() || null;

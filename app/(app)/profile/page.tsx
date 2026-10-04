@@ -1,14 +1,12 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Pencil, Settings, ListChecks, Users, Mail, Clock, Tags, Timer, Coffee, type LucideIcon } from 'lucide-react';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import Card from '@/components/Card';
 import Reveal from '@/components/motion/Reveal';
-import { getColorOption } from '@/lib/colors';
-import type { PastelColor } from '@/lib/types';
+import UserAvatar from '@/components/UserAvatar';
 
 const monthNames = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -64,7 +62,8 @@ export default async function ProfilePage() {
       select: {
         name: true, email: true, image: true, createdAt: true,
         username: true, title: true, organization: true,
-        avatarColor: true, avatarEmoji: true, timezone: true, dayStart: true, dayEnd: true,
+        avatarColor: true, avatarStyle: true, avatarSeed: true,
+        timezone: true, dayStart: true, dayEnd: true,
         skills: true, maxFocusMinutes: true, bufferMinutes: true,
       },
     }),
@@ -74,8 +73,6 @@ export default async function ProfilePage() {
   if (!user) redirect('/login');
 
   const userName = user.name || user.email || 'เพื่อน';
-  const color = getColorOption((user.avatarColor as PastelColor) || 'blue');
-  const previewInitial = userName.charAt(0).toUpperCase();
   const memberSinceLabel = `${monthNames[user.createdAt.getMonth()]} ${user.createdAt.getFullYear() + 543}`;
   const availability =
     user.dayStart || user.dayEnd
@@ -116,21 +113,15 @@ export default async function ProfilePage() {
               <div className="relative -mt-14 flex-shrink-0">
                 {/* แสงเรืองนุ่มๆ หลังรูปโปรไฟล์ - ให้จุดสนใจแรกของหน้าเด่นขึ้นนิดหน่อย */}
                 <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-eddy-400/50 to-accent-300/50 blur-lg" />
-                {user.image ? (
-                  <Image
-                    src={user.image}
-                    alt={userName}
-                    width={96}
-                    height={96}
-                    className="h-24 w-24 rounded-full object-cover shadow-clay-sm ring-4 ring-surface"
-                  />
-                ) : (
-                  <div
-                    className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold shadow-clay-sm ring-4 ring-surface ${color.chipClass}`}
-                  >
-                    {user.avatarEmoji || previewInitial}
-                  </div>
-                )}
+                <UserAvatar
+                  name={userName}
+                  image={user.image}
+                  avatarStyle={user.avatarStyle}
+                  avatarSeed={user.avatarSeed}
+                  avatarColor={user.avatarColor}
+                  size={96}
+                  className="shadow-clay-sm ring-4 ring-surface"
+                />
               </div>
               <div className="min-w-0 flex-1 sm:pb-1">
                 <p className="truncate font-display text-lg font-bold text-ink">{userName}</p>
