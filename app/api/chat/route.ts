@@ -6,8 +6,13 @@ import { ROLE_AI_CONTEXT, isUserRole } from '@/lib/roles';
 import { parseEventFromText } from '@/lib/aiMock';
 import { buildSlotAdvice, DEFAULT_EVENT_MINUTES, type BusyItem } from '@/lib/slotAdvice';
 import { expandRecurring, parseDays } from '@/lib/recurring';
-import { NOT_DEADLINE_EVENT } from '@/lib/eventFilters';
+import { NOT_DEADLINE_EVENT, eventOverlapsWindow } from '@/lib/eventFilters';
+import { eventDateRangeISO } from '@/lib/calendarLayout';
 import type { CalendarCategory } from '@/lib/types';
+
+// จำนวนงาน/กิจกรรมสูงสุดที่ส่งให้เอ็ดดี้ดูเป็นบริบท - เดิมจำกัดไว้แค่ 5 ทำให้ถามว่า "มีอะไรบ้าง"
+// แล้วตอบไม่ครบถ้ามีมากกว่านั้น เพิ่มเป็น 20 ให้ครอบคลุมกรณีใช้งานจริงส่วนใหญ่
+const CHAT_CONTEXT_LIMIT = 20;
 
 const mockReplies = [
   'ได้เลย! ลองดูที่หน้า "สิ่งที่ต้องทำ" นะ ผมจัดลำดับความสำคัญให้แล้ว',
@@ -33,10 +38,12 @@ export async function POST(req: NextRequest) {
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
   const todayStart = new Date(`${todayISO}T00:00:00+07:00`);
 
-  const [tasks, events, categoriesRaw, user] = await Promise.all([
-    prisma.task.findMany({ where: { userId, done: false }, orderBy: { createdAt: 'desc' }, take: 5 }),
+  const [tasks, taskCount, events, eventCount, categoriesRaw, user] = await Promise.all([
+    prisma.task.findMany({ where: { userId, done: false }, orderBy: { createdAt: 'desc' }, take: CHAT_CONTEXT_LIMIT }),
+    prisma.task.count({ where: { userId, done: false } }),
     // เทียบกับต้นวันนี้ (เที่ยงคืน) ไม่ใช่เวลาปัจจุบันเป๊ะๆ ไม่งั้นกิจกรรมที่เหลือของวันนี้จะถูกกรองออกไปหลังเที่ยงคืนผ่านมาแล้ว
-    prisma.event.findMany({ where: { userId, date: { gte: todayStart } }, orderBy: { date: 'asc' }, take: 5 }),
+    prisma.event.findMany({ where: { userId, date: { gte: todayStart } }, orderBy: { date: 'asc' }, take: CHAT_CONTEXT_LIMIT }),
+    prisma.event.count({ where: { userId, date: { gte: todayStart } } }),
     prisma.category.findMany({ where: { userId } }),
     // โปรไฟล์ผู้ใช้ - เอาทักษะ + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true, skills: true, dayStart: true, dayEnd: true, timezone: true } }),
@@ -57,11 +64,16 @@ export async function POST(req: NextRequest) {
       : '',
   ].filter(Boolean);
 
-  const context = [
-    ...profileLines,
-    `งานที่ยังไม่เสร็จ: ${tasks.map((t) => t.title).join(', ') || 'ไม่มี'}`,
-    `กิจกรรมที่จะถึง: ${events.map((e) => `${e.title} (${e.date.toISOString().slice(0, 10)})`).join(', ') || 'ไม่มี'}`,
-  ].join('\n');
+  // ถ้ามีมากกว่าที่ส่งให้ดู บอกเอ็ดดี้ตรงๆ ว่ารายการไม่ครบ กันตอบราวกับว่านี่คือทั้งหมดที่มี
+  // (ผู้ใช้เคยเจอปัญหานี้มาก่อน - ถามว่า "มีอะไรบ้าง" แล้วเอ็ดดี้ตอบไม่ครบเงียบๆ โดยไม่บอกว่าตัดมา)
+  const taskList = `งานที่ยังไม่เสร็จ (${taskCount} รายการ): ${tasks.map((t) => t.title).join(', ') || 'ไม่มี'}${
+    taskCount > tasks.length ? ` [แสดงแค่ ${tasks.length} รายการแรก ยังมีอีก ${taskCount - tasks.length} รายการที่ไม่ได้แสดงในนี้]` : ''
+  }`;
+  const eventList = `กิจกรรมที่จะถึง (${eventCount} รายการ): ${events.map((e) => `${e.title} (${e.date.toISOString().slice(0, 10)})`).join(', ') || 'ไม่มี'}${
+    eventCount > events.length ? ` [แสดงแค่ ${events.length} รายการแรก ยังมีอีก ${eventCount - events.length} รายการที่ไม่ได้แสดงในนี้]` : ''
+  }`;
+
+  const context = [...profileLines, taskList, eventList].join('\n');
 
   const [replyResult, draftResult] = await Promise.allSettled([
     askEddy({ message, context }),
@@ -126,20 +138,27 @@ async function adviseSlot(userId: string, date: string, startTime: string | null
 
   const [dayEvents, recurringRows, profile] = await Promise.all([
     prisma.event.findMany({
+      // ใช้ eventOverlapsWindow แทนเทียบ date ตรงๆ เพราะกิจกรรมหลายวัน (มี endDate) อาจเริ่มก่อนช่วงนี้
+      // แต่ยังคาบเกี่ยวอยู่ - เทียบ date เฉยๆ จะมองไม่เห็นกิจกรรมแบบนี้เลย กลายเป็นไม่เตือนว่าชนกัน
+      // (บั๊กที่เจอจริง: เพิ่มกิจกรรมทับกิจกรรมหลายวันที่มีอยู่แล้วผ่านแชท แล้วไม่มีคำเตือนขึ้นมาเลย)
       // หมุดกำหนดส่งไม่ใช่เวลาไม่ว่าง ไม่ต้องเอามาเสนอเป็น "ชนกัน" หรือทำให้วันดูแน่นเกินจริง
-      where: { userId, date: { gte: from, lt: to }, ...NOT_DEADLINE_EVENT },
-      select: { title: true, date: true, startTime: true, endTime: true },
+      where: { userId, ...eventOverlapsWindow(from, to), ...NOT_DEADLINE_EVENT },
+      select: { title: true, date: true, endDate: true, startTime: true, endTime: true },
     }),
     prisma.recurringEvent.findMany({ where: { userId } }),
     prisma.user.findUnique({ where: { id: userId }, select: { dayStart: true, dayEnd: true } }),
   ]);
 
-  const busy: BusyItem[] = dayEvents.map((e) => ({
-    title: e.title,
-    date: e.date.toISOString().slice(0, 10),
-    startTime: e.startTime,
-    endTime: e.endTime,
-  }));
+  // กางกิจกรรมหลายวันให้เป็น busy item ของทุกวันที่คาบเกี่ยว (ไม่ใช่แค่วันเริ่ม) ภายในช่วงที่กำลังดูอยู่
+  // ไม่งั้นแม้ query ด้านบนจะดึงแถวมาถูกแล้ว แต่ buildSlotAdvice เทียบ it.date แบบวันเดียวตรงๆ
+  // จะยังไม่เจอว่าชนกันถ้าวันที่ถามอยู่กลางๆ ช่วงของกิจกรรมหลายวัน ไม่ใช่วันแรกที่มันเริ่ม
+  const busy: BusyItem[] = dayEvents.flatMap((e) => {
+    const evDate = e.date.toISOString().slice(0, 10);
+    const evEndDate = e.endDate ? e.endDate.toISOString().slice(0, 10) : null;
+    return eventDateRangeISO(evDate, evEndDate)
+      .filter((d) => dates.includes(d))
+      .map((d) => ({ title: e.title, date: d, startTime: e.startTime, endTime: e.endTime }));
+  });
 
   // Loop ประจำก็คือเวลาไม่ว่างเหมือนกัน
   const loops = expandRecurring(
