@@ -105,6 +105,19 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     }
   }, [params.id]);
 
+  // รีเฟรช "แค่รายการงาน" หลังทำรายการ (ยืนยัน/มอบหมาย/จัดตาราง) - ตั้งใจแยกจาก load() ข้างบน
+  // ซึ่งเซ็ต loading=true ทำให้ทั้งรายการงานหายวับไปโชว์ "กำลังโหลด..." ทุกครั้งที่กดอะไรสักอย่าง
+  // (เคยเป็นแบบนั้นมาก่อน - คือจุดที่ทำให้รู้สึกช้า/ไม่ลื่นที่สุด) อันนี้อัปเดตเงียบๆ ไม่กระพริบทั้งจอ
+  // ไม่ดึงข้อมูลกลุ่ม/สมาชิกซ้ำด้วย เพราะแทบไม่มีผลจากการยืนยัน/มอบหมายงานเลย ลดงานเครือข่ายไปในตัว
+  const loadTasks = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/groups/${params.id}/tasks`);
+      if (res.ok) setTasks((await res.json()).tasks ?? []);
+    } catch {
+      // เงียบไว้ - รายการเดิมที่เห็นอยู่ยังใช้ได้ ผู้ใช้กดลองใหม่เองได้ถ้าจำเป็น
+    }
+  }, [params.id]);
+
   useEffect(() => {
     load();
   }, [load]);
@@ -210,7 +223,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     setConfirmingSteps(false);
     setResult(`เพิ่ม ${created} งานจากการแตกงาน${assignFailed > 0 ? ` (มอบหมายให้บางคนไม่สำเร็จ ${assignFailed} งาน - หาช่วงว่างไม่ทัน ลองมอบหมายเองอีกทีจากรายการ)` : ''}`);
     closeAddModal();
-    load();
+    loadTasks();
     notifyGroupUpdated();
   }
 
@@ -226,7 +239,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      load();
+      loadTasks();
     } else {
       alert(data.error ?? 'ทำรายการไม่สำเร็จ');
     }
@@ -240,7 +253,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      load();
+      loadTasks();
     } else {
       alert(data.error ?? 'มอบหมายไม่สำเร็จ');
     }
@@ -286,7 +299,7 @@ export default function GroupTasksPage(props: { params: Promise<{ id: string }> 
           data.usedAI ? '' : ' (ใช้การคำนวณพื้นฐาน)'
         }`,
       );
-    load();
+    loadTasks();
   }
 
   if (notFound) return <p className="py-10 text-center font-body text-sm text-ink-muted">ไม่พบงานของกลุ่มนี้</p>;
