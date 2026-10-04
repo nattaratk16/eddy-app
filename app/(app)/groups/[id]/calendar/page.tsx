@@ -151,6 +151,7 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
             events={events}
             categories={members.map((m) => ({ id: m.id, name: m.name, color: m.color }))}
             readOnly
+            scrollWithPage
           />
         )}
       </div>

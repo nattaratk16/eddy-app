@@ -103,6 +103,8 @@ export interface CalendarEvent {
   isDeadline?: boolean;
   /** แหล่งที่มา: 'google' = จาก Google Calendar, 'recurring' = จาก Loop ชีวิต (อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ) */
   source?: 'google' | 'recurring';
+  /** true = มาจากงานกลุ่มที่ยืนยันแล้ว (ใช้ในปฏิทินกลุ่มเท่านั้น ให้เด่นกว่ากิจกรรมส่วนตัวอื่นของสมาชิก) */
+  isGroupEvent?: boolean;
 }
 
 /** Loop ชีวิต - กิจกรรมประจำที่ซ้ำทุกสัปดาห์ */

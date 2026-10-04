@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, isToday } from 'date-fns';
-import { Flag } from 'lucide-react';
+import { Flag, Users } from 'lucide-react';
 import { getEventColor } from '@/lib/colors';
 import {
   DEFAULT_DURATION,
@@ -28,6 +28,12 @@ interface TimeGridViewProps {
   onEventClick?: (event: CalendarEvent) => void;
   /** อ่านอย่างเดียว (เช่น ปฏิทินกลุ่ม) - ปิดการคลิกช่องว่างเพื่อเพิ่ม */
   readOnly?: boolean;
+  /**
+   * true = ตารางเวลาสูงเต็มที่ (24 ชม.) ไหลไปตามความสูงของหน้าเว็บจริง ไม่ใส่กรอบ max-height/scroll
+   * ของตัวเอง - ให้หน้าเว็บทั้งหน้าเลื่อนแทน (ใช้กับปฏิทินกลุ่มที่อยากเห็นภาพรวมโดยไม่ต้องมี scrollbar
+   * ซ้อนในซ้อนนอก) false (ค่าเริ่มต้น) = พฤติกรรมเดิม สูงคงที่ + เลื่อนในกรอบตัวเอง (ปฏิทินหลัก)
+   */
+  scrollWithPage?: boolean;
 }
 
 export default function TimeGridView({
@@ -37,6 +43,7 @@ export default function TimeGridView({
   onAddSlot,
   onEventClick,
   readOnly = false,
+  scrollWithPage = false,
 }: TimeGridViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const categoryOf = (ev: CalendarEvent) => categories.find((c) => c.id === ev.categoryId);
@@ -49,9 +56,10 @@ export default function TimeGridView({
   }, []);
 
   // เลื่อนไปที่ ~7 โมงเช้าตอนเปิดครั้งแรก (เหมือน Google) แทนที่จะเริ่มที่เที่ยงคืน
+  // ไม่มีผลตอน scrollWithPage เพราะไม่มีกรอบ scroll ของตัวเองให้เลื่อนแล้ว (หน้าเว็บเลื่อนแทน)
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 7 * HOUR_HEIGHT;
-  }, []);
+    if (!scrollWithPage && scrollRef.current) scrollRef.current.scrollTop = 7 * HOUR_HEIGHT;
+  }, [scrollWithPage]);
 
   // กิจกรรมทั้งวัน (ไม่มีเวลาเริ่ม) แยกออกไปแถบบนสุด
   const allDayByDay = useMemo(
@@ -151,8 +159,11 @@ export default function TimeGridView({
                       onClick={onEventClick ? () => onEventClick(ev) : undefined}
                       className={`flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-left font-body text-[11px] font-medium ${
                         onEventClick ? '' : 'cursor-default'
-                      } ${color ? color.eventClass : 'bg-eddy-100 text-ink-muted'}`}
+                      } ${ev.isGroupEvent ? 'ring-2 ring-eddy-500' : ''} ${
+                        color ? color.eventClass : 'bg-eddy-100 text-ink-muted'
+                      }`}
                     >
+                      {ev.isGroupEvent && <Users size={10} strokeWidth={2.5} className="flex-shrink-0" />}
                       <span className="truncate">{ev.title}</span>
                     </button>
                   );
@@ -164,7 +175,7 @@ export default function TimeGridView({
       )}
 
       {/* ---------- ตารางเวลา (เลื่อนได้) ---------- */}
-      <div ref={scrollRef} className="max-h-[calc(100vh_-_260px)] min-h-[420px] overflow-y-auto">
+      <div ref={scrollRef} className={scrollWithPage ? '' : 'max-h-[calc(100vh_-_260px)] min-h-[420px] overflow-y-auto'}>
         <div className="flex" style={{ height: gridHeight }}>
           {/* แกนเวลาด้านซ้าย */}
           <div className="w-14 flex-shrink-0">
@@ -207,29 +218,48 @@ export default function TimeGridView({
                       <button
                         key={ev.id}
                         onClick={onEventClick ? (e) => { e.stopPropagation(); onEventClick(ev); } : undefined}
-                        className={`absolute overflow-hidden rounded-md text-left shadow-clay-sm transition-all duration-150 hover:z-20 hover:-translate-y-px hover:shadow-clay-pop ${
+                        className={`absolute overflow-visible rounded-md text-left shadow-clay-sm transition-all duration-150 hover:z-20 hover:-translate-y-px hover:shadow-clay-pop ${
                           onEventClick ? '' : 'cursor-default'
+                        } ${
+                          // เส้นขอบทึบคมชัด ไม่มีลวดลาย/เอฟเฟกต์ - เส้นประที่ลองก่อนหน้านี้ทำให้ตาลายเวลากล่องเรียงกันเยอะๆ
+                          ev.isGroupEvent ? 'ring-2 ring-eddy-500' : ''
                         } ${color ? color.eventClass : 'bg-eddy-100 text-ink-muted'}`}
                         style={{
                           top,
                           height,
                           left: `calc(${leftPct}% + 2px)`,
                           width: `calc(${widthPct}% - 4px)`,
+                          // งานกลุ่มที่ยืนยันแล้ว: ยกขึ้นเหนือกิจกรรมส่วนตัวอื่นของสมาชิก กันแถบมุมโดนบังตอนซ้อนทับ
+                          zIndex: ev.isGroupEvent ? 5 : undefined,
                         }}
                       >
-                        <span className={`absolute inset-y-0 left-0 w-1 ${color ? color.dotClass : 'bg-eddy-300'}`} />
-                        <span className="block h-full pl-2 pr-1 pt-0.5">
-                          <span className={`block truncate font-body font-semibold leading-tight ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
-                            {ev.title}
-                          </span>
-                          {!compact && (
-                            <span className="mt-0.5 block truncate font-body text-[10px] opacity-80">
-                              {ev.startTime}
-                              {ev.endTime ? `–${ev.endTime}` : ''}
-                              {ev.location ? ` · ${ev.location}` : ''}
+                        <span className="absolute inset-0 overflow-hidden rounded-md">
+                          <span
+                            className={`absolute inset-y-0 left-0 ${ev.isGroupEvent ? 'w-1.5' : 'w-1'} ${color ? color.dotClass : 'bg-eddy-300'}`}
+                          />
+                          <span className="block h-full pl-2 pr-1 pt-0.5">
+                            <span className={`block truncate font-body font-semibold leading-tight ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+                              {ev.title}
                             </span>
-                          )}
+                            {!compact && (
+                              <span className="mt-0.5 block truncate font-body text-[10px] opacity-80">
+                                {ev.startTime}
+                                {ev.endTime ? `–${ev.endTime}` : ''}
+                                {ev.location ? ` · ${ev.location}` : ''}
+                              </span>
+                            )}
+                          </span>
                         </span>
+                        {/* ป้ายงานกลุ่ม: ไอคอนเวกเตอร์คมชัด (ไม่ใช่อีโมจิ/เอฟเฟกต์เรือง) วางนอกกรอบ ไม่ทับตัวหนังสือ
+                            นิ่ง ไม่มีแอนิเมชัน - กันดูรกตาเวลามีงานกลุ่มเรียงกันหลายกล่องพร้อมกัน */}
+                        {ev.isGroupEvent && (
+                          <span
+                            title="งานกลุ่ม"
+                            className="absolute -right-1.5 -top-1.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-eddy-500 shadow-clay-sm ring-2 ring-surface"
+                          >
+                            <Users size={9} strokeWidth={2.5} className="text-white" />
+                          </span>
+                        )}
                       </button>
                     );
                   })}

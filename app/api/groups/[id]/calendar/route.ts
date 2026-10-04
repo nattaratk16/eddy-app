@@ -50,6 +50,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     orderBy: { date: 'asc' },
   });
 
+  // event ที่มาจากงานกลุ่มนี้โดยตรง (ยืนยันลงปฏิทินแล้ว) - ใช้ไฮไลต์ให้เด่นกว่ากิจกรรมส่วนตัวอื่นของสมาชิก
+  const groupAssignments = await prisma.groupTaskAssignment.findMany({
+    where: { groupTask: { groupId: params.id }, status: 'approved', approvedEventId: { not: null } },
+    select: { approvedEventId: true },
+  });
+  const groupEventIds = new Set(groupAssignments.map((a) => a.approvedEventId));
+
   // สีประจำสมาชิก (ไล่จากพาเลตให้ไม่ซ้ำ)
   const memberColor = new Map<string, string>();
   members.forEach((m, i) => memberColor.set(m.userId, PASTEL_COLORS[i % PASTEL_COLORS.length].value));
@@ -77,6 +84,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       endTime: ev.endTime ?? undefined,
       location: canSeeTitle ? ev.location ?? undefined : undefined,
       categoryId: ev.userId, // ผูกกับสมาชิก (สี)
+      isGroupEvent: groupEventIds.has(ev.id),
     };
   });
 
