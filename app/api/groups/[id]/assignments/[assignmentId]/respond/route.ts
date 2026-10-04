@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { getMembership } from '@/lib/groups';
+import { getMembership, groupCategoryName } from '@/lib/groups';
 import { freeSlotsForUsers, todayISOBangkok } from '@/lib/schedule';
 import { timeToMinutes } from '@/lib/calendarLayout';
 
@@ -111,9 +111,11 @@ export async function POST(
   // กันเหลือ event ลอยไม่มี assignment ผูก หรือหมวดหมู่ซ้ำ ถ้า crash กลางคันระหว่างขั้นตอนเหล่านี้
   const finalEvent = await prisma.$transaction(async (tx) => {
     // หมวดหมู่ปฏิทินของผู้ใช้สำหรับงานกลุ่มนี้ (ใช้ชื่อ+สีของกลุ่ม สร้างถ้ายังไม่มี)
-    let category = await tx.category.findFirst({ where: { userId, name: group.name } });
+    // ใส่ "(กลุ่ม) " นำหน้าชื่อเสมอ ให้แยกออกจากหมวดหมู่ที่ผู้ใช้สร้างเองได้ชัดเจน
+    const categoryName = groupCategoryName(group.name);
+    let category = await tx.category.findFirst({ where: { userId, name: categoryName } });
     if (!category) {
-      category = await tx.category.create({ data: { userId, name: group.name, color: group.color } });
+      category = await tx.category.create({ data: { userId, name: categoryName, color: group.color } });
     }
 
     // มี event เดิมอยู่แล้ว (เช่นกำลังแก้เวลาของงานที่เคย approve ไปแล้ว) ก็อัปเดตแทนสร้างซ้ำ

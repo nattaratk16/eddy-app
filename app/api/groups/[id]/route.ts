@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { getMembership, serializeGroup } from '@/lib/groups';
+import { getMembership, groupCategoryName, serializeGroup } from '@/lib/groups';
 
 // GET /api/groups/[id] - รายละเอียดกลุ่ม (ต้องเป็นสมาชิกที่รับคำเชิญแล้ว)
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -61,7 +61,10 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;
 
-  const group = await prisma.group.findUnique({ where: { id: params.id } });
+  const group = await prisma.group.findUnique({
+    where: { id: params.id },
+    include: { members: { select: { userId: true } } },
+  });
   if (!group) return NextResponse.json({ error: 'ไม่พบกลุ่ม' }, { status: 404 });
   if (group.ownerId !== userId) return NextResponse.json({ error: 'เฉพาะเจ้าของกลุ่มเท่านั้น' }, { status: 403 });
 
@@ -72,6 +75,20 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   });
   const eventIds = approved.map((a) => a.approvedEventId).filter((x): x is string => !!x);
   if (eventIds.length > 0) await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
+
+  // ลบหมวดหมู่ปฏิทินส่วนตัว "ชื่อกลุ่ม" ที่ /respond สร้างอัตโนมัติให้สมาชิกตอนยืนยันงานกลุ่มลงปฏิทิน
+  // (ดู assignments/[assignmentId]/respond/route.ts) - เดิมไม่เคยถูกเก็บกวาดเลย ค้างอยู่ตลอดไป
+  // เช็คทุกสมาชิก ไม่ใช่แค่คนที่มี assignment approved อยู่ตอนนี้ (เผื่อเคย approve แล้วค่อยโดนปฏิเสธทีหลัง)
+  // ลบเฉพาะหมวดที่ไม่มีกิจกรรมเหลือแล้ว (หลังลบข้างบน) กันเผื่อผู้ใช้เอาหมวดนี้ไปเก็บกิจกรรมส่วนตัวอื่นด้วย
+  const memberUserIds = group.members.map((m) => m.userId);
+  if (memberUserIds.length > 0) {
+    const nameMatches = await prisma.category.findMany({
+      where: { userId: { in: memberUserIds }, name: groupCategoryName(group.name) },
+      select: { id: true, _count: { select: { events: true } } },
+    });
+    const emptyCategoryIds = nameMatches.filter((c) => c._count.events === 0).map((c) => c.id);
+    if (emptyCategoryIds.length > 0) await prisma.category.deleteMany({ where: { id: { in: emptyCategoryIds } } });
+  }
 
   await prisma.group.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
