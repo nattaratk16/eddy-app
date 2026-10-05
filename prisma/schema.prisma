@@ -25,7 +25,12 @@ model User {
   bio           String? // "เกี่ยวกับฉัน" - ช่องเก่า ตัดออกจากหน้าโปรไฟล์/ตั้งค่า/บริบท AI แล้ว ไม่ได้ใช้แล้ว
   password      String? // เก็บแบบ hashed (bcrypt) เท่านั้น - เป็น null ได้ถ้าสมัครผ่าน Google (ไม่มีรหัสผ่าน)
   // ข้อมูลโปรไฟล์เพิ่มเติม (ทุกช่องไม่บังคับ - ออกแบบให้เป็นกลาง ใช้ได้ทั้งคนเรียนและคนทำงาน)
-  username     String? @unique // ชื่อผู้ใช้ (handle) - ไม่ซ้ำกัน
+  username     String? @unique // ชื่อผู้ใช้ (handle) - เก็บตัวพิมพ์ตามที่ผู้ใช้ตั้งจริง แต่ @unique ตัวนี้สนพิมพ์เล็ก-ใหญ่
+  // (เหมือน GitHub) ความไม่ซ้ำแบบไม่สนพิมพ์เล็ก-ใหญ่จริงๆ คุมด้วย unique index แยกต่างหากชื่อ
+  // "User_username_ci_key" บน LOWER(username) ซึ่ง Prisma เขียนใน schema ตรงๆ ไม่ได้ (functional index)
+  // เลยสร้างด้วย raw SQL (ดู manual-tests/add-username-ci-index.sql) - ถ้า reset DB ใหม่หมด
+  // (เช่น prisma db push --force-reset) ต้องรัน SQL นั้นซ้ำ ไม่งั้นจะเปิดช่องให้ username ชนกันแบบ
+  // คนละพิมพ์ได้อีก (เช่น "JohnDoe" กับ "johndoe" พร้อมกัน)
   title        String? // บทบาท/ตำแหน่ง เช่น "นักศึกษาวิศวกรรม", "นักการตลาด", "ครู"
   organization String? // สถานศึกษา/ที่ทำงาน
   status       String? // "student" | "working" | "other" (ช่องเก่า - ไม่ได้ใช้แล้ว)

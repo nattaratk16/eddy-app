@@ -121,14 +121,21 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // username: ตรวจรูปแบบ + ความไม่ซ้ำ
+  // username: ตรวจรูปแบบ + ความไม่ซ้ำ - เก็บตัวพิมพ์ตามที่ผู้ใช้พิมพ์จริง (รองรับพิมพ์ใหญ่แล้ว)
+  // ไม่บังคับแปลงเป็นพิมพ์เล็กทั้งหมดเหมือนเดิมอีกต่อไป
   if (typeof body.username === 'string') {
-    const raw = body.username.trim().toLowerCase();
+    const raw = body.username.trim();
     if (raw === '') {
       data.username = null;
     } else if (!USERNAME_RE.test(raw)) {
-      return NextResponse.json({ error: 'ชื่อผู้ใช้ต้องเป็น a-z, 0-9, _ ยาว 3-20 ตัว' }, { status: 400 });
+      return NextResponse.json({ error: 'ชื่อผู้ใช้ต้องเป็น a-z, A-Z, 0-9, _ ยาว 3-20 ตัว' }, { status: 400 });
     } else {
+      // เทียบแบบไม่สนพิมพ์เล็ก-ใหญ่ กัน "JohnDoe" กับ "johndoe" กลายเป็นคนละบัญชี - P2002 ด้านล่าง
+      // จับได้แค่กรณีพิมพ์ตรงเป๊ะเท่านั้น เพราะ unique constraint ของ Postgres สนพิมพ์เล็ก-ใหญ่
+      const taken = await prisma.user.findFirst({
+        where: { username: { equals: raw, mode: 'insensitive' }, id: { not: session.user.id } },
+      });
+      if (taken) return NextResponse.json({ error: 'ชื่อผู้ใช้นี้มีคนใช้แล้ว' }, { status: 409 });
       data.username = raw;
     }
   }

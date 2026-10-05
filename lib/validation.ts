@@ -9,7 +9,11 @@
  */
 import dns from 'node:dns/promises';
 
-export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+// รองรับตัวพิมพ์ใหญ่ด้วย (บางกลุ่มผู้ใช้อยากตั้งชื่อผู้ใช้แบบ "JohnDoe") - เก็บตัวพิมพ์ตามที่ผู้ใช้พิมพ์จริง
+// ไม่บังคับแปลงเป็นพิมพ์เล็กทั้งหมดเหมือนเดิมอีกต่อไป แต่ตอนเช็คซ้ำ/ล็อกอินยังเทียบแบบไม่สนพิมพ์เล็ก-ใหญ่
+// เสมอ (ดู mode: 'insensitive' ใน app/api/auth/register, app/api/profile, auth.ts) กัน "JohnDoe" กับ
+// "johndoe" กลายเป็นคนละบัญชีที่สร้างความสับสน หรือล็อกอินไม่เข้าเพราะพิมพ์ตัวพิมพ์ไม่ตรงเป๊ะ
+export const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 export const MIN_PASSWORD_LENGTH = 8;
 

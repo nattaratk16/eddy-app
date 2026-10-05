@@ -89,9 +89,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!checkRateLimit('login:global', 200, 60_000)) return null;
 
         // มี @ ถือว่าพิมพ์อีเมลมา ไม่งั้นถือว่าเป็น username (username validate ไว้แล้วว่าห้ามมี @)
-        const user = await prisma.user.findUnique({
-          where: identifier.includes('@') ? { email: identifier } : { username: identifier },
-        });
+        // username เทียบแบบไม่สนพิมพ์เล็ก-ใหญ่ (mode: 'insensitive') เพราะตอนนี้เก็บตัวพิมพ์ตามที่ผู้ใช้
+        // ตั้งไว้จริง (เช่น "JohnDoe") ถ้าเทียบตรงๆ แบบเดิม คนที่ตั้งพิมพ์ใหญ่ไว้แล้วพิมพ์คนละพิมพ์ตอน
+        // ล็อกอินจะหาบัญชีตัวเองไม่เจอเลย
+        const user = identifier.includes('@')
+          ? await prisma.user.findUnique({ where: { email: identifier } })
+          : await prisma.user.findFirst({ where: { username: { equals: identifier, mode: 'insensitive' } } });
         // user.password เป็น null ได้ถ้าสมัครผ่าน Google มา - บัญชีแบบนี้ login ด้วยรหัสผ่านไม่ได้
         if (!user || !user.password) return null;
 

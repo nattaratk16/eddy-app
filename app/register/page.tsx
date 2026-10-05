@@ -14,7 +14,7 @@ import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 
 // ต้องตรงกับ USERNAME_RE ใน lib/validation.ts (regex เดียวกันฝั่ง client แค่เอาไว้ขึ้น error เร็วๆ
 // ฝั่ง server ยังเป็นคนตัดสินจริงเสมอ)
-const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function RegisterPage() {
 
     const form = new FormData(e.currentTarget);
     const name = String(form.get('name') ?? '').trim();
-    const username = String(form.get('username') ?? '').trim().toLowerCase();
+    const username = String(form.get('username') ?? '').trim();
     const email = String(form.get('email') ?? '');
     const password = String(form.get('password') ?? '');
     const confirmPassword = String(form.get('confirmPassword') ?? '');
@@ -43,7 +43,7 @@ export default function RegisterPage() {
       return;
     }
     if (!USERNAME_PATTERN.test(username)) {
-      setError('ชื่อผู้ใช้ต้องเป็นตัวอักษรภาษาอังกฤษพิมพ์เล็ก ตัวเลข หรือ _ ยาว 3-20 ตัว');
+      setError('ชื่อผู้ใช้ต้องเป็นตัวอักษรภาษาอังกฤษ (พิมพ์เล็ก/ใหญ่ได้) ตัวเลข หรือ _ ยาว 3-20 ตัว');
       setLoading(false);
       return;
     }
@@ -137,11 +137,11 @@ export default function RegisterPage() {
                   label="ชื่อผู้ใช้"
                   placeholder="username"
                   icon={<AtSign size={18} />}
-                  pattern="[a-z0-9_]{3,20}"
-                  title="ตัวอักษรภาษาอังกฤษพิมพ์เล็ก ตัวเลข หรือ _ ยาว 3-20 ตัว"
+                  pattern="[a-zA-Z0-9_]{3,20}"
+                  title="ตัวอักษรภาษาอังกฤษ (พิมพ์เล็ก/ใหญ่ได้) ตัวเลข หรือ _ ยาว 3-20 ตัว"
                   required
                 />
-                <p className="mt-1 font-body text-[11px] text-ink-muted">a-z, 0-9, _ (3-20 ตัว)</p>
+                <p className="mt-1 font-body text-[11px] text-ink-muted">a-z, A-Z, 0-9, _ (3-20 ตัว)</p>
               </div>
             </div>
 

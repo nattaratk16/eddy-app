@@ -15,7 +15,9 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: 'ข้อมูลไม่ถูกต้อง' }, { status: 400 });
 
   const email: string = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
-  const username: string = typeof body?.username === 'string' ? body.username.trim().toLowerCase() : '';
+  // username เก็บตัวพิมพ์ตามที่ผู้ใช้ตั้งใจพิมพ์ (รองรับพิมพ์ใหญ่แล้ว) ไม่บังคับแปลงเป็นพิมพ์เล็กทั้งหมด
+  // เหมือนเดิมอีกต่อไป - ความซ้ำกัน/ล็อกอินเทียบแบบไม่สนพิมพ์เล็ก-ใหญ่แทน (ดู mode: 'insensitive' ด้านล่าง)
+  const username: string = typeof body?.username === 'string' ? body.username.trim() : '';
   const password: string = typeof body?.password === 'string' ? body.password : '';
   const name: string | undefined = typeof body?.name === 'string' ? body.name.trim() : undefined;
   const acceptedTerms: boolean = body?.acceptedTerms === true;
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
   if (!username || !USERNAME_RE.test(username)) {
     return NextResponse.json(
-      { error: 'ชื่อผู้ใช้ต้องเป็นตัวอักษรภาษาอังกฤษพิมพ์เล็ก ตัวเลข หรือ _ ยาว 3-20 ตัว' },
+      { error: 'ชื่อผู้ใช้ต้องเป็นตัวอักษรภาษาอังกฤษ (พิมพ์เล็ก/ใหญ่ได้) ตัวเลข หรือ _ ยาว 3-20 ตัว' },
       { status: 400 },
     );
   }
@@ -54,7 +56,9 @@ export async function POST(req: NextRequest) {
 
   const [existingEmail, existingUsername] = await Promise.all([
     prisma.user.findUnique({ where: { email } }),
-    prisma.user.findUnique({ where: { username } }),
+    // เทียบแบบไม่สนพิมพ์เล็ก-ใหญ่ กัน "JohnDoe" กับ "johndoe" สมัครซ้ำกันได้โดยไม่รู้ตัว
+    // (findFirst ไม่ใช่ findUnique เพราะ mode: 'insensitive' ใช้กับ unique field ตรงๆ ไม่ได้)
+    prisma.user.findFirst({ where: { username: { equals: username, mode: 'insensitive' } } }),
   ]);
   if (existingEmail) {
     return NextResponse.json({ error: 'อีเมลนี้มีบัญชีอยู่แล้ว' }, { status: 409 });
@@ -70,11 +74,13 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ user: { id: user.id, email: user.email, username: user.username, name: user.name } }, { status: 201 });
   } catch (err) {
-    // กันกรณี race condition: สมัครอีเมล/ชื่อผู้ใช้เดียวกันพร้อมกัน 2 คำขอ ผ่านการเช็ค findUnique
+    // กันกรณี race condition: สมัครอีเมล/ชื่อผู้ใช้เดียวกันพร้อมกัน 2 คำขอ ผ่านการเช็ค findUnique/findFirst
     // ด้านบนทั้งคู่ แล้วมาชนกันตอน insert จริง (unique constraint บน email/username)
+    // target เป็น "lower(username)" ไม่ใช่ "username" เฉยๆ เวลาชนกับ index แบบไม่สนพิมพ์เล็ก-ใหญ่
+    // (User_username_ci_key) เลยต้องเช็คทั้งสองรูปแบบ ไม่งั้นจะโชว์ error ผิดเป็น "อีเมลซ้ำ" แทน
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       const target = (err.meta?.target as string[] | undefined) ?? [];
-      const field = target.includes('username') ? 'ชื่อผู้ใช้นี้มีคนใช้แล้ว' : 'อีเมลนี้มีบัญชีอยู่แล้ว';
+      const field = target.some((t) => t.includes('username')) ? 'ชื่อผู้ใช้นี้มีคนใช้แล้ว' : 'อีเมลนี้มีบัญชีอยู่แล้ว';
       return NextResponse.json({ error: field }, { status: 409 });
     }
     throw err;
