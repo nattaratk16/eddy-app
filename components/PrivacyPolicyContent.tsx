@@ -9,7 +9,7 @@ const li = 'font-body text-body leading-relaxed text-ink-soft';
 export default function PrivacyPolicyContent() {
   return (
     <div>
-      <p className="font-body text-sm text-ink-muted">ปรับปรุงล่าสุด: กันยายน 2569 (2026)</p>
+      <p className="font-body text-sm text-ink-muted">ปรับปรุงล่าสุด: ตุลาคม 2569 (2026)</p>
 
       <p className={p}>
         Eddy เป็นโครงงานปริญญานิพนธ์ (Capstone Project) ด้านวิศวกรรมคอมพิวเตอร์ ที่ทำขึ้นเพื่อการศึกษาและสาธิตการทำงาน
@@ -56,6 +56,26 @@ export default function PrivacyPolicyContent() {
           และใช้สิทธิ์อ่านอย่างเดียวตามที่ระบุไว้ข้างต้น
         </li>
       </ul>
+
+      <h2 className={h2}>การปฏิบัติตามนโยบายข้อมูลผู้ใช้ของ Google</h2>
+      <p className={p}>
+        การใช้และการส่งต่อข้อมูลที่ Eddy ได้รับจาก Google APIs (รวมถึง Google Calendar API) ไปยังแอปพลิเคชันอื่นใด
+        เป็นไปตาม{' '}
+        <a
+          href="https://developers.google.com/terms/api-services-user-data-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-eddy-600 hover:text-eddy-700"
+        >
+          Google API Services User Data Policy
+        </a>{' '}
+        รวมถึงข้อกำหนดการใช้งานแบบจำกัด (Limited Use requirements) ของ Google อย่างเคร่งครัด
+      </p>
+      <p className={p}>
+        โดยเฉพาะอย่างยิ่ง ข้อมูลปฏิทินที่ดึงมาจาก Google Calendar API จะถูกใช้เพื่อแสดงผลในปฏิทินของ Eddy เท่านั้น
+        (ตามที่ระบุไว้ในหัวข้อ &quot;ข้อมูลที่เราเก็บ&quot; ด้านบน) เราไม่นำข้อมูลนี้ไปใช้ฝึกหรือปรับปรุงโมเดล AI/ML ทั่วไป
+        (generalized AI/ML models) ไม่ว่าจะเป็นของเราเองหรือของบุคคลที่สาม
+      </p>
 
       <h2 className={h2}>คุกกี้ (Cookies)</h2>
       <p className={p}>
