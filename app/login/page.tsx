@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { AtSign, Lock, Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
@@ -10,11 +10,23 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 
-export default function LoginPage() {
+// ข้อความ error ที่ NextAuth แปะมาใน query string ตอน redirect กลับมาหน้านี้ (เช่นตอนเชื่อม Google
+// Calendar จากหน้าปฏิทินแล้วอีเมลของบัญชี Google ไม่ตรงกับบัญชีอื่นที่มีอยู่แล้ว - ปกติ NextAuth จะ
+// ปฏิเสธการเชื่อมแบบเงียบๆ แล้วเด้งมาที่นี่พร้อม ?error=... โดยไม่มีข้อความอะไรเลยถ้าเราไม่จับเอง)
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  OAuthAccountNotLinked:
+    'บัญชี Google นี้ผูกกับอีเมลอื่นอยู่แล้ว ลองใช้บัญชี Google ที่ตรงกับอีเมลที่สมัครไว้ หรือเข้าสู่ระบบด้วยอีเมล/ชื่อผู้ใช้แทน',
+};
+const DEFAULT_OAUTH_ERROR_MESSAGE = 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง';
+
+function LoginForm() {
   const router = useRouter();
+  const oauthError = useSearchParams().get('error');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    oauthError ? OAUTH_ERROR_MESSAGES[oauthError] ?? DEFAULT_OAUTH_ERROR_MESSAGE : '',
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -119,5 +131,13 @@ export default function LoginPage() {
 
       </div>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

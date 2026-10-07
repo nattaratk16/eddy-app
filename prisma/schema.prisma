@@ -63,6 +63,7 @@ model User {
   recurringEvents     RecurringEvent[]
   aiCache             AiCache[]
   passwordResetTokens PasswordResetToken[]
+  googleCalendarLink  GoogleCalendarLink?
 }
 
 // ผลลัพธ์ข้อความจาก Gemini ที่ cache ไว้ต่อ user (เช่น สรุปภาพรวมสัปดาห์, ประโยควิเคราะห์ภาระงาน)
@@ -114,6 +115,27 @@ model RecurringEvent {
   updatedAt  DateTime  @updatedAt
 
   @@index([userId])
+}
+
+// เชื่อม Google Calendar แบบ "อ่านอย่างเดียว" เป็นเอกเทศ แยกจากตาราง Account ด้านล่างโดยตั้งใจ (ซึ่งเป็น
+// ของ NextAuth adapter ใช้สำหรับ "เข้าสู่ระบบ Eddy ด้วย Google" เท่านั้น) เพราะ Account ผูกกับ userId ด้วย
+// providerAccountId เดียว - ถ้าใช้ตารางเดียวกัน การ "เชื่อม Google Calendar ด้วยบัญชีอื่นที่ไม่ตรงกับ
+// อีเมลที่สมัคร" (ตามที่ตั้งใจรองรับ) จะเสี่ยงไปทับ/ลบแถวที่เป็นวิธี login จริงของคนที่สมัครด้วย Google
+// ตั้งแต่แรก ทำให้ login ไม่ได้อีกเลย แยกตารางนี้ออกมาต่างหากเลยไม่มีทางกระทบการ login เลยไม่ว่ากรณีไหน
+// (อ่าน token ทาง lib/google.ts: เช็คตารางนี้ก่อน ถ้าไม่มีค่อย fallback ไปตาราง Account เพื่อให้คนที่
+// สมัคร/ล็อกอินด้วย Google อยู่แล้วใช้ปฏิทินได้ทันทีโดยไม่ต้องกดเชื่อมซ้ำ)
+model GoogleCalendarLink {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleAccountId String   @unique // Google "sub" - กันบัญชี Google เดียวถูกเชื่อมซ้ำกับหลาย Eddy user
+  email           String // แค่โชว์ผลในหน้า UI "เชื่อมด้วย x@gmail.com" ไม่ได้ใช้จับคู่กับอะไรเลย
+  accessToken     String   @db.Text
+  refreshToken    String?  @db.Text
+  expiresAt       Int?
+  scope           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // ---------- ตารางมาตรฐานของ NextAuth adapter (สำหรับ Google OAuth) ----------

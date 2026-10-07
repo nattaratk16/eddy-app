@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getGoogleAccessToken, hasGoogleAccount } from '@/lib/google';
+import { getGoogleAccessToken, getGoogleCalendarStatus } from '@/lib/google';
 
 // แปลงวัน/เวลาเป็นรูปแบบของ Eddy โดยอิงเวลาไทย
 const fmtDate = (d: Date) =>
@@ -49,9 +49,11 @@ export async function GET(req: NextRequest) {
   const token = await getGoogleAccessToken(session.user.id);
   if (!token) {
     // แยกว่า "ยังไม่ได้เชื่อมบัญชี Google" (ให้กดเชื่อม) vs "เชื่อมแล้วแต่ token มีปัญหา"
-    const linked = await hasGoogleAccount(session.user.id);
-    return NextResponse.json({ connected: false, hasAccount: linked, events: [] });
+    const status = await getGoogleCalendarStatus(session.user.id);
+    return NextResponse.json({ connected: false, hasAccount: status.connected, events: [] });
   }
+
+  const status = await getGoogleCalendarStatus(session.user.id);
 
   const start = req.nextUrl.searchParams.get('start');
   const end = req.nextUrl.searchParams.get('end');
@@ -81,5 +83,5 @@ export async function GET(req: NextRequest) {
     .map(mapEvent)
     .filter(Boolean);
 
-  return NextResponse.json({ connected: true, hasAccount: true, events });
+  return NextResponse.json({ connected: true, hasAccount: true, events, email: status.email, source: status.source });
 }

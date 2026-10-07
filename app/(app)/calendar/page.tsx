@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import {
   addDays,
   addMonths,
@@ -30,6 +30,7 @@ import TimeGridView from '@/components/calendar/TimeGridView';
 import WeeklySummaryPanel from '@/components/calendar/WeeklySummaryPanel';
 import WeekStatsCard from '@/components/calendar/WeekStatsCard';
 import RecurringManager from '@/components/RecurringManager';
+import { useToast } from '@/components/ToastProvider';
 import { buildWeeklySummary } from '@/lib/aiMock';
 import { isEventOnDay } from '@/lib/calendarLayout';
 import { expandRecurring } from '@/lib/recurring';
@@ -89,6 +90,7 @@ export default function CalendarPage() {
 function CalendarPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const { data: session } = useSession();
   const userName = session?.user?.name || session?.user?.email || 'เพื่อน';
 
@@ -113,6 +115,10 @@ function CalendarPageContent() {
   const [showGoogle, setShowGoogle] = useState(true);
   // loading = กำลังเช็ค, connected = เชื่อม+ดึงได้, account-error = เชื่อมบัญชีแล้วแต่ดึงไม่ได้, off = ยังไม่เชื่อม
   const [googleStatus, setGoogleStatus] = useState<'loading' | 'connected' | 'account-error' | 'off'>('loading');
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  // 'link' = เชื่อมแบบ explicit ผ่านปุ่ม (เปลี่ยน/ยกเลิกได้) - 'account' = ติดมาจากสมัครด้วย Google ตั้งแต่แรก
+  const [googleSource, setGoogleSource] = useState<'link' | 'account' | null>(null);
+  const [googleActionLoading, setGoogleActionLoading] = useState(false);
 
   // โหลดหมวดหมู่และกิจกรรมจริงจาก /api/categories และ /api/events (Prisma + PostgreSQL)
   async function loadCalendarData() {
@@ -175,28 +181,62 @@ function CalendarPageContent() {
 
   // ดึงกิจกรรมจาก Google Calendar (โหลดช่วง ±45 วันรอบวันที่ดูอยู่ - รีเฟรชเมื่อเปลี่ยนเดือน)
   const monthKey = format(anchor, 'yyyy-MM');
-  useEffect(() => {
-    (async () => {
-      const start = format(subDays(anchor, 45), 'yyyy-MM-dd');
-      const end = format(addDays(anchor, 45), 'yyyy-MM-dd');
-      try {
-        const res = await fetch(`/api/google/calendar?start=${start}&end=${end}`);
-        const data = await res.json();
-        if (data.connected) {
-          setGoogleStatus('connected');
-          setGoogleEvents(
-            (data.events ?? []).map((e: CalendarEvent) => ({ ...e, categoryId: GOOGLE_CATEGORY_ID })),
-          );
-        } else {
-          setGoogleStatus(data.hasAccount ? 'account-error' : 'off');
-          setGoogleEvents([]);
-        }
-      } catch {
-        setGoogleStatus('off');
+  const loadGoogleCalendar = async () => {
+    const start = format(subDays(anchor, 45), 'yyyy-MM-dd');
+    const end = format(addDays(anchor, 45), 'yyyy-MM-dd');
+    try {
+      const res = await fetch(`/api/google/calendar?start=${start}&end=${end}`);
+      const data = await res.json();
+      setGoogleEmail(data.email ?? null);
+      setGoogleSource(data.source ?? null);
+      if (data.connected) {
+        setGoogleStatus('connected');
+        setGoogleEvents(
+          (data.events ?? []).map((e: CalendarEvent) => ({ ...e, categoryId: GOOGLE_CATEGORY_ID })),
+        );
+      } else {
+        setGoogleStatus(data.hasAccount ? 'account-error' : 'off');
+        setGoogleEvents([]);
       }
-    })();
+    } catch {
+      setGoogleStatus('off');
+    }
+  };
+  useEffect(() => {
+    loadGoogleCalendar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthKey]);
+
+  // ข้อความแจ้งผลตอนกลับมาจาก /api/google/calendar/connect (เชื่อม/เชื่อมใหม่ Google Calendar)
+  useEffect(() => {
+    const result = searchParams.get('googleLink');
+    if (!result) return;
+    if (result === 'success') {
+      toast.success('เชื่อม Google Calendar สำเร็จแล้ว');
+      loadGoogleCalendar();
+    } else if (result === 'conflict') {
+      toast.error('บัญชี Google นี้ถูกเชื่อมกับบัญชี Eddy อื่นอยู่แล้ว ลองใช้บัญชี Google อื่น');
+    } else if (result === 'cancelled') {
+      // ผู้ใช้กด "ยกเลิก" บนหน้า consent เอง - ไม่ต้องขึ้น error
+    } else {
+      toast.error('เชื่อม Google Calendar ไม่สำเร็จ ลองใหม่อีกครั้ง');
+    }
+    router.replace('/calendar');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  async function disconnectGoogle() {
+    setGoogleActionLoading(true);
+    try {
+      await fetch('/api/google/calendar/disconnect', { method: 'POST' });
+      toast.success('ยกเลิกการเชื่อม Google Calendar แล้ว');
+      await loadGoogleCalendar();
+    } catch {
+      toast.error('ยกเลิกการเชื่อมไม่สำเร็จ ลองใหม่อีกครั้ง');
+    } finally {
+      setGoogleActionLoading(false);
+    }
+  }
 
   // ขยาย Loop ประจำเป็นกิจกรรมจริงในช่วง ±45 วันรอบวันที่ดูอยู่
   const recurringEvents = useMemo(() => {
@@ -508,7 +548,7 @@ function CalendarPageContent() {
                   {googleStatus === 'connected' ? (
                     <>
                       <p className="mt-1 flex items-center gap-1 font-body text-xs font-semibold text-emerald-600">
-                        <Check size={13} /> เชื่อมต่อแล้ว
+                        <Check size={13} /> เชื่อมต่อแล้ว{googleEmail ? ` (${googleEmail})` : ''}
                       </p>
                       <label className="mt-2 flex cursor-pointer items-center gap-2 font-body text-xs text-ink-soft">
                         <input
@@ -519,6 +559,31 @@ function CalendarPageContent() {
                         />
                         แสดงกิจกรรมจาก Google ({googleEvents.length})
                       </label>
+                      {/* เปลี่ยน/ยกเลิกได้เฉพาะตอนเชื่อมแบบ explicit (source: 'link') - ถ้าติดมาจากตอน
+                          สมัครด้วย Google เอง (source: 'account') แถวเดียวกันคือวิธี login ด้วย ลบ/เปลี่ยน
+                          จากตรงนี้ไม่ได้เพราะเสี่ยงทำให้ล็อกอินไม่ได้ */}
+                      {googleSource === 'link' ? (
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            onClick={() => window.location.assign('/api/google/calendar/connect')}
+                            disabled={googleActionLoading}
+                            className="rounded-full bg-eddy-100 px-3 py-1.5 font-display text-xs font-semibold text-eddy-700 transition-colors hover:bg-eddy-200 disabled:opacity-50"
+                          >
+                            เชื่อมใหม่
+                          </button>
+                          <button
+                            onClick={disconnectGoogle}
+                            disabled={googleActionLoading}
+                            className="rounded-full bg-pastel-pink/60 px-3 py-1.5 font-display text-xs font-semibold text-chip-ink transition-colors hover:bg-pastel-pink disabled:opacity-50 dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark"
+                          >
+                            ยกเลิกการเชื่อม
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-2 font-body text-[11px] text-ink-muted">
+                          เชื่อมอัตโนมัติจากตอนสมัคร/เข้าสู่ระบบด้วยบัญชีนี้
+                        </p>
+                      )}
                     </>
                   ) : googleStatus === 'account-error' ? (
                     <div className="mt-1">
@@ -532,10 +597,11 @@ function CalendarPageContent() {
                   ) : googleStatus === 'off' ? (
                     <>
                       <p className="mt-1 font-body text-xs text-ink-muted">
-                        เชื่อมเพื่อดึงกิจกรรมจากปฏิทิน Google มาแสดงในที่เดียว
+                        เชื่อมเพื่อดึงกิจกรรมจากปฏิทิน Google มาแสดงในที่เดียว ใช้บัญชี Google ไหนก็ได้
+                        ไม่จำเป็นต้องตรงกับอีเมลที่สมัคร Eddy ไว้
                       </p>
                       <button
-                        onClick={() => signIn('google')}
+                        onClick={() => window.location.assign('/api/google/calendar/connect')}
                         className="mt-2 rounded-full bg-inverse px-3 py-1.5 font-display text-xs font-semibold text-white transition-colors hover:bg-black"
                       >
                         เชื่อม Google Calendar
