@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import Card from '@/components/Card';
 import ChangePasswordButton from '@/components/ChangePasswordButton';
 import SignOutButton from '@/components/SignOutButton';
+import DeleteAccountButton from '@/components/DeleteAccountButton';
 
 const monthNames = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -87,6 +88,16 @@ export default async function SettingsAccountPage() {
         <p className="mt-0.5 font-body text-caption text-ink-muted">ออกจากระบบบนอุปกรณ์นี้</p>
         <div className="mt-4 sm:max-w-xs">
           <SignOutButton />
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-display text-h3 text-ink">ลบบัญชี</h2>
+        <p className="mt-0.5 font-body text-caption text-ink-muted">
+          ลบบัญชีและข้อมูลทั้งหมดถาวร กู้คืนไม่ได้ — ถ้าเป็นเจ้าของกลุ่มที่มีสมาชิกคนอื่นอยู่ ต้องลบกลุ่มหรือโอนความเป็นเจ้าของก่อน
+        </p>
+        <div className="mt-4 sm:max-w-xs">
+          <DeleteAccountButton usesPassword={usesPassword} />
         </div>
       </Card>
     </div>

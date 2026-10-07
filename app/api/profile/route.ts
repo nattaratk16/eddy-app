@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { PASTEL_COLORS } from '@/lib/colors';
@@ -149,4 +150,43 @@ export async function PATCH(req: NextRequest) {
     }
     throw e;
   }
+}
+
+// DELETE /api/profile - ลบบัญชีตัวเองถาวร (self-service) ข้อมูลที่เกี่ยวข้องทั้งหมด (งาน หมวดหมู่
+// กิจกรรม ข้อความแชท ฯลฯ) ถูกลบตาม onDelete: Cascade ใน schema ไปด้วยอัตโนมัติ
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = session.user.id;
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
+  if (!user) return NextResponse.json({ error: 'ไม่พบบัญชี' }, { status: 404 });
+
+  // ถ้ามีรหัสผ่าน (สมัครด้วยอีเมล) ต้องยืนยันตัวตนด้วยรหัสผ่านก่อนลบเสมอ - กันกดลบโดยไม่ตั้งใจ/
+  // กันคนอื่นที่แอบใช้เครื่องขณะ session ยังค้างอยู่มาลบบัญชีแทน บัญชีที่สมัครด้วย Google ไม่มีรหัสผ่าน
+  // ให้ตรวจ เลยข้ามขั้นนี้ไป (ฝั่ง UI ให้พิมพ์ข้อความยืนยันแทน)
+  if (user.password) {
+    const body = await req.json().catch(() => null);
+    const password: string = typeof body?.password === 'string' ? body.password : '';
+    if (!password) return NextResponse.json({ error: 'กรุณากรอกรหัสผ่านเพื่อยืนยัน' }, { status: 400 });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return NextResponse.json({ error: 'รหัสผ่านไม่ถูกต้อง' }, { status: 400 });
+  }
+
+  // กันลบบัญชีแล้วพากลุ่มที่มีสมาชิกคนอื่นหายไปด้วยแบบไม่รู้ตัว (onDelete: Cascade บน Group.owner
+  // จะลบทั้งกลุ่มทันทีถ้าเป็นเจ้าของ) - ต้องให้โอนความเป็นเจ้าของหรือลบกลุ่มเองก่อนถ้ามีสมาชิกคนอื่นอยู่
+  const ownedGroupsWithOthers = await prisma.group.findMany({
+    where: { ownerId: userId, members: { some: { userId: { not: userId } } } },
+    select: { name: true },
+  });
+  if (ownedGroupsWithOthers.length > 0) {
+    const names = ownedGroupsWithOthers.map((g) => g.name).join(', ');
+    return NextResponse.json(
+      { error: `คุณเป็นเจ้าของกลุ่มที่มีสมาชิกคนอื่นอยู่ (${names}) กรุณาลบกลุ่มหรือโอนความเป็นเจ้าของให้คนอื่นก่อนลบบัญชี` },
+      { status: 409 },
+    );
+  }
+
+  await prisma.user.delete({ where: { id: userId } });
+  return NextResponse.json({ ok: true });
 }
