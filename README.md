@@ -1,8 +1,10 @@
 # EDDY — ผู้ช่วยจัดตารางชีวิตด้วย AI
 
 โปรเจกต์ Next.js สำหรับ Capstone/Senior Project สาขาวิศวกรรมคอมพิวเตอร์
-สไตล์ **"Friendly 3D Pastel"** (ม่วงหลัก + พาสเทล) พร้อมมาสคอต **Eddy**
-และโครงสร้างพร้อมต่อ **Gemini API** กับ **PostgreSQL** ในอนาคต
+สไตล์ **"Friendly 3D Pastel"** (ม่วงหลัก + พาสเทล, clay-morphism) พร้อมมาสคอต **Eddy**
+
+ต่อ **PostgreSQL (Prisma)**, **Gemini API**, **Google OAuth/Calendar** และระบบอีเมล (**Resend**)
+จริงทั้งหมดแล้ว ไม่ใช่ mock/prototype อีกต่อไป
 
 ---
 
@@ -20,33 +22,30 @@
    - **ES7+ React/Redux/React-Native snippets**
    - **Tailwind CSS IntelliSense**
    - **Prisma** (สำหรับ syntax highlighting ไฟล์ `schema.prisma`)
-4. (ถ้าต้องการต่อ Database จริง) ติดตั้ง **PostgreSQL**
-   - วิธีง่ายสุดสำหรับมือใหม่: สมัครฟรีที่ https://neon.tech หรือ https://supabase.com
-     แล้วคัดลอก connection string มาใส่ในไฟล์ `.env.local` (ไม่ต้องลง PostgreSQL บนเครื่องเอง)
+4. **PostgreSQL** — วิธีง่ายสุดสำหรับมือใหม่: สมัครฟรีที่ https://neon.tech หรือ https://supabase.com
+   แล้วคัดลอก connection string มาใส่ในไฟล์ `.env.local` (ไม่ต้องลง PostgreSQL บนเครื่องเอง)
 
 ---
 
 ## 2. เปิดโปรเจกต์และติดตั้งแพ็กเกจ
 
-1. แตกไฟล์ zip ที่ได้รับ แล้วเปิดโฟลเดอร์ `eddy-app` ด้วย VS Code
-   (File → Open Folder...)
+1. เปิดโฟลเดอร์โปรเจกต์ด้วย VS Code (File → Open Folder...)
 2. เปิด Terminal ใน VS Code (กด `` Ctrl+` ``) แล้วรันคำสั่ง:
    ```
    npm install
    ```
-   ขั้นตอนนี้จะติดตั้ง Next.js, React, Tailwind, Prisma และไลบรารีอื่นๆ ตามใน `package.json`
-   (ใช้เวลาประมาณ 1-3 นาที ขึ้นกับความเร็วอินเทอร์เน็ต)
+   (`postinstall` จะรัน `prisma generate` ให้อัตโนมัติ ใช้เวลาประมาณ 1-3 นาที ขึ้นกับความเร็วอินเทอร์เน็ต)
 
 3. คัดลอกไฟล์ตัวอย่าง environment variables:
    ```
-   cp .env.example .env.local
+   copy .env.example .env.local
    ```
-   (ถ้าใช้ Windows PowerShell: `copy .env.example .env.local`)
+   (Mac/Linux ใช้ `cp .env.example .env.local`)
 
-   ตอนนี้ระบบ login/register และหน้าปฏิทัน/สิ่งที่ต้องทำ **ต่อกับ PostgreSQL จริงแล้ว**
-   (ผ่าน Prisma) จึงต้องใส่ `DATABASE_URL` และ `AUTH_SECRET` ก่อนถึงจะใช้งานได้ครบ
-   (ดูหัวข้อ 4-5) ส่วนแชท Eddy ต่อกับ Gemini API จริงแล้วเช่นกัน (ต้องใส่ `GEMINI_API_KEY`
-   ไม่งั้นจะได้แค่ข้อความ mock สำรองตอนเรียก Gemini ไม่สำเร็จ)
+   ระบบทั้งหมด (login/register, ปฏิทัน, สิ่งที่ต้องทำ, กลุ่ม, แชท Eddy, เชื่อม Google Calendar,
+   ลืมรหัสผ่าน) ต่อกับฐานข้อมูล/API จริง จึงต้องใส่ค่าใน `.env.local` ให้ครบตามหัวข้อ 4-6
+   ก่อนถึงจะใช้งานได้เต็มรูปแบบ — ใส่แค่ `DATABASE_URL` + `AUTH_SECRET` ก็เพียงพอสำหรับรันและ login
+   ด้วยอีเมล/รหัสผ่านได้แล้ว ส่วนที่เหลือ (Gemini, Google OAuth, Resend) เป็น optional ตามฟีเจอร์ที่จะลองใช้
 
 4. สั่งรันเว็บแอป:
    ```
@@ -60,48 +59,41 @@
 
 ```
 eddy-app/
-├── auth.ts                          # ตั้งค่า NextAuth (Auth.js v5) — Credentials + JWT session
-├── middleware.ts                    # ป้องกันหน้ากลุ่ม (app) ไม่ให้เข้าถ้ายังไม่ login
+├── auth.ts                        # ตั้งค่า NextAuth (Auth.js v5) — Credentials + Google, JWT session
+├── middleware.ts                  # ป้องกันหน้ากลุ่ม (app) ไม่ให้เข้าถ้ายังไม่ login
 ├── app/
-│   ├── login/page.tsx               # หน้า Login (เรียก signIn() จริง)
-│   ├── register/page.tsx            # หน้าสมัครสมาชิก (เรียก /api/auth/register)
-│   ├── providers.tsx                # ครอบ SessionProvider ให้ทั้งแอป
-│   ├── (app)/                       # กลุ่มหน้าที่ login แล้ว (มี Sidebar ร่วมกัน)
-│   │   ├── layout.tsx               # Layout: เช็ค session, Sidebar + Mobile nav + ปุ่มแชท Eddy
-│   │   ├── dashboard/page.tsx       # หน้า Dashboard (ดึงข้อมูลจริงผ่าน Prisma)
-│   │   ├── calendar/page.tsx        # หน้าปฏิทิน (fetch จาก /api/categories, /api/events)
-│   │   └── todo/page.tsx            # หน้า To-do list (fetch จาก /api/tasks)
-│   ├── api/
-│   │   ├── auth/[...nextauth]/route.ts  # NextAuth route handler
-│   │   ├── auth/register/route.ts       # สมัครสมาชิก (hash รหัสผ่านด้วย bcrypt)
-│   │   ├── chat/route.ts                # API คุยกับ Eddy (ต่อ Gemini จริงแล้ว, mock เป็นแค่ fallback ตอนเรียกพัง)
-│   │   ├── tasks/[route.ts, [id]/route.ts]     # API งาน (ต่อ PostgreSQL จริงแล้ว)
-│   │   ├── events/[route.ts, [id]/route.ts]    # API กิจกรรม (ต่อ PostgreSQL จริงแล้ว)
-│   │   └── categories/[route.ts, [id]/route.ts] # API หมวดหมู่ (ต่อ PostgreSQL จริงแล้ว)
-│   ├── layout.tsx                  # Root layout (โหลดฟอนต์ + Providers)
-│   └── globals.css                 # CSS หลัก + clay-card utility
-├── components/
-│   ├── EddyMascot.tsx               # มาสคอตหลักของแบรนด์ (SVG)
-│   ├── FloatingShapes.tsx           # บล็อกพาสเทลลอยตกแต่งพื้นหลัง
-│   ├── Sidebar.tsx / MobileNav.tsx  # เมนูนำทาง (ปุ่ม logout เรียก signOut() จริง)
-│   ├── Topbar.tsx                   # หัวข้อ + วันที่
-│   ├── ChatWidget.tsx                # หน้าต่างแชท Eddy แบบลอย (FAB)
-│   ├── Card.tsx / Button.tsx / Input.tsx
-├── lib/
-│   ├── gemini.ts                    # ฟังก์ชันเรียก Gemini API
-│   ├── prisma.ts                    # Prisma client (สำหรับ PostgreSQL)
-│   └── types.ts                     # TypeScript types: Task, CalendarEvent
-├── prisma/schema.prisma             # โครงสร้างตาราง User, Task, Event, ChatMessage
-├── tailwind.config.js               # สีม่วง + พาสเทล + clay shadow ทั้งหมดอยู่ที่นี่
-└── .env.example                     # ตัวอย่างตัวแปร environment
+│   ├── login/, register/          # เข้าสู่ระบบ / สมัครสมาชิก
+│   ├── forgot-password/, reset-password/  # ลืมรหัสผ่าน (ส่งอีเมลผ่าน Resend)
+│   ├── onboarding/                # ตั้งค่าเริ่มต้นหลังสมัคร (เวลาทำงาน, ระยะโฟกัส ฯลฯ)
+│   ├── privacy/                   # หน้านโยบายความเป็นส่วนตัว
+│   ├── (app)/                     # กลุ่มหน้าที่ login แล้ว (มี Sidebar/Mobile nav ร่วมกัน)
+│   │   ├── dashboard/             # ภาพรวม workload, burnout risk, สรุป AI
+│   │   ├── calendar/              # ปฏิทิน + เชื่อมต่อ Google Calendar, งานที่เกิดซ้ำ
+│   │   ├── todo/                  # สิ่งที่ต้องทำ, แตกงานย่อยด้วย AI, จัดลงปฏิทินอัตโนมัติ
+│   │   ├── groups/                # กลุ่ม: งานร่วมกัน, แชร์ปฏิทิน, กระจายงานตาม workload
+│   │   ├── profile/               # โปรไฟล์ผู้ใช้ (avatar, ทักษะ, บทบาท)
+│   │   └── settings/              # ตั้งค่าบัญชี/โปรไฟล์/การทำงาน/ธีม, ลบบัญชี
+│   └── api/
+│       ├── auth/                  # register, forgot-password, reset-password, NextAuth handler
+│       ├── chat/                  # แชทกับ Eddy (ต่อ Gemini จริง)
+│       ├── ai/                    # วิเคราะห์กิจกรรม, สรุปรายสัปดาห์, insight เรื่อง workload
+│       ├── tasks/, subtasks/      # งาน + แตกงานย่อยด้วย AI + จัดตารางอัตโนมัติ
+│       ├── events/, categories/, recurring/  # กิจกรรม, หมวดหมู่, กิจกรรมที่เกิดซ้ำ
+│       ├── groups/                # กลุ่ม, เชิญ/เข้าร่วมด้วยโค้ด, มอบหมายงาน, กระจายงานตาม workload
+│       ├── google/calendar/       # เชื่อมต่อ/ยกเลิกเชื่อม Google Calendar (แยกจากบัญชี login)
+│       └── profile/                # แก้ไขโปรไฟล์, เปลี่ยนรหัสผ่าน, ลบบัญชี
+├── components/                    # Sidebar, ChatWidget, OnboardingWizard, Modal ต่างๆ ฯลฯ
+├── lib/                           # gemini.ts, google.ts, priorityScore.ts, freeTime.ts,
+│                                  #   groupWorkload.ts, rateLimit.ts, email.ts ฯลฯ (ลอจิกหลักของแอป)
+├── prisma/schema.prisma           # โครงสร้างตาราง (User, Task, Subtask, Event, Group, GroupTask,
+│                                  #   GoogleCalendarLink, ChatMessage, AiCache ฯลฯ)
+├── tailwind.config.js             # สีม่วง + พาสเทล + clay shadow ทั้งหมดอยู่ที่นี่
+└── .env.example                   # ตัวอย่างตัวแปร environment
 ```
 
 ---
 
-## 4. การต่อ PostgreSQL จริง + ระบบ Login (จำเป็นก่อนใช้งานจริง)
-
-ตอนนี้ **auth และทุก API route ต่อกับ Prisma/PostgreSQL จริงแล้ว** (ไม่ใช่ mock อีกต่อไป)
-เหลือแค่เสียบ database ของคุณเอง:
+## 4. การต่อ PostgreSQL จริง + ระบบ Login
 
 1. เตรียม PostgreSQL (แนะนำสมัครฟรีที่ https://neon.tech หรือ https://supabase.com)
 2. ใส่ `DATABASE_URL` ใน `.env.local`
@@ -115,7 +107,6 @@ eddy-app/
    npm run prisma:generate
    ```
 5. รัน `npm run dev` แล้วไปที่ `/register` เพื่อสมัครสมาชิก จากนั้น login ที่ `/login`
-   — ข้อมูล categories/events/tasks ที่เพิ่มจะถูกบันทึกลง PostgreSQL จริงและผูกกับบัญชีของคุณ
 
 **ถ้าต้องการ login ด้วย Google ด้วย** (นอกจาก email/password) ต้องตั้งค่าเพิ่ม:
 1. สร้าง OAuth Client ที่ [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
@@ -123,10 +114,14 @@ eddy-app/
 2. ใส่ `AUTH_GOOGLE_ID` และ `AUTH_GOOGLE_SECRET` ใน `.env.local`
    (ไม่ตั้งค่านี้ก็ไม่เป็นไร — ปุ่ม "เข้าสู่ระบบด้วย Google" แค่จะใช้งานไม่ได้ ส่วน login ด้วย email/password ปกติดี)
 
+**การเชื่อมต่อ Google Calendar** (ในหน้าปฏิทิน) เป็นระบบแยกจากการ login — เชื่อม Google
+account ไหนก็ได้ ไม่จำเป็นต้องเป็นอีเมลเดียวกับที่สมัคร EDDY ใช้ OAuth Client เดียวกับข้างบน
+แต่ต้องเพิ่ม redirect URI อีกตัว: `http://localhost:3000/api/google/calendar/callback`
+
 ## 5. การต่อ Gemini API จริง
 
-**โค้ดต่อ Gemini จริงไว้ให้แล้ว** (`lib/gemini.ts`, เรียกใช้จาก `app/api/chat/route.ts` และ endpoint
-AI อื่นๆ ใต้ `app/api/ai/`) เหลือแค่ใส่ API key เอง:
+ใช้ขับเคลื่อนฟีเจอร์ AI หลักของแอป เช่น แตกงานใหญ่เป็นงานย่อย, แชทกับ Eddy, วิเคราะห์ภาพรวม
+สัปดาห์ และ insight เรื่อง workload (`lib/gemini.ts`):
 
 1. สร้าง API key ที่ https://aistudio.google.com/app/apikey
 2. ใส่ค่าใน `.env.local`:
@@ -136,49 +131,21 @@ AI อื่นๆ ใต้ `app/api/ai/`) เหลือแค่ใส่ AP
 3. ถ้าไม่ได้ใส่ key (หรือเรียก Gemini แล้วพัง) ระบบจะ fallback ไปใช้ `lib/aiMock.ts`
    (ตรรกะแบบ rule-based ล้วน ไม่พึ่ง AI) แทน เพื่อไม่ให้ฟีเจอร์พังทั้งหมดตอน Gemini ใช้งานไม่ได้ชั่วคราว
 
+## 6. การตั้งค่าอีเมล (Resend) — สำหรับฟีเจอร์ "ลืมรหัสผ่าน"
+
+1. สมัครและสร้าง API key ที่ https://resend.com/api-keys (ต้อง verify โดเมนผู้ส่งก่อนถึงจะส่งอีเมล
+   ออกนอกบัญชีตัวเองได้จริง)
+2. ใส่ค่าใน `.env.local`:
+   ```
+   RESEND_API_KEY="ค่าที่ได้มา"
+   ```
+3. ถ้าไม่ได้ใส่ key ฟีเจอร์ "ลืมรหัสผ่าน" จะใช้งานไม่ได้ (ส่วนอื่นของระบบไม่ได้รับผลกระทบ)
+
 ---
 
-## 6. จุดที่ออกแบบไว้ให้แก้ไขง่าย
+## 7. จุดที่ออกแบบไว้ให้แก้ไขง่าย
 
 - **สีและธีมทั้งหมด** ปรับได้ที่ `tailwind.config.js` (ส่วน `colors.eddy` และ `colors.pastel`)
 - **มาสคอต Eddy** แก้ท่าทาง/สีได้ที่ `components/EddyMascot.tsx`
-- **ระบบ AI ตอนนี้** ต่อ Gemini จริงแล้ว (`lib/gemini.ts`) ดูหัวข้อ 5 — `lib/aiMock.ts` เป็นแค่
-  fallback แบบ rule-based ตอนเรียก Gemini ไม่สำเร็จ ไม่ใช่โหมดหลัก
-
-มีคำถามหรือต้องการให้ต่อเติมหน้าไหนเพิ่ม (เช่น หน้า Settings, Profile, ระบบแชร์หมวดหมู่/เพื่อน)
-บอกมาได้เลย — โครงสร้างปัจจุบันรองรับการเพิ่มหน้าใหม่ได้ง่ายมาก
-
-สิ่งที่ต้องการแน่ๆใน โปรเจคนี้
-
-บทบาท Ai ใน EDDY
-- Ai ใน webApp นี้จะปรับเปลี่ยนตาม พฤติกรรมของผู้ใช้งาน
-แปลงข้อความ/คำพูดธรรมดาเป็นข้อมูลโครงสร้าง (วันที่, เวลา, หมวดหมู่)
-วิเคราะห์ตารางที่มีอยู่แล้วหาช่องว่างที่เหมาะสม
-จัดลำดับความสำคัญ/เร่งด่วน/ความยากของงาน
-ให้คำแนะนำเชิงรุก เช่น เตือน, สรุป, เสนอทางเลือก
-
-- Ai ในปฎิทิน
-ตรวจสอบ overlap ระหว่างกิจกรรมที่กำลังจะเพิ่ม กับกิจกรรมเดิมในหมวดหมู่อื่น
-แนะนำเวลาว่างที่เหมาะสม
-ประเมินความหนาแน่นของวัน
-เรียนรู้ pattern ของหมวดหมู่
-
-- Ai ในแชท
-ตอบคำถามทั่วไปเกี่ยวกับตารางชีวิตในแชท
-แปลงข้อความภาษาธรรมดา → กิจกรรมปฏิทินหรือสิ่งที่ต้องการจะทำได้ เด้งการ์ดเสนอเพิ่มก่อน โดยใช้ภาษาคำพูดที่เข้าใจง่าย 
-แจ้งเตือนเมื่อมีเวลากิจกรรมชนกันและปริมาณกิจกรรมในวันนั่นๆมีมากเกินไปและแนะนำเวลาว่าง วิเคราะห์ตารางที่มีอยู่แล้วหาช่องว่างที่เหมาะสม 
-แบ่งจำแนกหรือเพิ่มหมวดหมู่จากการพิมพ์แชทได้  
-สรุปภาพรวมสัปดาห์
-
-- Ai ใน TodoList
-สำหรับงานมีกำหนดเวลา (deadline-based):
-แตกงานใหญ่เป็น subtask อัตโนมัติ (ถ้าผู้ใช้ไม่แตกเอง) โดยประเมินจาก scope ที่พิมพ์มา
-คำนวณ Priority Score จาก 3 แกน: ความสำคัญ (importance), ความเร่งด่วน (urgency จาก deadline), ความยาก (effort/duration) — ใช้หลักการคล้าย Eisenhower Matrix ผสม weighted scoring
-จัดวางงานย่อยลงปฏิทินอัตโนมัติถ้าผู้ใช้ไม่ระบุวัน โดยเช็คช่องว่างจากปฏิทินจริง
-สำหรับงานไม่มีกำหนดเวลา (aspiration-based):
-วิเคราะห์ว่าเมื่อไหร่ผู้ใช้มีเวลาว่างต่อเนื่อง เพื่อเสนอกิจกรรม
-
-- AI ในการระบบเเชร์
-เมื่อนัดหมายกิจกรรมร่วมกัน AI ต้องเช็คเวลาว่างของทุกคนที่เกี่ยวข้อง (เฉพาะหมวดหมู่ที่แชร์) แล้วเสนอช่วงที่ทุกคนว่างตรงกัน
-- AI ต้องรู้ว่าหมวดหมู่ไหนถูกแชร์กับใคร เพื่อไม่แนะนำเวลาจาก private calendar ไปปนกับ shared context
-- AI ช่วยกระจายงานย่อยให้สมาชิกตาม workload ปัจจุบันของแต่ละคน โดยดูจาก  จำนวนชั่วโมงงานที่ค้างอยู่ในปฏิทิน/to-do ของแต่ละคนในช่วงเวลาที่เกี่ยวข้อง/เวลาว่างจริงจากปฏิทิน Workload Score (คนนั้น) = (ชั่วโมงงานที่มีอยู่แล้ว / ชั่วโมงว่างทั้งหมดในช่วงเวลา)คนที่ score ต่ำสุด = มีพื้นที่ว่างมากสุด → ได้รับ subtask ใหม่ก่อน แต่ต้อง match กับ skill/effort ให้เหมาะด้วย ไม่ใช่ยัดให้คนว่างสุดอย่างเดียวระบบนี้ AI ควรทำหน้าที่แค่ "เสนอ" การกระจายงาน (draft assignment) แล้วให้เจ้าของโปรเจคหรือสมาชิกกดยืนยัน/ปรับเอง
+- **ลอจิกหลักของฟีเจอร์ AI/ตาราง** อยู่ใน `lib/` แยกเป็นไฟล์ตามหน้าที่ (เช่น `priorityScore.ts`,
+  `freeTime.ts`, `groupWorkload.ts`) ไม่ปนกับโค้ด UI หรือ API route
