@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Check, CalendarDays, ListChecks, MessageCircle, Users } from 'lucide-react';
 import SkyBackground from '@/components/SkyBackground';
 import OnboardingStepper from '@/components/onboarding/OnboardingStepper';
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_EMOJI, type UserRole } from '@/lib/roles';
 
-const ROLES: UserRole[] = ['university', 'working'];
+const ROLES: UserRole[] = ['university', 'teacher'];
 
 // ป้ายเล็กบอกธีมของแต่ละสเตป - ดึงมาจากภาพอ้างอิงที่ผู้ใช้ส่งมา (แอปแดชบอร์ดโทนม่วง-เขียวมะนาว)
 // เอาแค่ "พลัง" ของชิปแคปซูลสีจัด มาปรับให้อยู่ในโทนฟ้า-พาสเทลเดิมของ EDDY ไม่ใช่ก็อปสีตรงๆ
@@ -42,9 +43,11 @@ const tipItemVariants: Variants = {
 
 export default function OnboardingWizard() {
   const router = useRouter();
+  const { update } = useSession();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [role, setRole] = useState<UserRole | null>(null);
+  const [roleError, setRoleError] = useState('');
   const [loading, setLoading] = useState(false);
 
   function goTo(next: number) {
@@ -55,11 +58,26 @@ export default function OnboardingWizard() {
   async function finish() {
     if (!role) return;
     setLoading(true);
-    await fetch('/api/onboarding', {
+    setRoleError('');
+    const res = await fetch('/api/onboarding', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role }),
     });
+    if (!res.ok) {
+      // ส่วนใหญ่คือเลือก role "อาจารย์" แต่มีคนเป็นอาจารย์อยู่แล้วในระบบ (คนแรกเท่านั้นที่ได้)
+      // พากลับไปสเตปเลือกบทบาทให้แก้ ไม่เด้งไปแดชบอร์ด
+      const data = await res.json().catch(() => ({}));
+      setRoleError(data.error ?? 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ');
+      setLoading(false);
+      goTo(1);
+      return;
+    }
+    // ต้องสั่ง refresh session ตรงนี้ ไม่งั้น role ใหม่จะไม่ขึ้นใน Sidebar/หน้า admin จนกว่าจะออกจาก
+    // ระบบแล้วเข้าใหม่ (jwt callback ใน auth.ts ดึง role จาก DB แค่ตอน login หรือ trigger 'update' เท่านั้น -
+    // ต้องส่ง {} ไม่ใช่เรียกเปล่าๆ ไม่งั้น next-auth จะ GET session เดิมกลับมาเฉยๆ ตามที่เจอมาแล้วใน
+    // ProfileIdentityForm.tsx)
+    await update({});
     router.push('/dashboard');
     router.refresh();
   }
@@ -224,6 +242,14 @@ export default function OnboardingWizard() {
                     );
                   })}
                 </div>
+
+                {/* role "อาจารย์" เช็คจริงฝั่ง server ตอน finish() ว่ามีคนเป็นอาจารย์อยู่แล้วหรือยัง
+                    (กฎ: คนแรกที่เลือกเท่านั้นที่ได้) - ถ้าไม่ผ่านจะเด้งกลับมาที่สเตปนี้พร้อมข้อความนี้ */}
+                {roleError && (
+                  <p className="mt-4 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
+                    {roleError}
+                  </p>
+                )}
 
                 <div className="mt-7 flex items-center justify-between">
                   <motion.button

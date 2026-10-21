@@ -37,6 +37,9 @@ export function expandRecurring(recurring: RecurringEventInfo[], dates: string[]
         endTime: re.endTime,
         categoryId: re.categoryId || '__loop__',
         source: 'recurring',
+        // เก็บไว้เป็น field แยกด้วย (ไม่ใช่แค่ฝังในชื่อ) ให้ผู้เรียก (เช่น group calendar) จับคู่
+        // คาบเดียวกันของสมาชิกหลายคนได้โดยไม่ต้องแยกวิเคราะห์ข้อความ title เอง
+        courseCode: re.courseCode ?? null,
       });
     }
   }

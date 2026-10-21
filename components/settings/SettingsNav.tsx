@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Clock, ShieldCheck, Palette, type LucideIcon } from 'lucide-react';
+import { User, Clock, ShieldCheck, Palette, Sparkles, type LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 
 export interface SettingsNavItem {
@@ -33,6 +33,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: 'การทำงานและเวลา',
     description: 'เวลาที่สะดวก ทักษะ และค่าที่เอ็ดดี้ใช้จัดตาราง',
     icon: Clock,
+  },
+  {
+    href: '/settings/ai',
+    label: 'ผู้ช่วย AI',
+    description: 'Gemini API key ของตัวเอง สำหรับฟีเจอร์ AI ทั้งหมด',
+    icon: Sparkles,
   },
   {
     href: '/settings/account',

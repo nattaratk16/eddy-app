@@ -34,7 +34,7 @@ model User {
   title        String? // บทบาท/ตำแหน่ง เช่น "นักศึกษาวิศวกรรม", "นักการตลาด", "ครู"
   organization String? // สถานศึกษา/ที่ทำงาน
   status       String? // "student" | "working" | "other" (ช่องเก่า - ไม่ได้ใช้แล้ว)
-  role         String? // บทบาทจาก onboarding: "university" | "working" - ใช้ปรับ category/ภาษา/บริบท AI (ค่าเก่า "school" ที่อาจค้างอยู่ในข้อมูลเดิมถือเป็น "ยังไม่เลือกบทบาท" เหมือน null)
+  role         String? // บทบาทจาก onboarding: "university" | "teacher" (เดิม "working" เปลี่ยนเป็น "teacher" แล้ว) - ใช้ปรับ category/ภาษา/บริบท AI + สิทธิ์หน้า admin ค่าเก่า "school"/"working" ที่อาจค้างอยู่ในข้อมูลเดิมถือเป็น "ยังไม่เลือกบทบาท" เหมือน null (isUserRole() ใน lib/roles.ts ไม่รับรองค่าเหล่านี้แล้ว)
   onboardedAt  DateTime? // เวลาที่ทำ onboarding เสร็จ/ข้าม (null = ยังไม่เคยทำ -> ให้เด้งไปหน้า onboarding)
   avatarColor  String? // สีพื้นอวาตาร์ (คีย์จากพาเลตพาสเทล)
   avatarEmoji  String? // อีโมจิใช้เป็นอวาตาร์ (ช่องเก่า - ไม่ได้ใช้แล้ว เปลี่ยนไปใช้อวาตาร์การ์ตูน DiceBear แทน)
@@ -48,6 +48,8 @@ model User {
   skills          String[] @default([]) // ทักษะ/ความถนัด - AI ใช้จับคู่ตอนแตกงานกลุ่มแล้วมอบหมายให้สมาชิก
   maxFocusMinutes Int? // ระยะเวลาโฟกัสต่อเนื่องสูงสุด (นาที) - จำกัดขนาดขั้นตอนย่อยตอน AI แตกงาน (ไม่บังคับ)
   bufferMinutes   Int? // เว้นช่วงพักระหว่างงานที่ AI จัดลงปฏิทินให้ (นาที) - ไม่บังคับ
+  geminiApiKey    String? // Gemini API key ของผู้ใช้เอง (เก็บ plaintext เหมือน Google token อื่นๆ ในตารางนี้ -
+  // ไม่มีชั้น encryption ในโปรเจกต์นี้) ทุกฟีเจอร์ AI ต้องใช้ key นี้เท่านั้น ไม่มี key กลางของระบบ fallback ให้แล้ว
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   tasks         Task[]
@@ -319,6 +321,9 @@ model Group {
   // รหัสเข้าร่วมกลุ่ม 6 ตัว (เช่น "K7M2QD") - ใครมีรหัสก็เข้ากลุ่มได้เองโดยไม่ต้องรอเจ้าของเชิญ
   // เป็น null ได้เพราะกลุ่มที่สร้างก่อนมีฟีเจอร์นี้ยังไม่มีรหัส (สร้างให้ตอนเปิดใช้ครั้งแรก)
   joinCode    String?       @unique
+  // รหัสวิชา (เช่น "CS301") - มีค่า = กลุ่มนี้คือ "คลาสเรียน" ของอาจารย์ (role: "teacher" เท่านั้นที่
+  // ตั้งค่านี้ได้ ดู POST /api/groups) ใช้เป็นตัวกรองในหน้า /admin + ใช้รวม block ปฏิทินกลุ่มตามวิชา
+  code        String?
   ownerId     String
   owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt   DateTime      @default(now())

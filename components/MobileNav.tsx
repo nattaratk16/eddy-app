@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, ListChecks, Users, User } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { LayoutDashboard, CalendarDays, ListChecks, Users, User, GraduationCap } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
@@ -13,12 +14,20 @@ const navItems = [
   { href: '/profile', label: 'โปรไฟล์', icon: User },
 ];
 
+// เฉพาะ role "อาจารย์" เท่านั้นที่เห็นเมนูนี้ - เหมือน Sidebar.tsx (ดู TEACHER_NAV_ITEM ที่นั่น)
+const TEACHER_NAV_ITEM = { href: '/admin', label: 'จัดการคลาส', icon: GraduationCap };
+
 export default function MobileNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const items =
+    session?.user?.role === 'teacher'
+      ? [...navItems.slice(0, -1), TEACHER_NAV_ITEM, navItems[navItems.length - 1]]
+      : navItems;
 
   return (
     <nav className="fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-clay border border-eddy-100 bg-surface/90 px-2 py-2 shadow-clay backdrop-blur-md md:hidden">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const active = pathname?.startsWith(item.href);
         const Icon = item.icon;
         return (

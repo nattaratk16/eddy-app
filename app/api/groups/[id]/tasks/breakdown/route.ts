@@ -44,10 +44,18 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   // (ต่างจาก personal breakdown ที่ใช้ planDates ไปคำนวณ startTime/endTime ต่อด้วย)
   const spanDays = dueDate && dueDate >= today ? datesBetween(today, dueDate, MAX_PLAN_DAYS).length : null;
 
-  // ระยะเวลาโฟกัสสูงสุดของ "คนที่กำลังแตกงานอยู่" (ยังไม่รู้ว่าใครจะรับงานย่อยไหนตอนนี้)
-  const callerProfile = await prisma.user.findUnique({ where: { id: session.user.id }, select: { maxFocusMinutes: true } });
+  // ระยะเวลาโฟกัสสูงสุด + Gemini API key ของ "คนที่กำลังแตกงานอยู่" (ยังไม่รู้ว่าใครจะรับงานย่อยไหนตอนนี้)
+  const callerProfile = await prisma.user.findUnique({ where: { id: session.user.id }, select: { maxFocusMinutes: true, geminiApiKey: true } });
   // จำนวนสมาชิกที่รับงานได้จริง - บอก AI กันแบ่งด่านขนานเกินจำนวนคนที่มีในกลุ่ม
   const memberCount = await prisma.groupMember.count({ where: { groupId: params.id, status: 'accepted' } });
+
+  // ไม่มี key กลางของระบบแล้ว - ต้องตั้งค่า Gemini API key ของตัวเองก่อนถึงจะใช้ฟีเจอร์นี้ได้
+  if (!callerProfile?.geminiApiKey) {
+    return NextResponse.json(
+      { error: 'ยังใช้ฟีเจอร์นี้ไม่ได้ เพราะคุณยังไม่ได้ตั้งค่า Gemini API key ของตัวเอง ไปตั้งค่าได้ที่หน้า "ตั้งค่า > ผู้ช่วย AI"' },
+      { status: 400 },
+    );
+  }
 
   let steps: Awaited<ReturnType<typeof breakdownGroupTask>> = null;
   try {
@@ -57,6 +65,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       totalMinutes,
       maxSessionMinutes: callerProfile?.maxFocusMinutes ?? null,
       memberCount,
+      apiKey: callerProfile.geminiApiKey,
     });
   } catch {
     steps = null;
@@ -65,7 +74,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   // ไม่มี local fallback (ต้องอาศัยความเข้าใจภาษาจริง) - เหมือน personal breakdown
   if (!steps) {
     return NextResponse.json(
-      { error: 'ตอนนี้เอ็ดดี้แตกงานให้ไม่ได้ (อาจยังไม่ได้ตั้งค่า Gemini API หรือเชื่อมต่อไม่สำเร็จ) ลองใหม่อีกครั้งนะ' },
+      { error: 'ตอนนี้เอ็ดดี้แตกงานให้ไม่ได้ (เชื่อมต่อ Gemini ไม่สำเร็จ - เช็คว่า API key ที่ตั้งไว้ยังใช้ได้อยู่) ลองใหม่อีกครั้งนะ' },
       { status: 502 },
     );
   }

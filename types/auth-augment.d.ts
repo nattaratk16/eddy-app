@@ -9,6 +9,9 @@ declare module 'next-auth' {
       avatarStyle?: string | null;
       avatarSeed?: string | null;
       avatarColor?: string | null;
+      // บทบาท ("university" | "teacher" | null ถ้ายังไม่ onboard) - ดู lib/roles.ts
+      // ต้องมีใน session ให้ Sidebar/หน้า admin เช็ค role ได้โดยไม่ต้อง query DB เพิ่ม
+      role?: string | null;
     } & DefaultSession['user'];
   }
 }
@@ -19,6 +22,7 @@ declare module 'next-auth/jwt' {
     avatarStyle?: string | null;
     avatarSeed?: string | null;
     avatarColor?: string | null;
+    role?: string | null;
   }
 }
 

@@ -25,6 +25,7 @@ export default {
         session.user.avatarStyle = typeof token.avatarStyle === 'string' ? token.avatarStyle : null;
         session.user.avatarSeed = typeof token.avatarSeed === 'string' ? token.avatarSeed : null;
         session.user.avatarColor = typeof token.avatarColor === 'string' ? token.avatarColor : null;
+        session.user.role = typeof token.role === 'string' ? token.role : null;
       }
       return session;
     },

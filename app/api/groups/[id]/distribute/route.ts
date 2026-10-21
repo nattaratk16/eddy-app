@@ -31,7 +31,7 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     where: { groupId: params.id, status: 'accepted' },
     include: {
       user: {
-        select: { id: true, name: true, email: true, skills: true, dayStart: true, dayEnd: true, bufferMinutes: true },
+        select: { id: true, name: true, email: true, skills: true, dayStart: true, dayEnd: true, bufferMinutes: true, geminiApiKey: true },
       },
     },
   });
@@ -65,23 +65,27 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     params.id,
   );
 
-  // ให้ Gemini เลือก "ใครทำงานไหน" (ล้มเหลว/ไม่มี key ก็ปล่อยว่าง แล้วใช้ local ล้วน)
+  // ให้ Gemini เลือก "ใครทำงานไหน" ด้วย API key ของ "คนที่กดปุ่มนี้เอง" (ล้มเหลว/ไม่มี key ก็ปล่อยว่าง แล้วใช้ local ล้วน)
+  const callerApiKey = members.find((m) => m.userId === userId)?.user.geminiApiKey;
   const geminiPref = new Map<string, string>();
   try {
-    const g = await distributeGroupTasks({
-      tasks: tasks.map((t) => ({ id: t.id, title: t.title, durationMin: t.estimatedMinutes, dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null })),
-      members: members.map((m) => {
-        const w = workloadByUser.get(m.userId)!;
-        return {
-          id: m.userId,
-          name: m.user.name || m.user.email.split('@')[0],
-          freeMinutes: w.freeMinutes,
-          committedMinutes: w.committedMinutes,
-          workloadScore: w.score,
-          skills: m.user.skills,
-        };
-      }),
-    });
+    const g = await distributeGroupTasks(
+      {
+        tasks: tasks.map((t) => ({ id: t.id, title: t.title, durationMin: t.estimatedMinutes, dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null })),
+        members: members.map((m) => {
+          const w = workloadByUser.get(m.userId)!;
+          return {
+            id: m.userId,
+            name: m.user.name || m.user.email.split('@')[0],
+            freeMinutes: w.freeMinutes,
+            committedMinutes: w.committedMinutes,
+            workloadScore: w.score,
+            skills: m.user.skills,
+          };
+        }),
+      },
+      callerApiKey,
+    );
     if (g) for (const a of g) if (slotsByUser.has(a.userId)) geminiPref.set(a.taskId, a.userId);
   } catch {
     // เงียบไว้ - ใช้ local

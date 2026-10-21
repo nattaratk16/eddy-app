@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { PASTEL_COLORS } from '@/lib/colors';
 import { USERNAME_RE } from '@/lib/validation';
 import { isValidAvatarStyle } from '@/lib/avatar';
+import { verifyGeminiApiKey } from '@/lib/gemini';
 
 const VALID_COLORS = new Set(PASTEL_COLORS.map((c) => c.value));
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -65,6 +66,21 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (typeof body.timezone === 'string') data.timezone = body.timezone.trim() || null;
+
+  // Gemini API key ของผู้ใช้เอง - ไม่ validate รูปแบบเจาะจง (Google เปลี่ยนรูปแบบได้) แค่กันค่ายาวผิดปกติ
+  // + ยิงเช็คกับ Gemini จริงก่อนบันทึก (ไม่งั้น key ผิด/หมดอายุจะเงียบหายไปเป็น fallback แบบ local
+  // โดยผู้ใช้ไม่รู้ตัวเลย เพราะหลายฟีเจอร์ AI ถูกออกแบบให้ล้มแบบเงียบๆ) ลบ key (ส่งค่าว่าง) ไม่ต้องเช็ค
+  if (typeof body.geminiApiKey === 'string') {
+    const v = body.geminiApiKey.trim();
+    if (v.length > 200) return NextResponse.json({ error: 'API key ยาวเกินไป' }, { status: 400 });
+    if (v) {
+      const verified = await verifyGeminiApiKey(v);
+      if (!verified.ok) {
+        return NextResponse.json({ error: `API key ใช้ไม่ได้: ${verified.reason}` }, { status: 400 });
+      }
+    }
+    data.geminiApiKey = v || null;
+  }
 
   for (const key of ['dayStart', 'dayEnd'] as const) {
     if (typeof body[key] === 'string') {

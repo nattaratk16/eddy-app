@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import {
   ArrowRight,
   Check,
@@ -35,6 +36,9 @@ import { PASTEL_COLORS, getColorOption } from '@/lib/colors';
 import type { GroupInfo, GroupInvitation, PastelColor } from '@/lib/types';
 
 export default function GroupsPage() {
+  const { data: session } = useSession();
+  const isTeacher = session?.user?.role === 'teacher';
+
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [invitations, setInvitations] = useState<GroupInvitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +49,7 @@ export default function GroupsPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState<PastelColor>('blue');
+  const [code, setCode] = useState(''); // รหัสวิชา - กรอกได้เฉพาะอาจารย์ (ดู isTeacher ด้านบน)
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -84,7 +89,7 @@ export default function GroupsPage() {
     const res = await fetch('/api/groups', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, color }),
+      body: JSON.stringify({ name, description, color, code: isTeacher ? code.trim() : undefined }),
     });
     const data = await res.json();
     setSaving(false);
@@ -94,6 +99,7 @@ export default function GroupsPage() {
     setName('');
     setDescription('');
     setColor('blue');
+    setCode('');
   }
 
   async function joinGroup() {
@@ -311,6 +317,17 @@ export default function GroupsPage() {
               className="w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
             />
           </div>
+          {isTeacher && (
+            <div>
+              <label className="mb-1.5 block font-display text-sm font-semibold text-ink-soft">รหัสวิชา (ไม่บังคับ)</label>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="เช่น CS301 - ใส่แล้วกลุ่มนี้จะกลายเป็นคลาสเรียน เห็นในหน้า Admin"
+                className="w-full rounded-clay-sm border border-eddy-200 bg-surface px-4 py-2.5 font-body text-sm text-ink focus:border-eddy-400 focus:outline-none focus:ring-2 focus:ring-eddy-500/25"
+              />
+            </div>
+          )}
           <div>
             <label className="mb-1.5 block font-display text-sm font-semibold text-ink-soft">สีประจำกลุ่ม</label>
             <div className="flex flex-wrap gap-2">
@@ -421,6 +438,11 @@ function GroupCard({ group }: { group: GroupInfo }) {
             <div className="flex items-center gap-1.5">
               <p className="truncate font-display text-h3 text-ink">{group.name}</p>
               {group.isOwner && <Crown size={14} className="flex-shrink-0 text-amber-500" />}
+              {group.code && (
+                <span className="flex-shrink-0 rounded-full bg-pastel-blue px-2 py-0.5 font-display text-[10px] font-bold text-eddy-700">
+                  {group.code}
+                </span>
+              )}
             </div>
             {group.description && <p className="mt-0.5 truncate font-body text-xs text-ink-muted">{group.description}</p>}
           </div>

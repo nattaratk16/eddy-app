@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (id && (user || trigger === 'update')) {
         const fresh = await prisma.user.findUnique({
           where: { id },
-          select: { name: true, image: true, avatarStyle: true, avatarSeed: true, avatarColor: true },
+          select: { name: true, image: true, avatarStyle: true, avatarSeed: true, avatarColor: true, role: true },
         });
         if (fresh) {
           token.name = fresh.name;
@@ -44,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.avatarStyle = fresh.avatarStyle;
           token.avatarSeed = fresh.avatarSeed;
           token.avatarColor = fresh.avatarColor;
+          token.role = fresh.role;
         }
       }
       return token;

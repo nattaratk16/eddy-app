@@ -19,11 +19,18 @@ const navItems = [
   { href: '/profile', label: 'โปรไฟล์', icon: '/icons/id-card.png' },
 ];
 
+// เฉพาะ role "อาจารย์" เท่านั้นที่เห็นเมนูนี้ - แทรกก่อน "โปรไฟล์" เสมอ (ดู navItems ด้านบน)
+const TEACHER_NAV_ITEM = { href: '/admin', label: 'จัดการคลาส', icon: '/icons/person-crown.png' };
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
   const displayName = user?.name || user?.email?.split('@')[0] || 'ผู้ใช้';
+  const items =
+    user?.role === 'teacher'
+      ? [...navItems.slice(0, -1), TEACHER_NAV_ITEM, navItems[navItems.length - 1]]
+      : navItems;
 
   return (
     <aside className="sticky top-0 z-20 hidden h-screen w-[76px] flex-col items-center gap-1 border-r border-eddy-100 bg-surface/70 py-4 backdrop-blur-xl md:flex">
@@ -38,7 +45,7 @@ export default function Sidebar() {
 
       {/* เมนู */}
       <nav className="flex w-full flex-1 flex-col items-center gap-1">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active = pathname?.startsWith(item.href);
           return (
             <Link

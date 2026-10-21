@@ -34,7 +34,15 @@ export function serializeMember(m: MemberWithUser, currentUserId: string): Group
 }
 
 export function serializeGroup(
-  group: { id: string; name: string; description: string | null; color: string; ownerId: string; joinCode?: string | null },
+  group: {
+    id: string;
+    name: string;
+    description: string | null;
+    color: string;
+    ownerId: string;
+    joinCode?: string | null;
+    code?: string | null;
+  },
   currentUserId: string,
   opts?: { memberCount?: number; members?: MemberWithUser[]; avatars?: { name: string; image: string | null }[] },
 ): GroupInfo {
@@ -46,6 +54,7 @@ export function serializeGroup(
     ownerId: group.ownerId,
     isOwner: group.ownerId === currentUserId,
     joinCode: group.joinCode ?? null,
+    code: group.code ?? null,
     memberCount: opts?.memberCount ?? opts?.members?.filter((m) => m.status === 'accepted').length ?? 0,
     members: opts?.members?.map((m) => serializeMember(m, currentUserId)),
     memberAvatars: opts?.avatars,

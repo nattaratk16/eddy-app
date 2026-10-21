@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       where: { userId, ...eventOverlapsWindow(dayStart, dayEnd), ...NOT_DEADLINE_EVENT, ...(eventId && { id: { not: eventId } }) },
     }),
     prisma.category.findMany({ where: { userId } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true, geminiApiKey: true } }),
     // Loop ประจำ (คาบเรียน/เวลาทำงาน) - เป็นเวลาไม่ว่างจริงเหมือนกัน ต้องเอามาเทียบด้วย
     // ไม่งั้นเพิ่มกิจกรรมทับคาบเรียนแล้วระบบจะบอกว่า "ไม่ชน"
     prisma.recurringEvent.findMany({ where: { userId } }),
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
       sameDayEvents: dayEvents,
       categories,
       userProfile: user ? buildUserProfileContext(user) : undefined,
+      apiKey: user?.geminiApiKey,
     });
   } catch {
     analysis = null;

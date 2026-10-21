@@ -2,7 +2,9 @@
  * lib/gemini.ts
  * --------------------------------------------------------------
  * ตัวช่วยสำหรับเรียก Gemini API (Google AI) เพื่อให้ Eddy วิเคราะห์/ตอบคำถามจริง
- * ทุกฟังก์ชันคืนค่า null เมื่อไม่มี GEMINI_API_KEY หรือเรียก API ไม่สำเร็จ
+ * ทุกฟังก์ชันรับ "apiKey" ของผู้ใช้เองเป็นพารามิเตอร์ตรงๆ (ไม่มี key กลางของระบบใน env อีกต่อไป -
+ * แต่ละคนต้องไปตั้งค่า Gemini API key ของตัวเองที่หน้า /settings/ai ก่อนถึงจะใช้ฟีเจอร์ AI ได้)
+ * ทุกฟังก์ชันคืนค่า null เมื่อไม่มี apiKey หรือเรียก API ไม่สำเร็จ
  * (ให้ผู้เรียกใช้ fallback ไปที่ lib/aiMock.ts แทน ไม่ให้แอปพังเพราะ AI ล่ม)
  * --------------------------------------------------------------
  */
@@ -15,6 +17,28 @@ import type { BurnoutBandKey, BurnoutSignals } from './burnoutRisk';
 // ซึ่งพบว่าตอบช้ากว่ามาก (~30 วินาที เทียบกับ ~1 วินาทีของ flash-lite) เพราะเป็นโมเดลที่ "คิดก่อนตอบ" โดย default
 const GEMINI_MODEL = 'gemini-flash-lite-latest';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+// ตรวจว่า key ใช้ได้จริงไหมตอนผู้ใช้กรอกในหน้า /settings/ai (ดู app/api/profile/route.ts)
+// ใช้ endpoint "list models" แทน generateContent เพราะเป็นแค่ read-only เช็คสิทธิ์ ไม่เสียโควต้า/เงิน
+// เหมือนการ generate จริง และไวกว่าด้วย
+export async function verifyGeminiApiKey(apiKey: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`, {
+      signal: controller.signal,
+    });
+    if (res.ok) return { ok: true };
+    // 400/403 ตามปกติเวลา key ผิด/ถูก revoke - เอาข้อความจาก Google มาโชว์ต่อถ้ามี ไม่งั้นใช้ข้อความกลางๆ
+    const body = await res.json().catch(() => null);
+    const detail: string | undefined = body?.error?.message;
+    return { ok: false, reason: detail || `เชื่อมต่อไม่สำเร็จ (${res.status})` };
+  } catch {
+    return { ok: false, reason: 'เชื่อมต่อ Gemini ไม่สำเร็จ ลองใหม่อีกครั้งนะ' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 const EDDY_SYSTEM_PROMPT = `
 คุณคือ "Eddy" ผู้ช่วย AI ที่เป็นมิตร พูดสุภาพ เป็นกันเอง และเป็นภาษาไทยเสมอ ช่วยผู้ใช้จัดตารางชีวิต
@@ -43,14 +67,14 @@ interface AskEddyParams {
   message: string;
   /** ใส่ข้อมูล task/event ปัจจุบันของผู้ใช้ เพื่อให้ Eddy ตอบได้ตรงบริบทมากขึ้น */
   context?: string;
+  /** Gemini API key ของผู้ใช้คนที่ถามเอง - ไม่มี key กลางของระบบแล้ว */
+  apiKey?: string | null;
 }
 
-export async function askEddy({ message, context }: AskEddyParams): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-
+export async function askEddy({ message, context, apiKey }: AskEddyParams): Promise<string> {
   if (!apiKey) {
-    // ยังไม่ตั้งค่า API key - ส่ง mock กลับไปก่อน เพื่อให้ UI ทำงานต่อได้
-    return 'ตอนนี้ยังไม่ได้เชื่อมต่อ Gemini API นะ (ยังไม่มี GEMINI_API_KEY ใน .env.local) ลองตั้งค่าแล้วลองใหม่ดูได้เลย!';
+    // ยังไม่ได้ตั้งค่า Gemini API key ของตัวเอง - บอกตรงๆ ว่าต้องไปตั้งค่าก่อน
+    return 'ยังใช้แชทนี้ไม่ได้นะ เพราะคุณยังไม่ได้ตั้งค่า Gemini API key ของตัวเอง ไปตั้งค่าได้ที่หน้า "ตั้งค่า > ผู้ช่วย AI" เลย!';
   }
 
   const prompt = `${EDDY_SYSTEM_PROMPT}\n\n${context ? `บริบทปัจจุบันของผู้ใช้:\n${context}\n\n` : ''}ผู้ใช้พิมพ์ว่า: "${message}"`;
@@ -77,8 +101,7 @@ export async function askEddy({ message, context }: AskEddyParams): Promise<stri
 // ตัวช่วยเรียก Gemini แบบขอผลลัพธ์เป็น JSON ตาม schema ที่กำหนด (structured output)
 // คืนค่า null ถ้าไม่มี key หรือ parse ไม่สำเร็จ - ให้ผู้เรียก fallback เอง
 // --------------------------------------------------------------
-async function callGeminiJSON<T>(prompt: string, schema: object): Promise<T | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function callGeminiJSON<T>(prompt: string, schema: object, apiKey: string | null | undefined): Promise<T | null> {
   if (!apiKey) return null;
 
   const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
@@ -133,12 +156,14 @@ interface ParseMessageParams {
   message: string;
   todayISO: string; // YYYY-MM-DD ของวันนี้ ใช้คำนวณ "พรุ่งนี้" "วันศุกร์หน้า" ฯลฯ
   categories: CalendarCategory[];
+  apiKey?: string | null;
 }
 
 export async function parseMessageToEvent({
   message,
   todayISO,
   categories,
+  apiKey,
 }: ParseMessageParams): Promise<ParsedMessageIntent | null> {
   const catList = categories.map((c) => `- ${c.id}: ${c.name}`).join('\n') || '(ผู้ใช้ยังไม่มีหมวดหมู่)';
   const prompt = `
@@ -159,7 +184,7 @@ ${catList}
 ข้อความ: "${message}"
 `.trim();
 
-  const result = await callGeminiJSON<ParsedMessageIntent>(prompt, PARSE_SCHEMA);
+  const result = await callGeminiJSON<ParsedMessageIntent>(prompt, PARSE_SCHEMA, apiKey);
   // เช็คว่า field ที่จำเป็นไม่ใช่แค่ผ่าน schema แต่ต้องมีเนื้อหาจริงด้วย ไม่งั้น caller จะไม่ fallback ไป local
   if (!result || !result.intent || !result.title.trim()) return null;
   return result;
@@ -212,6 +237,7 @@ interface AnalyzeEventParams {
   categories: CalendarCategory[];
   /** บริบทผู้ใช้ (นิสัย+เวลาว่าง) จาก buildUserProfileContext */
   userProfile?: string;
+  apiKey?: string | null;
 }
 
 export async function analyzeEventSchedule({
@@ -219,6 +245,7 @@ export async function analyzeEventSchedule({
   sameDayEvents,
   categories,
   userProfile,
+  apiKey,
 }: AnalyzeEventParams): Promise<ScheduleAnalysis | null> {
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? 'ไม่ระบุหมวดหมู่';
   const existingList =
@@ -244,7 +271,7 @@ ${userProfile ? `\nเกี่ยวกับผู้ใช้ (ใช้ช�
 - suggestedStart/suggestedEnd: ถ้ามีเวลาชนกัน ให้แนะนำช่วงเวลาว่างที่ใกล้เคียงและเหมาะสม (รูปแบบ HH:mm) ไม่งั้นเว้นว่างไว้
 `.trim();
 
-  const result = await callGeminiJSON<ScheduleAnalysis>(prompt, ANALYZE_SCHEMA);
+  const result = await callGeminiJSON<ScheduleAnalysis>(prompt, ANALYZE_SCHEMA, apiKey);
   if (!result || !result.densityLevel || !result.message.trim()) return null;
   return result;
 }
@@ -255,10 +282,10 @@ interface WeeklySummaryParams {
   categories: CalendarCategory[];
   /** บริบทผู้ใช้ (นิสัย+เวลาว่าง) จาก buildUserProfileContext */
   userProfile?: string;
+  apiKey?: string | null;
 }
 
-export async function generateWeeklySummary({ weekEvents, categories, userProfile }: WeeklySummaryParams): Promise<string | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+export async function generateWeeklySummary({ weekEvents, categories, userProfile, apiKey }: WeeklySummaryParams): Promise<string | null> {
   if (!apiKey) return null;
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? 'ไม่ระบุหมวดหมู่';
@@ -296,6 +323,7 @@ interface WorkloadInsightParams {
   band: BurnoutBandKey;
   /** บริบทผู้ใช้ (นิสัย+เวลาว่าง) จาก buildUserProfileContext */
   userProfile?: string;
+  apiKey?: string | null;
 }
 
 const BURNOUT_BAND_TEXT: Record<BurnoutBandKey, string> = { low: 'เบา', medium: 'ปานกลาง', high: 'หนัก' };
@@ -304,8 +332,7 @@ const BURNOUT_BAND_TEXT: Record<BurnoutBandKey, string> = { low: 'เบา', me
  * ส่งแค่ "ตัวเลขสรุป" ให้ Gemini ไม่ส่งรายการงาน/กิจกรรมจริงไป (ไม่จำเป็นต้องรู้รายละเอียด
  * แค่ตัวเลขก็เพียงพอให้วิเคราะห์และให้คำแนะนำได้แล้ว เป็นการลดข้อมูลที่ส่งออกไปโดยไม่จำเป็น)
  */
-export async function generateWorkloadInsight({ signals, band, userProfile }: WorkloadInsightParams): Promise<string | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+export async function generateWorkloadInsight({ signals, band, userProfile, apiKey }: WorkloadInsightParams): Promise<string | null> {
   if (!apiKey) return null;
 
   const prompt = `${EDDY_SYSTEM_PROMPT}
@@ -371,6 +398,7 @@ interface BreakdownTaskParams {
    * ในปฏิทิน) การจำกัดตอนแตกงานเป็นจุดเดียวที่ทำได้จริงโดยไม่ต้องเปลี่ยนโครงสร้างข้อมูล
    */
   maxSessionMinutes?: number | null;
+  apiKey?: string | null;
 }
 
 export interface BreakdownStep {
@@ -387,6 +415,7 @@ export async function breakdownTask({
   spanDays,
   totalMinutes,
   maxSessionMinutes,
+  apiKey,
 }: BreakdownTaskParams): Promise<BreakdownStep[] | null> {
   // เพดานจริง (บังคับด้วยโค้ด ไม่ใช่แค่ขอ AI เฉยๆ) - ใช้ค่าที่น้อยกว่าระหว่างเพดานเดิมกับที่ผู้ใช้ตั้งไว้
   const stepCap =
@@ -423,6 +452,7 @@ export async function breakdownTask({
   const result = await callGeminiJSON<{ subtasks: { title: string; estimatedMinutes: number }[] }>(
     prompt,
     BREAKDOWN_SCHEMA,
+    apiKey,
   );
   if (!result || !Array.isArray(result.subtasks)) return null;
 
@@ -480,6 +510,7 @@ interface BreakdownGroupTaskParams {
   maxSessionMinutes?: number | null;
   /** จำนวนสมาชิกที่รับผิดชอบได้จริง - กันไม่ให้ AI แบ่งงานขนานในด่านเดียวกันเกินจำนวนคนที่มี */
   memberCount?: number | null;
+  apiKey?: string | null;
 }
 
 export async function breakdownGroupTask({
@@ -489,6 +520,7 @@ export async function breakdownGroupTask({
   totalMinutes,
   maxSessionMinutes,
   memberCount,
+  apiKey,
 }: BreakdownGroupTaskParams): Promise<GroupBreakdownStep[] | null> {
   const stepCap =
     typeof maxSessionMinutes === 'number' && maxSessionMinutes > 0
@@ -531,6 +563,7 @@ export async function breakdownGroupTask({
   const result = await callGeminiJSON<{ subtasks: { title: string; estimatedMinutes: number; stage: number }[] }>(
     prompt,
     GROUP_BREAKDOWN_SCHEMA,
+    apiKey,
   );
   if (!result || !Array.isArray(result.subtasks)) return null;
 
@@ -591,6 +624,7 @@ interface DistributeInput {
 
 export async function distributeGroupTasks(
   input: DistributeInput,
+  apiKey?: string | null,
 ): Promise<{ taskId: string; userId: string }[] | null> {
   const taskList = input.tasks
     .map((t) => `- id=${t.id} | "${t.title}" | ใช้เวลา ~${t.durationMin} นาที${t.dueDate ? ` | ต้องเสร็จก่อน ${t.dueDate}` : ''}`)
@@ -628,7 +662,7 @@ ${memberList}
 - ตอบเป็น assignments โดยใช้ id ที่ให้มาเท่านั้น (taskId ต้องมาจากรายการงาน, userId ต้องมาจากรายชื่อสมาชิก)
 `.trim();
 
-  const result = await callGeminiJSON<{ assignments: { taskId: string; userId: string }[] }>(prompt, DISTRIBUTE_SCHEMA);
+  const result = await callGeminiJSON<{ assignments: { taskId: string; userId: string }[] }>(prompt, DISTRIBUTE_SCHEMA, apiKey);
   if (!result || !Array.isArray(result.assignments)) return null;
   return result.assignments.filter((a) => a?.taskId && a?.userId);
 }

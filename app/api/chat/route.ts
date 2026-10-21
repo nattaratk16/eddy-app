@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
     prisma.event.findMany({ where: { userId, date: { gte: todayStart } }, orderBy: { date: 'asc' }, take: CHAT_CONTEXT_LIMIT }),
     prisma.event.count({ where: { userId, date: { gte: todayStart } } }),
     prisma.category.findMany({ where: { userId } }),
-    // โปรไฟล์ผู้ใช้ - เอาทักษะ + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true, skills: true, dayStart: true, dayEnd: true, timezone: true } }),
+    // โปรไฟล์ผู้ใช้ - เอาทักษะ + ช่วงเวลาที่สะดวก ไปให้เอ็ดดี้ตอบได้เฉพาะตัวขึ้น (geminiApiKey ของผู้ใช้เอง - ไม่มี key กลางแล้ว)
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true, skills: true, dayStart: true, dayEnd: true, timezone: true, geminiApiKey: true } }),
   ]);
   const categories: CalendarCategory[] = categoriesRaw.map((c) => ({
     id: c.id,
@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
   const context = [...profileLines, taskList, eventList].join('\n');
 
   const [replyResult, draftResult] = await Promise.allSettled([
-    askEddy({ message, context }),
-    parseMessageToEvent({ message, todayISO, categories }),
+    askEddy({ message, context, apiKey: user?.geminiApiKey }),
+    parseMessageToEvent({ message, todayISO, categories, apiKey: user?.geminiApiKey }),
   ]);
 
   const reply =

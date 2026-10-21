@@ -101,6 +101,9 @@ export interface CalendarEvent {
    * ต้องเรนเดอร์ต่างจาก event/งานจริงเสมอ (ไอคอนธง ไม่ใช่กล่องทึบ) และไม่นับเป็นเวลาไม่ว่าง
    */
   isDeadline?: boolean;
+  /** รหัสวิชา (มาจาก Loop ที่เป็นคาบเรียน - ดู RecurringEventInfo.courseCode) ใช้รวม block ปฏิทินกลุ่ม
+   * ของคาบเดียวกันที่สมาชิกหลายคนลงเรียนตรงกัน (ดู app/api/groups/[id]/calendar/route.ts) */
+  courseCode?: string | null;
   /** แหล่งที่มา: 'google' = จาก Google Calendar, 'recurring' = จาก Loop ชีวิต (อ่านอย่างเดียว แก้ไม่ได้ในปฏิทินปกติ) */
   source?: 'google' | 'recurring';
   /** true = มาจากงานกลุ่มที่ยืนยันแล้ว (ใช้ในปฏิทินกลุ่มเท่านั้น ให้เด่นกว่ากิจกรรมส่วนตัวอื่นของสมาชิก) */
@@ -157,6 +160,7 @@ export interface GroupInfo {
   waitingForMeCount?: number; // งานที่มอบหมายให้ฉันและรอฉันกดยืนยัน
   joinCode?: string | null; // รหัสให้เพื่อนเข้าร่วมกลุ่มเอง
   memberAvatars?: { name: string; image: string | null }[]; // รูปสมาชิกไม่กี่คนแรก ใช้โชว์บนการ์ด
+  code?: string | null; // รหัสวิชา - มีค่า = กลุ่มนี้คือคลาสเรียนของอาจารย์ (ดู prisma/schema.prisma)
 }
 
 /** งานของกลุ่ม + ผลการมอบหมาย (เฟส 3c) */

@@ -66,11 +66,17 @@ export async function POST(req: NextRequest) {
   if (!name) return NextResponse.json({ error: 'กรุณาตั้งชื่อกลุ่ม' }, { status: 400 });
   if (name.length > 60) return NextResponse.json({ error: 'ชื่อกลุ่มยาวเกินไป' }, { status: 400 });
 
+  // รหัสวิชา (ทำให้กลุ่มนี้เป็น "คลาสเรียน" โชว์ในหน้า /admin) - เฉพาะ role "teacher" เท่านั้นที่ตั้งได้
+  // นักศึกษาส่ง field นี้มาด้วยก็ถูก ignore เงียบๆ ไม่ reject ทั้ง request (กันตั้งกลุ่มตัวเองให้ดูเหมือนคลาส)
+  const rawCode = typeof body?.code === 'string' ? body.code.trim() : '';
+  const code = session.user.role === 'teacher' && rawCode ? rawCode.slice(0, 40) : null;
+
   const group = await prisma.group.create({
     data: {
       name,
       description: typeof body?.description === 'string' ? body.description.trim() || null : null,
       color: typeof body?.color === 'string' ? body.color : 'blue',
+      code,
       joinCode: generateJoinCode(), // ให้กลุ่มมีรหัสชวนเพื่อนตั้งแต่แรก
       ownerId: userId,
       // showEventTitles ไม่ใส่ตรงนี้ - ปล่อยให้ใช้ค่า default (false) ของ schema เหมือนสมาชิกทุกคน

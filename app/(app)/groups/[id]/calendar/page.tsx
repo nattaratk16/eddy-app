@@ -149,7 +149,12 @@ export default function GroupCalendarPage(props: { params: Promise<{ id: string 
           <TimeGridView
             days={days}
             events={events}
-            categories={members.map((m) => ({ id: m.id, name: m.name, color: m.color }))}
+            categories={[
+              ...members.map((m) => ({ id: m.id, name: m.name, color: m.color })),
+              // สีกลางสำหรับ block "คาบเรียนร่วม" ที่รวมมาจากสมาชิก ≥2 คนลงเรียนวิชา/เวลาเดียวกัน
+              // (ดู app/api/groups/[id]/calendar/route.ts) แยกจากสีประจำตัวสมาชิกคนไหนคนเดียว
+              { id: '__course__', name: 'คาบเรียนร่วม', color: 'indigo' as PastelColor },
+            ]}
             readOnly
             scrollWithPage
           />

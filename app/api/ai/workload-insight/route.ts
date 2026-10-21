@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true },
+    select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true, geminiApiKey: true },
   });
   const userProfile = user ? buildUserProfileContext(user) : undefined;
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   let insight: string | null = null;
   try {
-    insight = await generateWorkloadInsight({ signals, band: risk.band, userProfile });
+    insight = await generateWorkloadInsight({ signals, band: risk.band, userProfile, apiKey: user?.geminiApiKey });
   } catch {
     insight = null;
   }

@@ -1,22 +1,26 @@
 // บทบาทผู้ใช้ (จาก onboarding) - ใช้กำหนด category พื้นฐาน, ปรับภาษา AI, และบริบทการวิเคราะห์
 import type { PastelColor } from './types';
 
-// ตัด 'school' (นักเรียน) ออกแล้ว - แยกแค่ 2 ช่วงวัยพอ (นักศึกษา/วัยทำงาน) เพราะ 3 ตัวเลือกเดิมแยกย่อยเกินไป
-export type UserRole = 'university' | 'working';
+// ตัด 'school' (นักเรียน) ออกไปแล้วก่อนหน้านี้ ตอนนี้แทน 'working' (วัยทำงาน) ด้วย 'teacher' (อาจารย์)
+// ตามที่อาจารย์ที่ปรึกษาขอ - ค่าเก่า 'working' ที่เคยบันทึกไว้ใน DB จะไม่ผ่าน isUserRole() อีกต่อไป
+// (ระบบจะมองว่า "ยังไม่เลือก role" เหมือนค่า legacy 'school' เดิม ไม่ต้อง migrate ข้อมูล)
+// role: 'teacher' เลือกได้แค่คนแรกที่เลือกเท่านั้น (ดู app/api/onboarding/route.ts) - ถ้ามีคนเป็น
+// teacher อยู่แล้วในระบบ คนถัดไปจะเลือกไม่ได้อีก (ไม่มี invite code แล้ว)
+export type UserRole = 'university' | 'teacher';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   university: 'นักศึกษา',
-  working: 'วัยทำงาน',
+  teacher: 'อาจารย์',
 };
 
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   university: 'เรียน/มหาวิทยาลัย — มีวิชาเรียน งานกลุ่ม ช่วงสอบ midterm/final',
-  working: 'ทำงานประจำ/อิสระ — เน้นงาน ประชุม สมดุลชีวิต',
+  teacher: 'สอน/ดูแลนักศึกษา — จัดการคลาสเรียน ดูภาระงานนักศึกษาทั้งห้อง มอบหมายงานกลุ่ม',
 };
 
 export const ROLE_EMOJI: Record<UserRole, string> = {
   university: '🎓',
-  working: '💼',
+  teacher: '🧑‍🏫',
 };
 
 // หมวดหมู่ปฏิทินพื้นฐานที่จะสร้างให้อัตโนมัติตามบทบาท
@@ -28,12 +32,12 @@ export const ROLE_DEFAULT_CATEGORIES: Record<UserRole, { name: string; color: Pa
     { name: 'ชมรม/กิจกรรม', color: 'mint' },
     { name: 'ส่วนตัว', color: 'peach' },
   ],
-  working: [
-    { name: 'งาน', color: 'rose' },
-    { name: 'ประชุม', color: 'amber' },
+  teacher: [
+    { name: 'สอน', color: 'rose' },
+    { name: 'ประชุม/งานบริหาร', color: 'amber' },
+    { name: 'ตรวจงาน/ให้คะแนน', color: 'indigo' },
+    { name: 'วิจัย', color: 'teal' },
     { name: 'ส่วนตัว', color: 'peach' },
-    { name: 'ออกกำลังกาย', color: 'mint' },
-    { name: 'ครอบครัว', color: 'lilac' },
   ],
 };
 
@@ -41,10 +45,10 @@ export const ROLE_DEFAULT_CATEGORIES: Record<UserRole, { name: string; color: Pa
 export const ROLE_AI_CONTEXT: Record<UserRole, string> = {
   university:
     'ผู้ใช้เป็นนักศึกษา — มีช่วง midterm/final ที่ต้องอ่านหนังสือหนักและงานเยอะ มักมีงานกลุ่ม/โปรเจกต์และตารางเรียนที่ยืดหยุ่น; ใช้ภาษาเป็นกันเองแต่ช่วยกระตุ้นการวางแผนล่วงหน้า',
-  working:
-    'ผู้ใช้เป็นวัยทำงาน — ใช้ภาษาสุภาพ กระชับ เป็นมืออาชีพ; เน้นงาน ประชุม เดดไลน์ และสมดุลชีวิต-งาน (work-life balance)',
+  teacher:
+    'ผู้ใช้เป็นอาจารย์ — ดูแลหลายคลาสเรียน มีงานสอน ตรวจงาน ประชุม และดูแลภาระงานของนักศึกษาในความรับผิดชอบ; ใช้ภาษาสุภาพ กระชับ เป็นมืออาชีพ',
 };
 
 export function isUserRole(v: unknown): v is UserRole {
-  return v === 'university' || v === 'working';
+  return v === 'university' || v === 'teacher';
 }

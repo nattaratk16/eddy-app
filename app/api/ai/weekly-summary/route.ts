@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true },
+    select: { role: true, skills: true, dayStart: true, dayEnd: true, timezone: true, geminiApiKey: true },
   });
   const userProfile = user ? buildUserProfileContext(user) : undefined;
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   let summary: string | null = null;
   try {
-    summary = await generateWeeklySummary({ weekEvents, categories, userProfile });
+    summary = await generateWeeklySummary({ weekEvents, categories, userProfile, apiKey: user?.geminiApiKey });
   } catch {
     summary = null;
   }
