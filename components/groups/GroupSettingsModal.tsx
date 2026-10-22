@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { Check } from 'lucide-react';
 import Modal from '@/components/Modal';
+import Button from '@/components/Button';
 import { PASTEL_COLORS } from '@/lib/colors';
 import type { GroupInfo, PastelColor } from '@/lib/types';
 
@@ -25,9 +27,12 @@ interface Props {
  * (ฝั่งเซิร์ฟเวอร์ยังเป็นด่านตัดสินสิทธิ์เหมือนเดิม การซ่อนปุ่มใน UI เป็นแค่ความสะดวก)
  */
 export default function GroupSettingsModal({ open, onClose, group, onSaved }: Props) {
+  const { data: session } = useSession();
+  const isTeacher = session?.user?.role === 'teacher';
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? '');
   const [color, setColor] = useState<PastelColor>(group.color);
+  const [code, setCode] = useState(group.code ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,11 +42,15 @@ export default function GroupSettingsModal({ open, onClose, group, onSaved }: Pr
     setName(group.name);
     setDescription(group.description ?? '');
     setColor(group.color);
+    setCode(group.code ?? '');
     setError('');
-  }, [open, group.name, group.description, group.color]);
+  }, [open, group.name, group.description, group.color, group.code]);
 
   const dirty =
-    name.trim() !== group.name || description.trim() !== (group.description ?? '') || color !== group.color;
+    name.trim() !== group.name ||
+    description.trim() !== (group.description ?? '') ||
+    color !== group.color ||
+    (isTeacher && code.trim() !== (group.code ?? ''));
 
   async function save() {
     const trimmed = name.trim();
@@ -53,7 +62,12 @@ export default function GroupSettingsModal({ open, onClose, group, onSaved }: Pr
       const res = await fetch(`/api/groups/${group.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed, description: description.trim(), color }),
+        body: JSON.stringify({
+          name: trimmed,
+          description: description.trim(),
+          color,
+          ...(isTeacher ? { code: code.trim() } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setError(data.error ?? 'บันทึกไม่สำเร็จ');
@@ -103,6 +117,20 @@ export default function GroupSettingsModal({ open, onClose, group, onSaved }: Pr
           </p>
         </div>
 
+        {isTeacher && (
+          <div>
+            <label className={labelCls} htmlFor="group-code">รหัสวิชา (ไม่บังคับ)</label>
+            <input
+              id="group-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={40}
+              placeholder="เช่น CS301 - ใส่แล้วกลุ่มนี้จะกลายเป็นคลาสเรียน เห็นในหน้า Admin"
+              className={inputCls}
+            />
+          </div>
+        )}
+
         <div>
           <p className={labelCls}>สีประจำกลุ่ม</p>
           <div className="flex flex-wrap gap-2">
@@ -135,13 +163,11 @@ export default function GroupSettingsModal({ open, onClose, group, onSaved }: Pr
         >
           ยกเลิก
         </button>
-        <button
-          onClick={save}
-          disabled={saving || !dirty}
-          className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-eddy-500 to-accent-500 px-5 py-2 font-display text-caption font-semibold text-white shadow-clay-sm transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-        >
-          <Check size={15} /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-        </button>
+        <Button onClick={save} disabled={saving || !dirty} className="!rounded-full !px-5 !py-2">
+          <span className="flex items-center gap-1.5 font-display text-caption">
+            <Check size={15} /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+          </span>
+        </Button>
       </div>
     </Modal>
   );

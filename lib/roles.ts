@@ -4,8 +4,9 @@ import type { PastelColor } from './types';
 // ตัด 'school' (นักเรียน) ออกไปแล้วก่อนหน้านี้ ตอนนี้แทน 'working' (วัยทำงาน) ด้วย 'teacher' (อาจารย์)
 // ตามที่อาจารย์ที่ปรึกษาขอ - ค่าเก่า 'working' ที่เคยบันทึกไว้ใน DB จะไม่ผ่าน isUserRole() อีกต่อไป
 // (ระบบจะมองว่า "ยังไม่เลือก role" เหมือนค่า legacy 'school' เดิม ไม่ต้อง migrate ข้อมูล)
-// role: 'teacher' เลือกได้แค่คนแรกที่เลือกเท่านั้น (ดู app/api/onboarding/route.ts) - ถ้ามีคนเป็น
-// teacher อยู่แล้วในระบบ คนถัดไปจะเลือกไม่ได้อีก (ไม่มี invite code แล้ว)
+// role: 'teacher' เลือกได้อิสระเหมือน 'university' ไม่จำกัดจำนวนคน (รองรับหลายอาจารย์ในระบบเดียวกัน
+// เช่น คนละวิชา - ดู app/api/onboarding/route.ts) สิทธิ์จัดการคลาส/กลุ่มจริงๆผูกกับ Group.ownerId
+// ของแต่ละกลุ่ม ไม่ใช่ role นี้โดยตรง
 export type UserRole = 'university' | 'teacher';
 
 export const ROLE_LABELS: Record<UserRole, string> = {

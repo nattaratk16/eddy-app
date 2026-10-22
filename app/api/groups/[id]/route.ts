@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (group.ownerId !== userId) return NextResponse.json({ error: 'เฉพาะเจ้าของกลุ่มเท่านั้น' }, { status: 403 });
 
   const body = await req.json().catch(() => null);
-  const data: { name?: string; description?: string | null; color?: string } = {};
+  const data: { name?: string; description?: string | null; color?: string; code?: string | null } = {};
   if (typeof body?.name === 'string') {
     const n = body.name.trim();
     if (!n) return NextResponse.json({ error: 'ชื่อกลุ่มห้ามว่าง' }, { status: 400 });
@@ -49,6 +49,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
   if (typeof body?.description === 'string') data.description = body.description.trim() || null;
   if (typeof body?.color === 'string') data.color = body.color;
+  // รหัสวิชา - เหมือนตอนสร้างกลุ่ม (POST) เฉพาะ role "teacher" เท่านั้นที่แก้ได้ คนอื่นส่งมาก็ ignore
+  // เงียบๆ (ไม่ reject ทั้ง request) เผื่อฟอร์มเดียวกันถูกใช้โดยเจ้าของกลุ่มที่ไม่ใช่อาจารย์
+  if (typeof body?.code === 'string' && session.user.role === 'teacher') {
+    data.code = body.code.trim().slice(0, 40) || null;
+  }
 
   const updated = await prisma.group.update({ where: { id: params.id }, data });
   return NextResponse.json({ group: serializeGroup(updated, userId) });

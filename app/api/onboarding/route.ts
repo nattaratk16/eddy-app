@@ -5,8 +5,8 @@ import { ROLE_DEFAULT_CATEGORIES, isUserRole } from '@/lib/roles';
 
 // POST /api/onboarding  { role?: "university"|"teacher", skip?: boolean }
 // - เลือกบทบาท: บันทึก role + สร้าง category พื้นฐานตามบทบาท (ถ้ายังไม่มี) + mark onboarded
-//   role "teacher" ใช้กฎง่ายๆ ตามที่อาจารย์ที่ปรึกษาขอ: "คนแรกที่เลือกอาจารย์ คือ อาจารย์ไปเลย"
-//   (ไม่ต้องมี invite code ให้วุ่นวาย) - ถ้ามีคนเป็น teacher อยู่แล้วในระบบ คนถัดไปเลือกไม่ได้อีก
+//   role "teacher" เลือกได้อิสระเหมือน "university" ไม่จำกัดจำนวนคน (รองรับหลายอาจารย์ในระบบเดียวกัน
+//   เช่น คนละวิชา) - สิทธิ์ที่แท้จริงของแต่ละคนผูกกับ Group.ownerId ของคลาสที่ตัวเองสร้าง ไม่ใช่ role
 // - ข้าม: mark onboarded เฉยๆ (ไปตั้งค่าทีหลังได้)
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -24,16 +24,6 @@ export async function POST(req: NextRequest) {
   const role = body?.role;
   if (!isUserRole(role)) {
     return NextResponse.json({ error: 'กรุณาเลือกบทบาท' }, { status: 400 });
-  }
-
-  if (role === 'teacher') {
-    // คนแรกที่เลือก role นี้เท่านั้นที่ได้ - เช็คว่ามีใครเป็น teacher อยู่แล้วหรือยัง (ไม่นับตัวเอง
-    // เผื่อกรณี onboarding ซ้ำ/กลับมาเลือกอีกรอบ) หมายเหตุ: ไม่ได้ล็อกกัน race condition สองคนกดพร้อมกัน
-    // เป๊ะๆ เพราะตั้งใจให้เป็นกฎง่ายๆ ตามที่ขอ ไม่ใช่ระบบแจกสิทธิ์ที่ต้องรัดกุมระดับนั้น
-    const existingTeacher = await prisma.user.findFirst({ where: { role: 'teacher', id: { not: userId } } });
-    if (existingTeacher) {
-      return NextResponse.json({ error: 'มีอาจารย์อยู่ในระบบแล้ว ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์นี้' }, { status: 403 });
-    }
   }
 
   await prisma.user.update({ where: { id: userId }, data: { role, onboardedAt: new Date() } });

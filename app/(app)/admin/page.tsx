@@ -9,19 +9,10 @@ import WorkloadPanel from '@/components/groups/WorkloadPanel';
 import { getColorOption } from '@/lib/colors';
 import { computeGroupWorkload } from '@/lib/groupWorkload';
 import { buildDateWindow } from '@/lib/schedule';
+import { loadBandOf, loadPct } from '@/lib/loadBands';
 import type { PastelColor } from '@/lib/types';
 
 const WINDOW_DAYS = 7;
-// เกณฑ์เดียวกับ WorkloadPanel (เขียว/ส้ม/แดง) - ใช้ตัวนี้แค่หาคน "โหลดเยอะสุด" ของแต่ละคลาสมาเด่นๆ
-// บนหัวการ์ด ส่วนกราฟเต็มรูปแบบยังอยู่ใน WorkloadPanel ด้านล่างเหมือนเดิม
-const LOAD_BANDS = [
-  { max: 55, label: 'ยังว่าง', text: 'text-load-free', track: 'bg-load-free/15' },
-  { max: 85, label: 'เริ่มแน่น', text: 'text-load-tight', track: 'bg-load-tight/15' },
-  { max: Infinity, label: 'แน่นมาก', text: 'text-load-full', track: 'bg-load-full/15' },
-] as const;
-function loadBandOf(pct: number) {
-  return LOAD_BANDS.find((b) => pct < b.max) ?? LOAD_BANDS[LOAD_BANDS.length - 1];
-}
 
 // หน้า Admin สำหรับอาจารย์ - รวมคลาสเรียนทั้งหมดที่ตัวเองเป็นเจ้าของ (กลุ่มที่มี code) ไว้ที่เดียว
 // ใช้หน้ากลุ่มเดิมทั้งหมด (/groups/[id], .../tasks, .../calendar) สำหรับ "จัดการ" จริง (มอบหมายงาน,
@@ -63,8 +54,7 @@ export default async function AdminPage() {
       let top: { name: string; pct: number; score: number } | null = null;
       for (const m of g.members) {
         const w = workloadByUser.get(m.userId)!;
-        const capacity = w.committedMinutes + w.freeMinutes;
-        const pct = capacity > 0 ? Math.round((w.committedMinutes / capacity) * 100) : 100;
+        const pct = loadPct(w.committedMinutes, w.freeMinutes);
         const score = Number.isFinite(w.score) ? w.score : Infinity;
         if (!top || score > top.score) top = { name: m.user.name || m.user.email.split('@')[0], pct, score };
       }
@@ -139,7 +129,7 @@ export default async function AdminPage() {
                       </div>
                     </Link>
                     <Link
-                      href={`/groups/${g.id}/tasks`}
+                      href={`/groups/${g.id}/admin`}
                       className="flex flex-shrink-0 items-center gap-1 rounded-full border border-eddy-200 bg-surface px-3.5 py-2 font-display text-xs font-semibold text-ink-soft transition-colors hover:bg-eddy-50"
                     >
                       มอบหมายงาน <ChevronRight size={14} />

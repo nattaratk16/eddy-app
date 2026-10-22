@@ -14,7 +14,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState, use } from 'react'
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, Settings, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, Copy, Crown, ListChecks, LayoutGrid, RefreshCw, Settings, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import clsx from 'clsx';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -28,6 +28,9 @@ const TABS = [
   { key: '', label: 'ภาพรวม', icon: LayoutGrid },
   { key: 'calendar', label: 'ปฏิทินกลุ่ม', icon: CalendarDays },
   { key: 'tasks', label: 'รายละเอียดงาน', icon: ListChecks },
+  // เฉพาะเจ้าของกลุ่มเท่านั้นที่เห็นแท็บนี้ (filter ตอน render ข้างล่าง) - "กฎง่ายๆ" ที่ใช้: ใครสร้าง
+  // กลุ่มก็มีสิทธิ์มีหน้า admin ของกลุ่มนั้นไปเลย (Group.ownerId ตัดสิน ไม่ต้องมีระบบสิทธิ์ใหม่)
+  { key: 'admin', label: 'จัดการกลุ่ม', icon: ShieldCheck, ownerOnly: true },
 ] as const;
 
 export default function GroupLayout(props: { children: ReactNode; params: Promise<{ id: string }> }) {
@@ -252,7 +255,7 @@ export default function GroupLayout(props: { children: ReactNode; params: Promis
 
       {/* ---- แท็บ ---- */}
       <div className="mt-5 flex items-center gap-1 overflow-x-auto border-b border-eddy-100">
-        {TABS.map((tab) => {
+        {TABS.filter((tab) => !('ownerOnly' in tab && tab.ownerOnly) || group?.isOwner).map((tab) => {
           const active = current === tab.key;
           const Icon = tab.icon;
           return (

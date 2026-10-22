@@ -65,8 +65,7 @@ export default function OnboardingWizard() {
       body: JSON.stringify({ role }),
     });
     if (!res.ok) {
-      // ส่วนใหญ่คือเลือก role "อาจารย์" แต่มีคนเป็นอาจารย์อยู่แล้วในระบบ (คนแรกเท่านั้นที่ได้)
-      // พากลับไปสเตปเลือกบทบาทให้แก้ ไม่เด้งไปแดชบอร์ด
+      // เผื่อบันทึกไม่สำเร็จ (เช่น เน็ตหลุด) - พากลับไปสเตปเลือกบทบาทให้ลองใหม่ ไม่เด้งไปแดชบอร์ด
       const data = await res.json().catch(() => ({}));
       setRoleError(data.error ?? 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ');
       setLoading(false);
@@ -243,8 +242,7 @@ export default function OnboardingWizard() {
                   })}
                 </div>
 
-                {/* role "อาจารย์" เช็คจริงฝั่ง server ตอน finish() ว่ามีคนเป็นอาจารย์อยู่แล้วหรือยัง
-                    (กฎ: คนแรกที่เลือกเท่านั้นที่ได้) - ถ้าไม่ผ่านจะเด้งกลับมาที่สเตปนี้พร้อมข้อความนี้ */}
+                {/* error ทั่วไปตอนบันทึกบทบาทไม่สำเร็จ (เช่น เน็ตหลุด) - ไม่ใช่ error เฉพาะ role ไหน */}
                 {roleError && (
                   <p className="mt-4 rounded-clay-sm bg-pastel-pink/60 px-3 py-2 font-body text-sm text-chip-ink dark:bg-pastel-pink-dark/20 dark:text-pastel-pink-dark">
                     {roleError}
